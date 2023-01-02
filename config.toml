@@ -1,0 +1,167 @@
+#highlight different bytes among all opened files.
+#use the 'h' key to toggle this
+highlight_diff = true
+
+#show only printable characters. Other are replaced with space.
+#use the 'p' key to toggle this
+only_printable = false
+
+#locks the view position for all file buffers.
+#use the 'k' key to toggle this
+lock_file_buffers = true
+
+#This defines how screen is shifted when cursor move out the screen range.
+#"Byte" - shift screen by bytes
+#"Row" - shift screen by rows
+#"Page" - shift screen by pages
+screen_paging_size = "Row"
+
+#style used for highlights. Choose one from:
+#"None" - results are not highlighted, colorscheme bg_color is used.
+#"Solid" - highlight_bg_color from colorscheme used.
+#"RandomDark" - highlights have random colors from rgb 30-130. 
+#"RandomLight" - highlights have random colors from rgb 120-220. 
+highlight_style = "RandomDark"
+
+#the name of the initial color scheme.
+active_color_scheme = "gudinuf"
+
+#clear terminal when program ends
+clear_screen_on_exit = false
+
+#color schemes define how program's UI looks. To create a new colorscheme simply create a new [[color_scheme]] section with your colors with unique name.
+# for 16 color terminal:
+#   "black", "white", "grey", "dark_grey", "red", "dark_red", "green", "dark_green", "yellow", "dark_yellow",
+#   "blue", "dark_blue", "magenta", "dark_magenta", "cyan", "dark_cyan" 
+#
+# for 256 color terminal you can use "ansi_(..)" for example "ansi_(53)" for deep pink color. https://www.ditig.com/256-color-cheat-sheet
+# for full RGB terminal you can use "rgb_(r,g,b)".
+# various color types can be combined into one color scheme. However terminals with lower color resolution may struggle with higher resolution.
+
+#the default color scheme for terminals that support only 16 basic colors
+[[color_scheme]]
+name = "default16"
+fg_color = "white"
+bg_color = "black" 
+error_fg_color = "yellow"
+error_bg_color = "dark_red"
+cursor_fg_color = "white"
+cursor_bg_color = "dark_yellow"
+patch_fg_color = "red"
+selection_bg_color = "grey"
+highlight_bg_color = "dark_yellow"
+diff_fg_color = "dark_green"
+infobar_fg_color = "black"
+infobar_bg_color = "grey"
+offsetbar_fg_color = "white"
+offsetbar_bg_color = "black"
+location_list_fg_color = "white"
+location_list_bg_color = "black"
+location_list_cursor_fg_color = "white"
+location_list_cursor_bg_color = "dark_yellow"
+
+[[color_scheme]]
+name = "hiewlike"
+fg_color = "cyan"
+bg_color = "dark_blue" 
+error_fg_color = "yellow"
+error_bg_color = "dark_red"
+cursor_fg_color = "dark_blue"
+cursor_bg_color = "grey"
+patch_fg_color = "dark_green"
+selection_bg_color = "blue"
+highlight_bg_color = "dark_yellow"
+diff_fg_color = "dark_red"
+infobar_fg_color = "black"
+infobar_bg_color = "grey"
+offsetbar_fg_color = "cyan"
+offsetbar_bg_color = "dark_blue"
+location_list_fg_color = "cyan"
+location_list_bg_color = "dark_blue"
+location_list_cursor_fg_color = "black"
+location_list_cursor_bg_color = "grey"
+
+[[color_scheme]]
+name = "gudinuf"
+fg_color = "rgb_(255,230,190)"
+bg_color = "rgb_(0,0,0)" 
+error_fg_color = "rgb_(255,255,100)"
+error_bg_color = "rgb_(130,10,0)"
+cursor_fg_color = "rgb_(0,0,0)"
+cursor_bg_color = "rgb_(240,175,0)" 
+patch_fg_color = "rgb_(210,230,0)"
+selection_bg_color = "rgb_(40,105,120)"
+highlight_bg_color = "rgb_(194,59,35)"
+diff_fg_color = "red"
+infobar_fg_color = "rgb_(255,230,190)"
+infobar_bg_color = "rgb_(65,65,65)"
+offsetbar_fg_color = "rgb_(235,210,070)"
+offsetbar_bg_color = "rgb_(0,0,0)"
+location_list_fg_color = "rgb_(255,230,190)"
+location_list_bg_color = "rgb_(0,0,0)"
+location_list_cursor_fg_color = "rgb_(0,0,0)"
+location_list_cursor_bg_color = "rgb_(240,175,0)"
+
+[[color_scheme]]
+name = "orange_terminal"
+fg_color = "ansi_(208)"
+bg_color = "black"
+error_fg_color = "black"
+error_bg_color = "ansi_(202)"
+cursor_fg_color = "black"
+cursor_bg_color = "ansi_(214)"
+patch_fg_color = "ansi_(220)"
+selection_bg_color = "ansi_(88)"
+highlight_bg_color = "ansi_(94)"
+diff_fg_color = "ansi_(202)"
+infobar_fg_color = "black"
+infobar_bg_color = "ansi_(172)"
+offsetbar_fg_color = "ansi_(208)"
+offsetbar_bg_color = "black"
+location_list_fg_color = "ansi_(208)"
+location_list_bg_color = "black"
+location_list_cursor_fg_color = "black"
+location_list_cursor_bg_color = "ansi_(214)"
+
+[[color_scheme]]
+name = "green_terminal"
+fg_color = "ansi_(34)"
+bg_color = "black"
+error_fg_color = "black"
+error_bg_color = "ansi_(202)"
+cursor_fg_color = "black"
+cursor_bg_color = "ansi_(46)"
+patch_fg_color = "ansi_(220)"
+selection_bg_color = "ansi_(88)"
+highlight_bg_color = "ansi_(53)"
+diff_fg_color = "ansi_(202)"
+infobar_fg_color = "black"
+infobar_bg_color = "ansi_(28)"
+offsetbar_fg_color = "ansi_(34)"
+offsetbar_bg_color = "black"
+location_list_fg_color = "ansi_(34)"
+location_list_bg_color = "black"
+location_list_cursor_fg_color = "black"
+location_list_cursor_bg_color = "ansi_(46)"
+
+[[color_scheme]]
+name = "blue_terminal"
+fg_color = "ansi_(39)"
+bg_color = "black"
+error_fg_color = "yellow"
+error_bg_color = "dark_red"
+cursor_fg_color = "black"
+cursor_bg_color = "ansi_(142)"
+patch_fg_color = "ansi_(220)"
+selection_bg_color = "ansi_(24)"
+highlight_bg_color = "ansi_(88)"
+diff_fg_color = "ansi_(202)"
+infobar_fg_color = "black"
+infobar_bg_color = "ansi_(39)"
+offsetbar_fg_color = "ansi_(39)"
+offsetbar_bg_color = "black"
+location_list_fg_color = "ansi_(39)"
+location_list_bg_color = "black"
+location_list_cursor_fg_color = "black"
+location_list_cursor_bg_color = "ansi_(142)"
+
