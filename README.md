@@ -19,10 +19,12 @@ Please read the [manual](docs/MANUAL.md) to see all its commands and features.
 
 ### Install
 
-Download and extract the [compiled]() zip file for your platform. You can also download the source code and build it with rust cargo:
+Download and extract the [compiled](releases/) zip file for your platform. Or you can download the source code and build it with rust cargo:
 ```
 cargo build --release
 ```
+
+Then copy configuration [config.toml](config.toml) file to the same folder where compiled program is located.
 
 ### Acknowledgment
 
