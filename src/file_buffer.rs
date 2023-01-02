@@ -79,8 +79,7 @@ impl FileBuffer {
                 self.modified = self.original_hash != hasher.finish();
             }
 
-        //append byte if is one past the end of the file
-        //original byte in patch is set to 0
+        //append byte if is one past the end of the file. Original byte in patch is set to 0
         } else if offset == self.file_data.len() {
             self.file_data.push(value);
             self.patch_map.entry(offset).or_insert(0);
@@ -124,7 +123,7 @@ impl FileBuffer {
             //recalculate offset of existing patches
             if self.patch_map.iter().any(|(o,_)| *o >= position) {
                 self.patch_map = self.patch_map.iter()
-                    .map(|(o,b)| (*o + if *o >= position {data_len} else {0}, *b))
+                    .map(|(o,b)| (*o + if *o >= position { data_len } else { 0 }, *b))
                     .collect();
             }
 
@@ -192,20 +191,34 @@ impl FileBuffer {
     //find if offset is highlighted and returns color. Using binary search.
     pub fn highlight_color(&self, offset: usize) -> Option<Color> {
         let mut low_idx = 0;
-        let mut high_idx = self.highlights.len() -1;
-        let mut mid_idx = (high_idx - low_idx) / 2 + low_idx;
+        let mut high_idx = self.highlights.len();
+        let mut mid_idx = high_idx / 2;
 
         while let Some(&(s,e,c)) = self.highlights.get(mid_idx) {
 
             if offset > e {
                 low_idx = mid_idx + 1;
+
+                if low_idx > high_idx {
+                    break;
+                }
+
             } else if offset < s {
-                high_idx = mid_idx -1;
+                if mid_idx == 0 {
+                    break;
+                }
+
+                high_idx = mid_idx - 1;
+
+                if high_idx < low_idx {
+                    break;
+                }
+
             } else {
                 return Some(c);
             }
 
-            mid_idx = (high_idx - low_idx) / 2 + low_idx;
+            mid_idx = (high_idx + low_idx) / 2;
         }
         None
     }

@@ -27,11 +27,8 @@ impl LocationList {
 
     //returns previous location
     pub fn previous(&mut self) -> Option<(usize, String)> {
-        if let Some(v) = self.get(self.current_index - 1) {
-            self.current_index -= 1;
-            return Some(v);
-        } 
-        None
+        self.current_index -= if self.current_index > 0 { 1 } else { 0 };
+        self.get(self.current_index)
     }
 
     //returns location at current index
