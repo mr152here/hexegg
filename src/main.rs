@@ -27,6 +27,8 @@ use file_buffer::FileBuffer;
 
 mod location_list;
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 fn create_screens(cols: u16, rows: u16) -> Vec<Box<dyn Screen>> {
     vec![
         Box::new(TextScreen::new(cols, rows)),
@@ -105,7 +107,7 @@ fn main() {
 
     //if there is nothing to open just quit
     if file_buffers.is_empty() {
-        println!("\nhexegg version 0.1.0\nusage: hexegg [file1] <file2> <file3> ...\n");
+        println!("\nhexegg version {}\nusage: hexegg [file1] <file2> <file3> ...\n", VERSION);
         return;
     }
 
