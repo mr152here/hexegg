@@ -1,3 +1,4 @@
 /target
+/release_builder
 todo.txt
 Cargo.lock
