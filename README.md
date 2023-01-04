@@ -17,9 +17,17 @@ Cross-platform terminal hex viewer and editor with some advanced features.
 
 Please read the [manual](docs/MANUAL.md) to see all its commands and features.
 
-### Install
+### Install and run
 
-Download and extract the [compiled](https://github.com/mr152here/hexegg/releases) zip file for your platform. Or you can download the source code and build it with rust cargo:
+Download and extract the [compiled](https://github.com/mr152here/hexegg/releases) zip file for your platform. In some platforms / filesystems you need to enable executable bit for the file.
+
+```
+cd hexegg
+chmod +x hexegg
+```
+
+Or you can download the source code and build it with rust cargo:
+
 ```
 cargo build --release
 ```
