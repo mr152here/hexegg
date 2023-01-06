@@ -220,6 +220,9 @@ pub fn find_all_headers(file_buffers: &[FileBuffer], active_fb_index: usize) -> 
 
         } else if let Some(_) = is_struct_png(tmp_file_slice) {
             result_ll.add_location(i, "png".to_owned());
+        
+        } else if let Some(_) = is_struct_ico(tmp_file_slice) {
+            result_ll.add_location(i, "ico".to_owned());
         }
     }
 

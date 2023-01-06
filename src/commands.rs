@@ -72,6 +72,7 @@ impl Command {
             Some(&"fad") => Ok(Command::FindAllDiffs),
 
             Some(&"findallheaders") => Ok(Command::FindAllHeaders),
+            Some(&"fah") => Ok(Command::FindAllHeaders),
 
             Some(&"deleteblock") => Ok(Command::DeleteBlock),
             Some(&"saveblock") => Command::parse_save_block(&cmd_vec),

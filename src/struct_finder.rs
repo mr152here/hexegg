@@ -79,7 +79,31 @@ pub fn is_struct_png(data: &[u8]) -> Option<usize> {
     None
 }
 
+//try to recognize ICO/CUR file header
+pub fn is_struct_ico(data: &[u8]) -> Option<usize> {
 
+    //at least size of header + first image + size of png
+    if data.len() > 54 {
+        //ico starts with a lot of non uniqe bytes
+        if data[0] == 0 && data[1] == 0 && (data[2] == 1 || data[2] == 2) && data[3] == 0 && data[5] == 0 && data[9] == 0 {
+
+            let image_size = u32_from_bytes_unchecked(&data[14..18], true) as usize;
+            if image_size < data.len() {
+
+                let image_offset = u32_from_bytes_unchecked(&data[18..22] ,true) as usize;
+                if image_offset >= 22 && image_offset < data.len() {
+
+                    //need to check if it points to PNG or DIB struct
+                    if is_struct_png(&data[image_offset..]).is_some() || is_struct_dib(&data[image_offset..]) {
+                        return Some(0);
+                    }
+                }
+            }
+        }
+    }
+
+    None
+}
 
 
 
