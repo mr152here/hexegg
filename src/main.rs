@@ -26,6 +26,7 @@ mod file_buffer;
 use file_buffer::FileBuffer;
 
 mod location_list;
+mod struct_finder;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -490,6 +491,11 @@ fn main() {
                 },
                 Some(Command::FindAllDiffs) => {
                     let ll = command_functions::find_all_diffs(&file_buffers, active_fb_index);
+                    file_buffers[active_fb_index].set_location_list(ll);
+                    screens.iter_mut().for_each(|s| s.show_location_bar(true));
+                },
+                Some(Command::FindAllHeaders) => {
+                    let ll = command_functions::find_all_headers(&file_buffers, active_fb_index);
                     file_buffers[active_fb_index].set_location_list(ll);
                     screens.iter_mut().for_each(|s| s.show_location_bar(true));
                 },

@@ -5,6 +5,7 @@ use crate::location_list::LocationList;
 use crate::file_buffer::FileBuffer;
 use crate::ColorScheme;
 use crate::config::{Config, HighlightStyle, ScreenPagingSize};
+use crate::struct_finder::*;
 
 //set file offset to one/all filebuffers
 pub fn set_position(file_buffers: &mut [FileBuffer], active_fb: usize, position: usize, lock_buffers: bool) {
@@ -200,6 +201,26 @@ pub fn find_all_diffs(file_buffers: &[FileBuffer], active_fb_index: usize) -> Lo
         })
         .map(|(o,_)| (o, format!("{:08X}", o)))
         .collect::<LocationList>()
+}
+
+//find all headers and structs
+//TODO: implement block size to location list to fill it here!!
+pub fn find_all_headers(file_buffers: &[FileBuffer], active_fb_index: usize) -> LocationList {
+
+    let mut result_ll = LocationList::new();
+    let file_len = file_buffers[active_fb_index].len();
+    let file_slice = file_buffers[active_fb_index].as_slice();
+
+    for i in 0..file_len {
+        let file_slice = &file_slice[i..];
+
+        if let Some(_) = is_struct_bmp(file_slice) {
+            //TODO: block size to location list
+            result_ll.add_location(i, "bmp".to_owned());
+        }
+    }
+
+    result_ll
 }
 
 //helper function that calculate entropy of data block

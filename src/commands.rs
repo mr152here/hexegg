@@ -12,6 +12,7 @@ pub enum Command {
     FindAllDiffs,
     FindPatch,
     FindAllPatches,
+    FindAllHeaders,
     DeleteBlock,
     SaveBlock(String),
     FillBlock(Vec<u8>),
@@ -69,6 +70,8 @@ impl Command {
 
             Some(&"findalldiffs") => Ok(Command::FindAllDiffs),
             Some(&"fad") => Ok(Command::FindAllDiffs),
+
+            Some(&"findallheaders") => Ok(Command::FindAllHeaders),
 
             Some(&"deleteblock") => Ok(Command::DeleteBlock),
             Some(&"saveblock") => Command::parse_save_block(&cmd_vec),
