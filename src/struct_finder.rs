@@ -7,11 +7,31 @@ fn u32_from_bytes_unchecked(bytes: &[u8], little_endian: bool) -> u32 {
     }
 }
 
+//try to recognize 40 bytes DIB header. 
+fn is_struct_dib(data: &[u8]) -> bool {
+    
+    if data.len() > 40 {
+
+        //DIB header size
+        if data[0] == 40 && data[1] == 0 && data[2] == 0 && data[3] == 0 {
+
+            //number of planes must be 1
+            if data[12] == 1 && data[13] == 0 {
+
+                //bites per pixel 1,4,8,24
+                return (data[14] == 1 || data[14] == 4 || data[14] == 8 || data[14] == 24 || data[14] == 32) && data[15] == 0;
+            }
+        }
+    }
+
+    false
+}
+
 //try to recognize BMP file ehader. And return its size
 pub fn is_struct_bmp(data: &[u8]) -> Option<usize> {
 
     //we need to read at least 30 bytes
-    if data.len() > 30 {
+    if data.len() > 54 {
 
         //check 'BM' magic bytes
         if data[0] == 0x42 && data[1] == 0x4D {
@@ -26,18 +46,8 @@ pub fn is_struct_bmp(data: &[u8]) -> Option<usize> {
                     //following 4 bytes are address of picture data. Should not be less then 0x36 and also not too much
                     let pic_offset = u32_from_bytes_unchecked(&data[10..14], true);
                     if pic_offset >= 0x36 && pic_offset <= 0xFFFF {
-
-                        //following 4 bytes are size of variants of BITMAP...HEADER. Most commonly 40 but not always. Not less then 12
-                        if data[14] >= 12 && data[15] == 0 && data[16] == 0 && data[17] == 0 {
-
-                            //number of planes, always 1
-                            if data[26] == 1 && data[27] == 0 {
-
-                                //bites per pixel
-                                if (data[28] == 1 || data[28] == 4 || data[28] == 8 || data[28] == 24) && data[29] == 0 {
-                                    return Some(bmp_length)
-                                }
-                            }
+                        if is_struct_dib(&data[14..]) {
+                            return Some(bmp_length);
                         }
                     }
                 }
@@ -68,6 +78,7 @@ pub fn is_struct_png(data: &[u8]) -> Option<usize> {
 
     None
 }
+
 
 
 
