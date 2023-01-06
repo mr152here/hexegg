@@ -212,11 +212,14 @@ pub fn find_all_headers(file_buffers: &[FileBuffer], active_fb_index: usize) -> 
     let file_slice = file_buffers[active_fb_index].as_slice();
 
     for i in 0..file_len {
-        let file_slice = &file_slice[i..];
+        let tmp_file_slice = &file_slice[i..];
 
-        if let Some(_) = is_struct_bmp(file_slice) {
-            //TODO: block size to location list
+        //TODO: block size to location list
+        if let Some(_) = is_struct_bmp(tmp_file_slice) {
             result_ll.add_location(i, "bmp".to_owned());
+
+        } else if let Some(_) = is_struct_png(tmp_file_slice) {
+            result_ll.add_location(i, "png".to_owned());
         }
     }
 
