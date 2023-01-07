@@ -105,18 +105,16 @@ pub fn is_struct_ico(data: &[u8]) -> Option<usize> {
     None
 }
 
-
 //try to recognize GIF file header
 pub fn is_struct_gif(data: &[u8]) -> Option<usize> {
 
     if data.len() > 100 {
-        //check GIF89a
+        //check magic GIF89a
         if data[0] == 0x47 && data[1] == 0x49 && data[2] == 0x46 && data[3] == 0x38 && data[4] == 0x39 && data[5] == 0x61 {
 
-            //find start of extension block
-            //TODO: check length!
+            //find start of extension block. Should starts with '!'
             let offset = (1 << ((data[10] & 0x07) + 1) as usize) * 3 + 13;
-            if data[offset] == 0x21 {
+            if data.len() > offset && data[offset] == 0x21 {
                 return Some(0);
             }
         }
@@ -125,4 +123,25 @@ pub fn is_struct_gif(data: &[u8]) -> Option<usize> {
     None
 }
 
+//try to recognize JPEG file header
+pub fn is_struct_jpeg(data: &[u8]) -> Option<usize> {
 
+    if data.len() > 50 {
+        //check for FF D8 segment
+        if data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF { 
+
+            //following with APP0 or APP1 segment with JFIF\x00 or Exif\x00 bytes
+            if data[3] == 0xE0 {
+                if data[6] == 0x4A && data[7] == 0x46 && data[8] == 0x49 && data[9] == 0x46 && data[10] == 0x00 {
+                    return Some(0);
+                }
+            } else if data[3] == 0xE1 {
+                if data[6] == 0x45 && data[7] == 0x78 && data[8] == 0x69 && data[9] == 0x66 && data[10] == 0x00 {
+                    return Some(0);
+                }
+            }
+        }
+    }
+
+    None
+}
