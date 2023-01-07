@@ -106,5 +106,23 @@ pub fn is_struct_ico(data: &[u8]) -> Option<usize> {
 }
 
 
+//try to recognize GIF file header
+pub fn is_struct_gif(data: &[u8]) -> Option<usize> {
+
+    if data.len() > 100 {
+        //check GIF89a
+        if data[0] == 0x47 && data[1] == 0x49 && data[2] == 0x46 && data[3] == 0x38 && data[4] == 0x39 && data[5] == 0x61 {
+
+            //find start of extension block
+            //TODO: check length!
+            let offset = (1 << ((data[10] & 0x07) + 1) as usize) * 3 + 13;
+            if data[offset] == 0x21 {
+                return Some(0);
+            }
+        }
+    }
+
+    None
+}
 
 
