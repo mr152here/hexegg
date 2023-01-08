@@ -165,3 +165,31 @@ pub fn is_struct_zip(data: &[u8]) -> Option<usize> {
 
     None
 }
+
+//try to recognize RAR header
+pub fn is_struct_rar(data: &[u8]) -> Option<usize> {
+
+    if data.len() > 8 {
+
+        //check for Rar! magic
+        if data[0] == 0x52 && data[1] == 0x61 && data[2] == 0x72 && data[3] == 0x21 && data[4] == 0x1A && data[5] == 0x07 && (data[6] == 0x01 || data[6] == 0x00) { 
+            return Some(0);
+        }
+    }
+
+    None
+}
+
+//try to recognize 7z header
+pub fn is_struct_7z(data: &[u8]) -> Option<usize> {
+
+    if data.len() > 32 {
+
+        //check for 7z magic
+        if data[0] == 0x37 && data[1] == 0x7A && data[2] == 0xBC && data[3] == 0xAF && data[4] == 0x27 && data[5] == 0x1C { 
+            return Some(0);
+        }
+    }
+
+    None
+}

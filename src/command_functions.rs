@@ -232,6 +232,12 @@ pub fn find_all_headers(file_buffers: &[FileBuffer], active_fb_index: usize) -> 
 
         } else if let Some(_) = is_struct_zip(tmp_file_slice) {
             result_ll.add_location(i, "zip".to_owned());
+
+        } else if let Some(_) = is_struct_rar(tmp_file_slice) {
+            result_ll.add_location(i, "rar".to_owned());
+        
+        } else if let Some(_) = is_struct_7z(tmp_file_slice) {
+            result_ll.add_location(i, "7z".to_owned());
         }
     }
 
