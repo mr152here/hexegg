@@ -229,6 +229,9 @@ pub fn find_all_headers(file_buffers: &[FileBuffer], active_fb_index: usize) -> 
 
         } else if let Some(_) = is_struct_jpeg(tmp_file_slice) {
             result_ll.add_location(i, "jpeg".to_owned());
+
+        } else if let Some(_) = is_struct_zip(tmp_file_slice) {
+            result_ll.add_location(i, "zip".to_owned());
         }
     }
 

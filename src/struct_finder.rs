@@ -127,6 +127,7 @@ pub fn is_struct_gif(data: &[u8]) -> Option<usize> {
 pub fn is_struct_jpeg(data: &[u8]) -> Option<usize> {
 
     if data.len() > 50 {
+
         //check for FF D8 segment
         if data[0] == 0xFF && data[1] == 0xD8 && data[2] == 0xFF { 
 
@@ -139,6 +140,25 @@ pub fn is_struct_jpeg(data: &[u8]) -> Option<usize> {
                 if data[6] == 0x45 && data[7] == 0x78 && data[8] == 0x69 && data[9] == 0x66 && data[10] == 0x00 {
                     return Some(0);
                 }
+            }
+        }
+    }
+
+    None
+}
+
+//try to recognize ZIP header
+pub fn is_struct_zip(data: &[u8]) -> Option<usize> {
+
+    if data.len() > 8 {
+
+        //check for PK magic
+        if data[0] == 0x50 && data[1] == 0x4B {
+            //check for various block types
+            let d2 = data[2];
+            let d3 = data[3];
+            if (d2 == 3 && d3 == 4) || (d2 == 6 && d3 == 8) || (d2 == 1 && d3 == 2) || (d2 == 6 && d3 == 6) || (d2 == 6 && d3 == 7)  || (d2 == 5 && d3 == 6) || (d2 == 5 && d3 == 5) { 
+                return Some(0);
             }
         }
     }
