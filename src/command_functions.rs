@@ -244,6 +244,16 @@ pub fn find_all_headers(file_buffers: &[FileBuffer], active_fb_index: usize) -> 
         
         } else if let Some(_) = is_struct_7z(tmp_file_slice) {
             result_ll.add_location(i, "7z".to_owned());
+
+        } else if let Some(_) = is_struct_xz(tmp_file_slice) {
+            result_ll.add_location(i, "xz".to_owned());
+
+        } else if let Some(_) = is_struct_bzip2(tmp_file_slice) {
+            result_ll.add_location(i, "bzip2".to_owned());
+
+        } else if let Some(_) = is_struct_gzip(tmp_file_slice) {
+            result_ll.add_location(i, "gzip".to_owned());
+
         }
     }
 

@@ -194,6 +194,48 @@ pub fn is_struct_7z(data: &[u8]) -> Option<usize> {
     None
 }
 
+//try to recognize xz header
+pub fn is_struct_xz(data: &[u8]) -> Option<usize> {
+
+    if data.len() > 12 {
+
+        //check for xz magic
+        if data[0] == 0xFD && data[1] == 0x37 && data[2] == 0x7A && data[3] == 0x58 && data[4] == 0x5A && data[5] == 0 && data[6] == 0 && data[7] <= 0x0F { 
+            return Some(0);
+        }
+    }
+
+    None
+}
+
+//try to recognize bzip2 header
+pub fn is_struct_bzip2(data: &[u8]) -> Option<usize> {
+
+    if data.len() > 20 {
+
+        //check for bzip2 magic
+        if data[0] == 0x42 && data[1] == 0x5A && data[2] == 0x68 && data[3] >= 0x31 && data[3] <= 0x39 && data[4] == 0x31 && data[5] == 0x41 && data[6] == 0x59 && data[7] == 0x26 && data[8] == 0x53 && data[9] == 0x59 { 
+            return Some(0);
+        }
+    }
+
+    None
+}
+
+//try to recognize gz header
+pub fn is_struct_gzip(data: &[u8]) -> Option<usize> {
+
+    if data.len() > 100 {
+
+        //check for gzip magic
+        if data[0] == 0x1F && data[1] == 0x8B && data[2] == 0x08 && data[3] <= 0x1F && (data[8] == 0 || data[8] == 2 || data[8] == 4) && (data[9] <= 13 || data[9] == 0xFF) {
+            return Some(0);
+        }
+    }
+
+    None
+}
+
 //try to recognize exe/mzpe header
 pub fn is_struct_mzpe(data: &[u8]) -> Option<usize> {
 
