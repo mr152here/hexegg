@@ -193,3 +193,40 @@ pub fn is_struct_7z(data: &[u8]) -> Option<usize> {
 
     None
 }
+
+//try to recognize exe/mzpe header
+pub fn is_struct_mzpe(data: &[u8]) -> Option<usize> {
+
+    if data.len() > 0x40 {
+
+        //check for MZ magic
+        if data[0] == 0x4D && data[1] == 0x5A { 
+
+            //get dword from 0x3C offset and check if is there PE\x00\x00
+            let pe_offset = u32_from_bytes_unchecked(&data[0x3c..], true) as usize;
+            if pe_offset < data.len() && data[pe_offset] == 0x50 && data[pe_offset + 1] == 0x45 && data[pe_offset + 2] == 0 && data[pe_offset + 3] == 0 {
+                return Some(0);
+            }
+        }
+    }
+
+    None
+}
+
+//try to recognize elf header
+pub fn is_struct_elf(data: &[u8]) -> Option<usize> {
+
+    if data.len() > 0x40 {
+
+        //check for ELF magic
+        if data[0] == 0x7F && data[1] == 0x45 && data[2] == 0x4C && data[3] == 0x46 {
+
+            //addition check for 32/64 bit flag, endianness and version
+            if (data[4] == 1 || data[4] == 2) && (data[5] == 1 || data[5] == 2) && data[6] == 1 { 
+                return Some(0);
+            }
+        }
+    }
+
+    None
+}
