@@ -254,6 +254,12 @@ pub fn find_all_headers(file_buffers: &[FileBuffer], active_fb_index: usize) -> 
         } else if let Some(_) = is_struct_gzip(tmp_file_slice) {
             result_ll.add_location(i, "gzip".to_owned());
 
+        } else if let Some(_) = is_struct_deb(tmp_file_slice) {
+            result_ll.add_location(i, "deb".to_owned());
+
+        } else if let Some(_) = is_struct_rpm(tmp_file_slice) {
+            result_ll.add_location(i, "rpm".to_owned());
+
         }
     }
 

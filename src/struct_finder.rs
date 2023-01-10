@@ -214,7 +214,8 @@ pub fn is_struct_bzip2(data: &[u8]) -> Option<usize> {
     if data.len() > 20 {
 
         //check for bzip2 magic
-        if data[0] == 0x42 && data[1] == 0x5A && data[2] == 0x68 && data[3] >= 0x31 && data[3] <= 0x39 && data[4] == 0x31 && data[5] == 0x41 && data[6] == 0x59 && data[7] == 0x26 && data[8] == 0x53 && data[9] == 0x59 { 
+        if data[0] == 0x42 && data[1] == 0x5A && data[2] == 0x68 && data[3] >= 0x31 && data[3] <= 0x39 && data[4] == 0x31 && data[5] == 0x41 
+            && data[6] == 0x59 && data[7] == 0x26 && data[8] == 0x53 && data[9] == 0x59 { 
             return Some(0);
         }
     }
@@ -230,6 +231,36 @@ pub fn is_struct_gzip(data: &[u8]) -> Option<usize> {
         //check for gzip magic
         if data[0] == 0x1F && data[1] == 0x8B && data[2] == 0x08 && data[3] <= 0x1F && (data[8] == 0 || data[8] == 2 || data[8] == 4) && (data[9] <= 13 || data[9] == 0xFF) {
             return Some(0);
+        }
+    }
+
+    None
+}
+
+//try to recognize deb header
+pub fn is_struct_deb(data: &[u8]) -> Option<usize> {
+
+    if data.len() > 0x84 {
+        if data[0] == 0x21 && data[1] == 0x3C && data[2] == 0x61 && data[3] == 0x72 && data[4] == 0x63 && data[5] == 0x68 && data[6] == 0x3E && data[7] == 0x0A
+            && data[8] == 0x64 && data[9] == 0x65 && data[10] == 0x62 && data[11] == 0x69 && data[12] == 0x61 && data[13] == 0x6E && data[14] == 0x2D 
+            && data[15] == 0x62 && data[16] == 0x69 && data[17] == 0x6E && data[18] == 0x61 && data[19] == 0x72 && data[20] == 0x79 && data[66] == 0x60 && data[67] == 0x0A {
+            return Some(0);
+        }
+    }
+
+    None
+}
+
+//try to recognize rpm header
+pub fn is_struct_rpm(data: &[u8]) -> Option<usize> {
+
+    if data.len() > 0x70 {
+        //check ED AB EE DB magic for version 3 0
+        if data[0] == 0xED && data[1] == 0xAB && data[2] == 0xEE && data[3] == 0xDB && data[4] == 0x03 && data[5] == 0x00 {
+            //check if header magis 8e ad e8 is at offset 0x60
+            if data[0x60] == 0x8E && data[0x61] == 0xAD && data[0x62] == 0xE8 {
+                return Some(0);
+            }
         }
     }
 
