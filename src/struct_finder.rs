@@ -165,6 +165,24 @@ pub fn is_struct_jpeg(data: &[u8]) -> Option<usize> {
     None
 }
 
+//try to recognize webp header
+pub fn is_struct_webp(data: &[u8]) -> Option<usize> {
+
+    if data.len() > 44 {
+
+        //check for RIFF + WEBP magic
+        if data[0] == 0x52 && data[1] == 0x49 && data[2] == 0x46 && data[3] == 0x46 && data[8] == 0x57 && data[9] == 0x45 && data[10] == 0x42 && data[11] == 0x50 {
+
+            //VP8 chunk should follow
+            if data[12] == 0x56 && data[13] == 0x50 && data[14] == 0x38 {
+                return Some(0);
+            }
+        }
+    }
+
+    None
+}
+
 //try to recognize ZIP header
 pub fn is_struct_zip(data: &[u8]) -> Option<usize> {
 
