@@ -105,6 +105,24 @@ pub fn is_struct_ico(data: &[u8]) -> Option<usize> {
     None
 }
 
+//try to recognize ani header
+pub fn is_struct_ani(data: &[u8]) -> Option<usize> {
+
+    if data.len() > 44 {
+
+        //check for RIFF + ACON magic
+        if data[0] == 0x52 && data[1] == 0x49 && data[2] == 0x46 && data[3] == 0x46 && data[8] == 0x41 && data[9] == 0x43 && data[10] == 0x4F && data[11] == 0x4E {
+
+            //anih chunk should follow
+            if data[12] == 0x61 && data[13] == 0x6E && data[14] == 0x69 && data[15] == 0x68 {
+                return Some(0);
+            }
+        }
+    }
+
+    None
+}
+
 //try to recognize GIF file header
 pub fn is_struct_gif(data: &[u8]) -> Option<usize> {
 
@@ -237,6 +255,22 @@ pub fn is_struct_gzip(data: &[u8]) -> Option<usize> {
     None
 }
 
+//try to recognize cab header
+pub fn is_struct_cab(data: &[u8]) -> Option<usize> {
+
+    if data.len() > 44 {
+
+        //check for cab magic
+        if data[0] == 0x4D && data[1] == 0x53 && data[2] == 0x43 && data[3] <= 0x46 && data[4] == 0 && data[5] == 0 && data[6] == 0 && data[7] == 0 {
+            if data[24] == 0x03 && data[25] == 0x01 {
+                return Some(0);
+            }
+        }
+    }
+
+    None
+}
+
 //try to recognize deb header
 pub fn is_struct_deb(data: &[u8]) -> Option<usize> {
 
@@ -296,6 +330,42 @@ pub fn is_struct_elf(data: &[u8]) -> Option<usize> {
 
             //addition check for 32/64 bit flag, endianness and version
             if (data[4] == 1 || data[4] == 2) && (data[5] == 1 || data[5] == 2) && data[6] == 1 { 
+                return Some(0);
+            }
+        }
+    }
+
+    None
+}
+
+//try to recognize wav header
+pub fn is_struct_wav(data: &[u8]) -> Option<usize> {
+
+    if data.len() > 44 {
+
+        //check for RIFF + WAVE magic
+        if data[0] == 0x52 && data[1] == 0x49 && data[2] == 0x46 && data[3] == 0x46 && data[8] == 0x57 && data[9] == 0x41 && data[10] == 0x56 && data[11] == 0x45 {
+
+            //fmt chunk should follow
+            if data[12] == 0x66 && data[13] == 0x6D && data[14] == 0x74 && data[15] == 0x20 {
+                return Some(0);
+            }
+        }
+    }
+
+    None
+}
+
+//try to recognize midi header
+pub fn is_struct_midi(data: &[u8]) -> Option<usize> {
+
+    if data.len() > 17 {
+
+        //check for MThd
+        if data[0] == 0x4D && data[1] == 0x54 && data[2] == 0x68 && data[3] == 0x64 && data[4] == 0 && data[5] == 0 && data[6] == 0 && data[7] == 0x06 {
+
+            //check for MTrk
+            if data[14] == 0x4D && data[15] == 0x54 && data[16] == 0x72 && data[17] == 0x6B {
                 return Some(0);
             }
         }

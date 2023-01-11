@@ -224,6 +224,9 @@ pub fn find_all_headers(file_buffers: &[FileBuffer], active_fb_index: usize) -> 
         } else if let Some(_) = is_struct_ico(tmp_file_slice) {
             result_ll.add_location(i, "ico".to_owned());
 
+        } else if let Some(_) = is_struct_ani(tmp_file_slice) {
+            result_ll.add_location(i, "ani".to_owned());
+
         } else if let Some(_) = is_struct_gif(tmp_file_slice) {
             result_ll.add_location(i, "gif".to_owned());
 
@@ -254,11 +257,20 @@ pub fn find_all_headers(file_buffers: &[FileBuffer], active_fb_index: usize) -> 
         } else if let Some(_) = is_struct_gzip(tmp_file_slice) {
             result_ll.add_location(i, "gzip".to_owned());
 
+        } else if let Some(_) = is_struct_cab(tmp_file_slice) {
+            result_ll.add_location(i, "cab".to_owned());
+
         } else if let Some(_) = is_struct_deb(tmp_file_slice) {
             result_ll.add_location(i, "deb".to_owned());
 
         } else if let Some(_) = is_struct_rpm(tmp_file_slice) {
             result_ll.add_location(i, "rpm".to_owned());
+
+        } else if let Some(_) = is_struct_wav(tmp_file_slice) {
+            result_ll.add_location(i, "wav".to_owned());
+
+        } else if let Some(_) = is_struct_midi(tmp_file_slice) {
+            result_ll.add_location(i, "midi".to_owned());
 
         }
     }
