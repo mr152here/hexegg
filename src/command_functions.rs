@@ -5,7 +5,7 @@ use crate::location_list::LocationList;
 use crate::file_buffer::FileBuffer;
 use crate::ColorScheme;
 use crate::config::{Config, HighlightStyle, ScreenPagingSize};
-use crate::struct_finder::*;
+use crate::signatures::*;
 
 //set file offset to one/all filebuffers
 pub fn set_position(file_buffers: &mut [FileBuffer], active_fb: usize, position: usize, lock_buffers: bool) {
@@ -204,7 +204,6 @@ pub fn find_all_diffs(file_buffers: &[FileBuffer], active_fb_index: usize) -> Lo
 }
 
 //find all headers and structs
-//TODO: implement block size to location list to fill it here!!
 pub fn find_all_headers(file_buffers: &[FileBuffer], active_fb_index: usize) -> LocationList {
 
     let mut result_ll = LocationList::new();
@@ -214,67 +213,8 @@ pub fn find_all_headers(file_buffers: &[FileBuffer], active_fb_index: usize) -> 
     for i in 0..file_len {
         let tmp_file_slice = &file_slice[i..];
 
-        //TODO: block size to location list
-        if let Some(_) = is_struct_bmp(tmp_file_slice) {
-            result_ll.add_location(i, "bmp".to_owned());
-
-        } else if let Some(_) = is_struct_png(tmp_file_slice) {
-            result_ll.add_location(i, "png".to_owned());
-        
-        } else if let Some(_) = is_struct_ico(tmp_file_slice) {
-            result_ll.add_location(i, "ico".to_owned());
-
-        } else if let Some(_) = is_struct_ani(tmp_file_slice) {
-            result_ll.add_location(i, "ani".to_owned());
-
-        } else if let Some(_) = is_struct_gif(tmp_file_slice) {
-            result_ll.add_location(i, "gif".to_owned());
-
-        } else if let Some(_) = is_struct_jpeg(tmp_file_slice) {
-            result_ll.add_location(i, "jpeg".to_owned());
-
-        } else if let Some(_) = is_struct_webp(tmp_file_slice) {
-            result_ll.add_location(i, "webp".to_owned());
-
-        } else if let Some(_) = is_struct_mzpe(tmp_file_slice) {
-            result_ll.add_location(i, "mzpe".to_owned());
-
-        } else if let Some(_) = is_struct_elf(tmp_file_slice) {
-            result_ll.add_location(i, "elf".to_owned());
-
-        } else if let Some(_) = is_struct_zip(tmp_file_slice) {
-            result_ll.add_location(i, "zip".to_owned());
-
-        } else if let Some(_) = is_struct_rar(tmp_file_slice) {
-            result_ll.add_location(i, "rar".to_owned());
-        
-        } else if let Some(_) = is_struct_7z(tmp_file_slice) {
-            result_ll.add_location(i, "7z".to_owned());
-
-        } else if let Some(_) = is_struct_xz(tmp_file_slice) {
-            result_ll.add_location(i, "xz".to_owned());
-
-        } else if let Some(_) = is_struct_bzip2(tmp_file_slice) {
-            result_ll.add_location(i, "bzip2".to_owned());
-
-        } else if let Some(_) = is_struct_gzip(tmp_file_slice) {
-            result_ll.add_location(i, "gzip".to_owned());
-
-        } else if let Some(_) = is_struct_cab(tmp_file_slice) {
-            result_ll.add_location(i, "cab".to_owned());
-
-        } else if let Some(_) = is_struct_deb(tmp_file_slice) {
-            result_ll.add_location(i, "deb".to_owned());
-
-        } else if let Some(_) = is_struct_rpm(tmp_file_slice) {
-            result_ll.add_location(i, "rpm".to_owned());
-
-        } else if let Some(_) = is_struct_wav(tmp_file_slice) {
-            result_ll.add_location(i, "wav".to_owned());
-
-        } else if let Some(_) = is_struct_midi(tmp_file_slice) {
-            result_ll.add_location(i, "midi".to_owned());
-
+        if let Some(sig_name) = get_signature(tmp_file_slice) {
+            result_ll.add_location(i, sig_name.to_owned());
         }
     }
 
