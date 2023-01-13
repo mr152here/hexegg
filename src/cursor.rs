@@ -88,7 +88,7 @@ impl Sub<usize> for Cursor {
 
     fn sub(self, rhs: usize) -> Self::Output {
         Self {
-            position: self.position - rhs.clamp(0, self.position),
+            position: self.position.saturating_sub(rhs),
             state: self.state,
             ho_part: true
         }
@@ -98,7 +98,7 @@ impl Sub<usize> for Cursor {
 impl SubAssign<usize> for Cursor {
 
     fn sub_assign(&mut self, rhs: usize) {
-        self.position -= rhs.clamp(0, self.position);
+        self.position = self.position.saturating_sub(rhs);
         self.ho_part = true;
     }
 }

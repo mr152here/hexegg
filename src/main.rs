@@ -154,7 +154,7 @@ fn main() {
             let file_size = file_buffers[active_fb_index].len();
             let file_view_offset = file_buffers[active_fb_index].position();
             let row_size = screens[active_screen_index].row_size() as usize;
-            let page_size = screens[active_screen_index].page_size() as usize;
+            let page_size = screens[active_screen_index].page_size();
 
             //keyboard handling 
             match key_event {
@@ -219,11 +219,9 @@ fn main() {
                     cursor.set_ho_byte_part(true);
                 },
                 KeyEvent{ code: KeyCode::Backspace, .. } if cursor.is_visible() => {
-                    if cursor.position() > 0 {
-                        cursor -= 1;
-                        file_buffers[active_fb_index].unpatch_offset(cursor.position());
-                        command = Some(Command::GotoRelative(0));
-                    }
+                    cursor -= 1;
+                    file_buffers[active_fb_index].unpatch_offset(cursor.position());
+                    command = Some(Command::GotoRelative(0));
                 },
                 KeyEvent{ code: KeyCode::Char('q'), .. } if !cursor.is_visible() => command = Some(Command::Quit(true)), 
                 KeyEvent{ code: KeyCode::Char('h'), .. } if cursor.is_byte() || !cursor.is_visible() => config.highlight_diff = !config.highlight_diff,  
@@ -326,7 +324,7 @@ fn main() {
         if command.is_some() {
             let file_view_offset = file_buffers[active_fb_index].position();
             let row_size = screens[active_screen_index].row_size() as usize;
-            let page_size = screens[active_screen_index].page_size() as usize;
+            let page_size = screens[active_screen_index].page_size();
 
             match command {
                 Some(Command::Quit(save)) => {
@@ -497,7 +495,10 @@ fn main() {
                     screens.iter_mut().for_each(|s| s.show_location_bar(true));
                 },
                 Some(Command::FindAllSignatures) => {
+                    let start = Instant::now();
                     let ll = command_functions::find_all_headers(&file_buffers, active_fb_index);
+                    let diff = start.elapsed().as_millis() as usize;
+                    command_functions::set_position(&mut file_buffers, active_fb_index, diff, true); 
                     file_buffers[active_fb_index].set_location_list(ll);
                     screens.iter_mut().for_each(|s| s.show_location_bar(true));
                 },

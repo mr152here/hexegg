@@ -59,9 +59,7 @@ impl UserInput {
 
                     //Up to get previous user input from history
                     KeyEvent{ code: KeyCode::Up, .. } => {
-                        if history_idx > 0 {
-                            history_idx -= 1;
-                        }
+                        history_idx = history_idx.saturating_sub(1);
                         user_string = user_input_history.get(history_idx).unwrap_or(&"".to_string()).to_owned();
                     },
 

@@ -112,7 +112,8 @@ pub fn find_string(fb: &FileBuffer, min_size: usize, substring: &Vec<u8>) -> Res
 
     for (index, b) in data.iter().enumerate() {
 
-        if *b >= 0x20 && *b <= 0x7E { 
+        //if *b >= 0x20 && *b <= 0x7E { 
+        if (0x20..=0x7E).contains(b) {
             if !in_string {
                 in_string = true;
                 start_index = index;
@@ -148,7 +149,8 @@ pub fn find_all_strings(fb: &FileBuffer, min_size: usize, substring: &Vec<u8>) -
 
     for (index, b) in data.iter().enumerate() {
 
-        if *b >= 0x20 && *b <= 0x7E { 
+        //if *b >= 0x20 && *b <= 0x7E { 
+        if (0x20..=0x7E).contains(b) {
             if !in_string {
                 in_string = true;
                 start_index = index;

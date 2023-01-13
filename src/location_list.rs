@@ -27,7 +27,7 @@ impl LocationList {
 
     //returns previous location
     pub fn previous(&mut self) -> Option<(usize, String)> {
-        self.current_index -= if self.current_index > 0 { 1 } else { 0 };
+        self.current_index = self.current_index.saturating_sub(1);
         self.get(self.current_index)
     }
 

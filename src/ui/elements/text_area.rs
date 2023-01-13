@@ -38,7 +38,7 @@ fn byte_to_utf8_str(byte: u8) -> &'static str {
 
 //returns true if byte is in printable range
 fn is_printable(byte: u8) -> bool {
-    byte >= 0x20 && byte <= 0x7E
+    (0x20..=0x7E).contains(&byte)
 }
 
 pub struct TextArea {
