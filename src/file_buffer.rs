@@ -188,8 +188,8 @@ impl FileBuffer {
         self.highlights.clear();
     }
 
-    //find if offset is highlighted and returns color. Using binary search.
-    pub fn highlight_color(&self, offset: usize) -> Option<Color> {
+    //find if offset is highlighted and return its range and color. Using binary search.
+    pub fn get_highlight(&self, offset: usize) -> Option<(usize, usize, Color)> {
         let mut low_idx = 0;
         let mut high_idx = self.highlights.len();
         let mut mid_idx = high_idx / 2;
@@ -215,7 +215,7 @@ impl FileBuffer {
                 }
 
             } else {
-                return Some(c);
+                return Some((s,e,c));
             }
 
             mid_idx = (high_idx + low_idx) / 2;

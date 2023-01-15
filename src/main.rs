@@ -28,8 +28,6 @@ use file_buffer::FileBuffer;
 mod location_list;
 mod signatures;
 
-use std::time::Instant;
-
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn create_screens(cols: u16, rows: u16) -> Vec<Box<dyn Screen>> {
@@ -274,6 +272,11 @@ fn main() {
                         cursor.set_position(file_view_offset);
                     }
                 },
+                KeyEvent{ code: KeyCode::Char('S'), .. } if cursor.is_byte() => {
+                    if let Some((s,e,_)) = file_buffers[active_screen_index].get_highlight(cursor.position()) {
+                        file_buffers[active_fb_index].set_selection(Some((s,e)));
+                    }
+                },
                 KeyEvent{ code: KeyCode::Char('s'), .. } if cursor.is_byte() => {
                     if in_selection_mode {
                         if let Some((s,e)) = file_buffers[active_fb_index].selection() {
@@ -495,10 +498,7 @@ fn main() {
                     screens.iter_mut().for_each(|s| s.show_location_bar(true));
                 },
                 Some(Command::FindAllSignatures) => {
-                    let start = Instant::now();
                     let ll = command_functions::find_all_headers(&file_buffers, active_fb_index);
-                    let diff = start.elapsed().as_millis() as usize;
-                    command_functions::set_position(&mut file_buffers, active_fb_index, diff, true); 
                     file_buffers[active_fb_index].set_location_list(ll);
                     screens.iter_mut().for_each(|s| s.show_location_bar(true));
                 },
