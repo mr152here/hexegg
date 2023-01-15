@@ -1,5 +1,3 @@
-use std::cmp::max;
-
 pub enum Command {
     Quit(bool),
     Goto(usize),
@@ -121,8 +119,7 @@ impl Command {
         }
     }
 
-    //find [pattern] find pattern in file buffer, if pattern is not defined, or empty find
-    //selected block.
+    //find pattern in file buffer, if pattern is not defined, or empty find selected block.
     fn parse_find(v: &[&str]) -> Result<Command, &'static str> {
         let bytes = match v.get(1) {
             Some(s) => s.as_bytes(),
@@ -228,27 +225,35 @@ impl Command {
         }
         cmd
     }
-    
+
     //find string with defined minimium size and which contains specific substring. If defined.
     fn parse_find_string(v: &[&str]) -> Result<Command, &'static str> {
 
-        //second parameter is substring 
-        let substring: Vec<u8> = v.get(2).map_or_else(Vec::new, |b| b.as_bytes().to_vec());
-
-        //first parameter is minimal size of string. Is also dependents on substring size 
-        let min_size: usize = match v.get(1) {
+        //parse first parameter
+        let min_size = match v.get(1) {
             Some(&s) => {
+
+                //If is successfully converted into usize then it is 'min_size'. If not it is 'substring'
                 match s.parse::<usize>() {
-                    Ok(ms) => max(ms, substring.len()), 
-                    Err(_) => return Err("Can't convert 'min_size' to integer!"),
+                    Ok(ms) => ms,
+                    Err(_) => {
+                        let substring = s.as_bytes().to_vec();
+                        return Ok(Command::FindString(substring.len(), substring));
+                    },
                 }
             },
-            None => 5,
+            None => return Err("At least 'min_size' or 'substring' parameter is required!"),
+        };
+
+        //parse second parameter. Should be 'substring' or nothing
+        let substring = match v.get(2) {
+            Some(&s) => s.as_bytes().to_vec(),
+            None => Vec::new(),
         };
 
         Ok(Command::FindString(min_size, substring))
     }
-
+    
     fn parse_find_all_strings(v: &[&str]) -> Result<Command, &'static str> {
         let cmd = Command::parse_find_string(v);
 
