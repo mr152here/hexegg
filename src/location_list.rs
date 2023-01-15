@@ -22,7 +22,7 @@ impl LocationList {
             self.current_index += 1;
             return Some(v);
         } 
-        None
+        self.get(self.current_index)
     }
 
     //returns previous location

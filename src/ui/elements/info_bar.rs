@@ -42,7 +42,9 @@ impl InfoBar {
 
         let ll = file_buffers[active_fb_index].location_list();
         let right_size_str = format!("({}) {:08X}/{:08X} {:0.1}%  {}{}{}{} [{}/{}]", offset, offset, file_size, offset as f64 / file_size as f64 * 100.0, mode, printable, lock, hl_diff, ll.current_index(), ll.len());
-        let left_size_str_len = left_size_str.len();
+
+        //chars().count() better represent length of string then number of bytes
+        let left_size_str_len = left_size_str.chars().count();
 
         //handle printing according to terminal size
         if left_size_str_len <= self.w as usize {
