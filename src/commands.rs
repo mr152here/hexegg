@@ -119,42 +119,26 @@ impl Command {
         }
     }
 
-    //find pattern in file buffer, if pattern is not defined, or empty find selected block.
-    fn parse_find(v: &[&str]) -> Result<Command, &'static str> {
-        let bytes = match v.get(1) {
-            Some(s) => s.as_bytes(),
-            None => return Ok(Command::Find(Vec::new())),
-        };
+    fn pattern_to_vec(pattern: &[u8]) -> Result<Vec<u8>, &'static str> {
 
         let mut ret_vec = Vec::<u8>::new();
         let mut idx = 0;
         let mut escaped = false;
         let mut hex_mode = false;
 
-        while let Some(byte) = bytes.get(idx) {
+        while let Some(byte) = pattern.get(idx) {
             let b_char = *byte as char;
 
-            if b_char == '\\' {
-                if escaped {
-                    ret_vec.push(*byte);
-                    escaped = false;
-                } else {
-                    escaped = true;
-                }
-
-            } else if (b_char == 'x' || b_char == 'X') && escaped {
-                hex_mode = true;
-
-            } else if hex_mode {
+            if hex_mode {
 
                 let b1: u8 =  match b_char.to_digit(16) {
                     Some(b1) => (b1 & 0x0F) as u8,
-                    None => return Err("Invalid hex number after \\x!"),
+                    None => return Err("'pattern' syntax error. Expecting hex number after '\\x'!"),
                 };
 
                 //get next char
                 idx += 1;
-                match bytes.get(idx) {
+                match pattern.get(idx) {
 
                     //if there is something try to convert it to hex number
                     Some(&b2) => match (b2 as char).to_digit(16) {
@@ -162,33 +146,62 @@ impl Command {
                             let b2 = (b1 << 4) | (b2 as u8 & 0x0F);
                             ret_vec.push(b2);
                         },
-                        //if it can't be converted, it is following non hex character. Ignore it, push what
+                        //if it can't be converted, it is following by non-hex character. Ignore it, push what
                         //we have and reduce idx back. So it will be processed by the next iteration
                         None => {
                             ret_vec.push(b1);
                             idx -= 1;
                         },
                     },
-                    //if there is no next character, we are at the end. just push and break loop
-                    None => {
-                        ret_vec.push(b1);
-                        break;
-                    },
+                    //if there is no next character, we are at the end. just push what we have
+                    None => ret_vec.push(b1),
                 }
 
                 hex_mode = false;
                 escaped = false;
 
-            } else if !escaped {
+            } else if b_char == '\\' {
+                if escaped {
+                    ret_vec.push(*byte);
+                    escaped = false;
+                } else {
+                    escaped = true;
+                }
+
+            } else if escaped && (b_char == 'x' || b_char == 'X') {
+                hex_mode = true;
+
+            //if still escaped thats a unknown escaped character and therefore invalid syntax
+            } else if escaped {
+                return Err("'pattern' syntax error. Unknown escaped character!");
+
+            } else {
                 ret_vec.push(*byte);
             }
 
             idx += 1;
         }
-        
-        match ret_vec.is_empty() {
-            true => Err("Invalid 'pattern' format!"),
-            false => Ok(Command::Find(ret_vec)),
+
+        if hex_mode {
+            Err("'pattern' syntax error. Expecting hex number after '\\x'!")
+        } else if escaped {
+            Err("'pattern' syntax error. Expecting '\\', 'x' or 'X' after the escape character!")
+        } else {
+            Ok(ret_vec)
+        }
+    }
+
+    //find pattern in file buffer, if pattern is not defined, or is empty find selected block.
+    fn parse_find(v: &[&str]) -> Result<Command, &'static str> {
+        let bytes = match v.get(1) {
+            Some(s) => s.as_bytes(),
+            None => return Ok(Command::Find(Vec::new())),
+        };
+
+        match Self::pattern_to_vec(bytes) {
+            Err(s) => Err(s),
+            Ok(v) if v.is_empty() => Err("Invalid 'pattern' format!"),
+            Ok(v)  => Ok(Command::Find(v)),
         }
     }
 
@@ -312,19 +325,16 @@ impl Command {
     }
 
     fn parse_fill_block(v: &[&str]) -> Result<Command, &'static str> {
-        //if pattern is not defined, will be filled with 0 bytes
-        let tmp_vec = if v.get(1).is_none() {
-            vec![0]
-        } else {
-            let res = v.iter().skip(1).map(|s| { u8::from_str_radix(s, 16) }).collect::<Result<Vec<u8>,_>>();
-
-            match res {
-                Ok(bytes) => bytes,
-                Err(_) => return Err("Can't convert 'bytes' to hex integer!"),
-            }
+        let bytes = match v.get(1) {
+            Some(s) => s.as_bytes(),
+            None => return Ok(Command::FillBlock(vec![0])),
         };
 
-        Ok(Command::FillBlock(tmp_vec))
+        match Self::pattern_to_vec(bytes) {
+            Err(s) => Err(s),
+            Ok(v) if v.is_empty() => Err("Invalid 'pattern' format!"),
+            Ok(v) => Ok(Command::FillBlock(v)),
+        }
     }
 
     fn parse_insert_file(v: &[&str]) -> Result<Command, &'static str> {
@@ -356,18 +366,18 @@ impl Command {
             None => return Err("Missing 'block_size' parameter!"),
         };
 
-        //second parameter is list/pattern of bytes. If parameter is not specified is set to 0
-        let tmp_vec = if v.get(2).is_none() {
-            vec![0]
-        } else {
-            let res = v.iter().skip(2).map(|s| { u8::from_str_radix(s, 16) }).collect::<Result<Vec<u8>,_>>();
-
-            match res {
-                Ok(bytes) => bytes,
-                Err(_) => return Err("Can't convert 'bytes' to hex integer!"),
+        //second parameter is a pattern. If not specified is used 0
+        let tmp_vec = if let Some(pattern) = v.get(2) {
+            match Self::pattern_to_vec(pattern.as_bytes()) {
+                Err(s) => return Err(s),
+                Ok(v) if v.is_empty() => return Err("Invalid 'pattern' format!"),
+                Ok(v) => v,
             }
+        } else {
+            vec![0]
         };
 
+        //create a bytes in its full size.
         let ret_vec = tmp_vec.iter()
                         .cycle()
                         .enumerate()
