@@ -28,15 +28,12 @@ use file_buffer::FileBuffer;
 mod location_list;
 mod signatures;
 
-const VERSION: &str = env!("CARGO_PKG_VERSION");
-
 fn create_screens(cols: u16, rows: u16) -> Vec<Box<dyn Screen>> {
     vec![
         Box::new(TextScreen::new(cols, rows)),
         Box::new(ByteScreen::new(cols, rows))
     ]
 }
-
 
 fn generate_highlight_color(rnd_seed: &mut u32, highlight_style: HighlightStyle, color_scheme: &ColorScheme) -> Color {
     match highlight_style {
@@ -106,9 +103,13 @@ fn main() {
         }
     }
 
-    //if there is nothing to open just quit
+    //if there is nothing to open, print message and quit
     if file_buffers.is_empty() {
-        println!("\nhexegg version {}\nusage: hexegg [file1] <file2> <file3> ...\n", VERSION);
+        const VERSION: &str = env!("CARGO_PKG_VERSION");
+        println!("Copyright 2023 Michal Kopera.\n\
+            This software is licensed under the terms of Apache 2.0 license. http://www.apache.org/licenses/LICENSE-2.0\n\
+            Is distributed on an \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n\n\
+            hexegg version {}\nusage: hexegg [file1] <file2> <file3> ...\n", VERSION);
         return;
     }
 
