@@ -34,14 +34,18 @@ impl InfoBar {
 
         let modified = if file_buffers[active_fb_index].is_modified() { "+" } else { "" };
         let file_size = file_buffers[active_fb_index].len();
-        let left_size_str = format!(" [{}/{}] {}{}", active_fb_index + 1, file_buffers.len(), modified,file_buffers[active_fb_index].filename());
+        let left_size_str = format!(" [{}/{}] {}{}", active_fb_index + 1, file_buffers.len(), modified, file_buffers[active_fb_index].filename());
 
         let printable = if config.only_printable { "P" } else { "-" };
         let lock = if config.lock_file_buffers { "L" } else { "-" };
         let hl_diff = if config.highlight_diff { "D" } else { "-" };
 
         let ll = file_buffers[active_fb_index].location_list();
-        let right_size_str = format!("({}) {:08X}/{:08X} {:0.1}%  {}{}{}{} [{}/{}]", offset, offset, file_size, offset as f64 / file_size as f64 * 100.0, mode, printable, lock, hl_diff, ll.current_index(), ll.len());
+        let right_size_str = if ll.is_empty() {
+            format!("({}) {:08X}/{:08X} {:0.1}%  {}{}{}{} [0/0]", offset, offset, file_size, offset as f64 / file_size as f64 * 100.0, mode, printable, lock, hl_diff)
+        } else {
+            format!("({}) {:08X}/{:08X} {:0.1}%  {}{}{}{} [{}/{}]", offset, offset, file_size, offset as f64 / file_size as f64 * 100.0, mode, printable, lock, hl_diff, ll.current_index()+1, ll.len())
+        };
 
         //chars().count() better represent length of string then number of bytes
         let left_size_str_len = left_size_str.chars().count();
