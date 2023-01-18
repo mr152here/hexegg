@@ -1,6 +1,6 @@
 # hexegg
 
-Cross-platform terminal hex viewer and editor with some advanced features.
+Cross-platform terminal hex editor with some advanced features.
 
 ### Features
 
@@ -8,31 +8,39 @@ Cross-platform terminal hex viewer and editor with some advanced features.
 - simple custom color schemes with 16, 256, and full RGB support
 - multiple input files
 - highlight diffs between files
-- toggle printable characters
-- advanced block manipulation such as insert, delete, fill from other files, etc ...
+- toggle visibility of printable characters
+- advanced block manipulation such as insert, delete, fill from generator other files, etc ...
 - advanced search options
 - results highlighting
 - command interface
 - minimal external dependencies
 
-Please read the [manual](docs/MANUAL.md) to see all its commands and features.
+Please read the [manual](docs/MANUAL.md) to see all commands and features. 
 
 ### Install and run
 
-Download and extract the [compiled](https://github.com/mr152here/hexegg/releases) zip file for your platform. In some platforms / filesystems you need to enable executable bit for the file.
+Download and extract the [compiled](https://github.com/mr152here/hexegg/releases) zip file for your platform.
 
 ```
 cd hexegg
 chmod +x hexegg
 ```
 
-Or you can download the source code and build it with rust cargo:
+If you want to build latest version from the source, clone git repository (or download sources as a zip file) and compile it with the cargo. You must have installed [rust](https://www.rust-lang.org) programming language to be able to compile it.
 
 ```
+git clone https://github.com/mr152here/hexegg.git
+cd hexegg
 cargo build --release
 ```
 
-Then copy configuration [config.toml](config.toml) file to the same folder where compiled program is located.
+And finally copy configuration [config.toml](config.toml) file to the same folder where compiled program is located.
+
+To view/edit files just execute hexegg in terminal and pass file name(s) as arguments.
+
+```
+./hexegg <file1> [file2] [file3] ...
+```
 
 ### Acknowledgment
 
