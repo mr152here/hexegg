@@ -2,6 +2,8 @@
 
 Cross-platform terminal hex editor with some advanced features.
 
+![hexegg](docs/assets/hexegg.png)  
+
 ### Features
 
 - cross-platform, based on crossterm library
