@@ -264,7 +264,7 @@ impl Command {
             None => Vec::new(),
         };
 
-        Ok(Command::FindString(min_size, substring))
+        Ok(Command::FindString(std::cmp::max(min_size, substring.len()), substring))
     }
     
     fn parse_find_all_strings(v: &[&str]) -> Result<Command, &'static str> {
