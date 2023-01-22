@@ -85,6 +85,7 @@ fn main() {
         None => { println!("Can't find active color scheme. Please set 'active_color_scheme' in 'config.toml' to correct value"); return; },
     };
 
+    let mut yank_buffer = Vec::<u8>::new();
     let mut file_buffers: Vec<FileBuffer> = Vec::new();
     let mut active_fb_index = 0;
 
@@ -579,6 +580,45 @@ fn main() {
                             fb.set_selection(None);
                         },
                         None => { MessageBox::new(0, rows-2, cols).show(&mut stdout, "Please select the block first.", MessageBoxType::Error, &color_scheme); },
+                    }
+                },
+                Some(Command::YankBlock) => {
+                    //move bytes from selection into yank_buffer or clear it doesn't exist
+                    if let Some((s,e)) = file_buffers[active_fb_index].selection() {
+                        yank_buffer = file_buffers[active_fb_index].as_slice()[s..=e].to_vec();
+                        MessageBox::new(0, rows-2, cols).show(&mut stdout, "Block yanked.", MessageBoxType::Informative, &color_scheme);
+                    } else {
+                        yank_buffer.clear();
+                        MessageBox::new(0, rows-2, cols).show(&mut stdout, "Yank buffer cleared.", MessageBoxType::Informative, &color_scheme);
+                    }
+                },
+                Some(Command::InsertBlock) => {
+                    if cursor.is_visible() {
+                        //insert bytes to the file from selected or yanked block. 
+                        if let Some((s,e)) = file_buffers[active_fb_index].selection() {
+                            let bytes = file_buffers[active_fb_index].as_slice()[s..=e].to_vec();
+                            file_buffers[active_fb_index].insert_block(cursor.position(), bytes);
+                        } else if !yank_buffer.is_empty() {
+                            file_buffers[active_fb_index].insert_block(cursor.position(), yank_buffer.clone());
+                        } else {
+                            MessageBox::new(0, rows-2, cols).show(&mut stdout, "Please select or yank the block first.", MessageBoxType::Error, &color_scheme);
+                        }
+                    } else {
+                        MessageBox::new(0, rows-2, cols).show(&mut stdout, "Move cursor to the position where block should be inserted.", MessageBoxType::Error, &color_scheme);
+                    }
+                },
+                Some(Command::AppendBlock) => {
+                    if cursor.is_visible() {
+                        if let Some((s,e)) = file_buffers[active_fb_index].selection() {
+                            let bytes = file_buffers[active_fb_index].as_slice()[s..=e].to_vec();
+                            file_buffers[active_fb_index].insert_block(cursor.position()+1, bytes);
+                        } else if !yank_buffer.is_empty() {
+                            file_buffers[active_fb_index].insert_block(cursor.position()+1, yank_buffer.clone());
+                        } else {
+                            MessageBox::new(0, rows-2, cols).show(&mut stdout, "Please select or yank the block first.", MessageBoxType::Error, &color_scheme);
+                        }
+                    } else {
+                        MessageBox::new(0, rows-2, cols).show(&mut stdout, "Move cursor to the position where block should be appended.", MessageBoxType::Error, &color_scheme);
                     }
                 },
                 Some(Command::DeleteBlock) => {
