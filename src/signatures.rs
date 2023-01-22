@@ -83,7 +83,7 @@ static SIGS_4E: [SignatureFn; 1] = [|_| None];
 static SIGS_4F: [SignatureFn; 1] = [|_| None];
 static SIGS_50: [SignatureFn; 1] = [is_signature_zip];
 static SIGS_51: [SignatureFn; 1] = [|_| None];
-static SIGS_52: [SignatureFn; 4] = [is_signature_ani, is_signature_wav, is_signature_webp, is_signature_rar];
+static SIGS_52: [SignatureFn; 8] = [is_signature_ani, is_signature_avi, is_signature_cdr, is_signature_dls, is_signature_vcd_dat, is_signature_wav, is_signature_webp, is_signature_rar];
 static SIGS_53: [SignatureFn; 1] = [|_| None];
 static SIGS_54: [SignatureFn; 1] = [|_| None];
 static SIGS_55: [SignatureFn; 1] = [|_| None];
@@ -326,7 +326,6 @@ fn is_signature_ico(data: &[u8]) -> Option<&'static str> {
     //ico starts with a lot of non uniqe bytes
     if data.len() > 54 && data[0] == 0 && data[1] == 0 && (data[2] == 1 || data[2] == 2) && data[3] == 0 && data[5] == 0 && data[9] == 0 {
 
-        //let image_offset = u32_from_bytes_unchecked(&data[18..22] ,true) as usize;
         let image_offset = u32::from_le_bytes(data[18..22].try_into().unwrap()) as usize;
         if image_offset >= 22 && image_offset < data.len() {
 
@@ -342,6 +341,13 @@ fn is_signature_ani(data: &[u8]) -> Option<&'static str> {
 
     //check for RIFF + ACON magic
     (data.len() > 16 && data.starts_with(&[0x52, 0x49, 0x46, 0x46]) && data[8..12].starts_with(&[0x41, 0x43, 0x4F, 0x4E])).then_some("ani")
+}
+
+//try to recognize cdr header
+fn is_signature_cdr(data: &[u8]) -> Option<&'static str> {
+
+    //check for RIFF + CDR magic
+    (data.len() > 16 && data.starts_with(&[0x52, 0x49, 0x46, 0x46]) && data[8..12].starts_with(&[0x43, 0x44, 0x52])).then_some("cdr")
 }
 
 //try to recognize GIF header
@@ -471,6 +477,13 @@ fn is_signature_elf(data: &[u8]) -> Option<&'static str> {
     None
 }
 
+//try to recognize DLS header
+fn is_signature_dls(data: &[u8]) -> Option<&'static str> {
+
+    //check for RIFF + DLS magic
+    (data.len() > 16 && data.starts_with(&[0x52, 0x49, 0x46, 0x46]) && data[8..12].starts_with(&[0x44, 0x4C, 0x53, 0x20])).then_some("dls")
+}
+
 //try to recognize wav header
 fn is_signature_wav(data: &[u8]) -> Option<&'static str> {
 
@@ -481,4 +494,18 @@ fn is_signature_wav(data: &[u8]) -> Option<&'static str> {
 fn is_signature_midi(data: &[u8]) -> Option<&'static str> {
 
     (data.len() > 18 && data.starts_with(&[0x4D, 0x54, 0x68, 0x64, 0, 0, 0, 0x06]) && data[14..18].starts_with(&[0x4D, 0x54, 0x72, 0x6B])).then_some("midi")
+}
+
+//try to recognize avi header
+fn is_signature_avi(data: &[u8]) -> Option<&'static str> {
+
+    //check for RIFF + AVI magic
+    (data.len() > 16 && data.starts_with(&[0x52, 0x49, 0x46, 0x46]) && data[8..12].starts_with(&[0x41, 0x56, 0x49, 0x20])).then_some("avi")
+}
+
+//try to recognize vcd_dat header
+fn is_signature_vcd_dat(data: &[u8]) -> Option<&'static str> {
+
+    //check for RIFF + CDXA magic
+    (data.len() > 16 && data.starts_with(&[0x52, 0x49, 0x46, 0x46]) && data[8..12].starts_with(&[0x43, 0x44, 0x58, 0x41])).then_some("vcd_dat")
 }
