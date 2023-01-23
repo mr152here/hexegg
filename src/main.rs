@@ -290,6 +290,9 @@ fn main() {
 
                     in_selection_mode = !in_selection_mode;
                 },
+                KeyEvent{ code: KeyCode::Char('y'), .. } if cursor.is_byte() => {
+                    command = Some(Command::YankBlock);
+                },
                 //all other keys
                 KeyEvent{ code, .. } => {
                     match code {
