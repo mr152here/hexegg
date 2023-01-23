@@ -275,9 +275,34 @@ fn main() {
                     }
                 },
                 KeyEvent{ code: KeyCode::Char('S'), .. } if cursor.is_byte() => {
-                    if let Some((s,e,_)) = file_buffers[active_screen_index].get_highlight(cursor.position()) {
-                        file_buffers[active_fb_index].set_selection(Some((s,e)));
-                    }
+                    let fb = &mut file_buffers[active_screen_index];
+
+                    //get highlighted block, if not possible select string under the cursor
+                    if let Some((s,e,_)) = fb.get_highlight(cursor.position()) {
+                        fb.set_selection(Some((s,e)));
+
+                    } else if let Some(b) = fb.get(cursor.position()) {
+                        if (0x20..=0x7E).contains(&b) {
+                            let (mut s, mut e) = (cursor.position(), cursor.position());
+
+                            //find start/end of the string
+                            while let Some(b) = fb.get(e + 1) {
+                                if !(0x20..=0x7E).contains(&b) {
+                                    break;
+                                } 
+                                e += 1;
+                            }
+                            while let Some(b) = fb.get(s.saturating_sub(1)) {
+                                if !(0x20..=0x7E).contains(&b) {
+                                    break;
+                                } 
+                                s = s.saturating_sub(1);
+                            }
+                            fb.set_selection(Some((s,e)));
+                        } else {
+                            fb.set_selection(None);
+                        }
+                    } 
                 },
                 KeyEvent{ code: KeyCode::Char('s'), .. } if cursor.is_byte() => {
                     if in_selection_mode {
