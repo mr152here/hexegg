@@ -589,10 +589,10 @@ fn main() {
                     //move bytes from selection into yank_buffer or clear it doesn't exist
                     if let Some((s,e)) = file_buffers[active_fb_index].selection() {
                         yank_buffer = file_buffers[active_fb_index].as_slice()[s..=e].to_vec();
-                        MessageBox::new(0, rows-2, cols).show(&mut stdout, "Block yanked.", MessageBoxType::Informative, &color_scheme);
+                        MessageBox::new(0, rows-2, cols).show(&mut stdout, format!("Yanked {} bytes.", yank_buffer.len()).as_str(), MessageBoxType::Informative, &color_scheme);
                     } else {
                         yank_buffer.clear();
-                        MessageBox::new(0, rows-2, cols).show(&mut stdout, "Yank buffer cleared.", MessageBoxType::Informative, &color_scheme);
+                        MessageBox::new(0, rows-2, cols).show(&mut stdout, "Nothing to yank. Buffer cleared.", MessageBoxType::Informative, &color_scheme);
                     }
                 },
                 Some(Command::InsertBlock) => {
