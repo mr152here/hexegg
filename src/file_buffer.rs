@@ -160,20 +160,28 @@ impl FileBuffer {
         self.modified
     }
 
-    //returns stored selection / interval
+    //returns stored selection interval
     pub fn selection(&self) -> Option<(usize, usize)> {
         self.selection
     }
 
-    //set selection / interval. Is not normalized to min-max!
+    //set selection interval.
     pub fn set_selection(&mut self, selection: Option<(usize, usize)>) {
-        self.selection = selection;
+        self.selection = match selection {
+            None => None,
+            Some((s,e)) => {
+                let data_len = self.file_data.len().saturating_sub(1);
+                let start = std::cmp::min(s, data_len);
+                let end = std::cmp::min(e, data_len);
+                Some((std::cmp::min(start,end), std::cmp::max(start,end)))
+            },
+        };
     }
 
     //returns true if offset is inside the selection range
     pub fn is_selected(&self, offset: usize) -> bool {
         match self.selection {
-            Some((s,e)) => (s..=e).contains(&offset) || (e..=s).contains(&offset),
+            Some((s,e)) => (s..=e).contains(&offset),
             None => false,
         }
     }

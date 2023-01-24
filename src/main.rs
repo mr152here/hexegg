@@ -133,6 +133,7 @@ fn main() {
     let mut random_seed = 0x5EED;
     let mut active_screen_index = 0;
     let mut in_selection_mode = false;
+    let mut selection_start = 0;
     let mut cmd_history = Vec::<String>::new();
 
     //main program loop
@@ -305,15 +306,12 @@ fn main() {
                     } 
                 },
                 KeyEvent{ code: KeyCode::Char('s'), .. } if cursor.is_byte() => {
-                    if in_selection_mode {
-                        if let Some((s,e)) = file_buffers[active_fb_index].selection() {
-                            file_buffers[active_fb_index].set_selection(Some((std::cmp::min(s,e), std::cmp::max(s,e))));
-                        }
+                    if !in_selection_mode && cursor.position() < file_buffers[active_fb_index].len() {
+                        selection_start = cursor.position();
+                        in_selection_mode = true;
                     } else {
-                        file_buffers[active_fb_index].set_selection(Some((cursor.position(), cursor.position())));
+                        in_selection_mode = false;
                     }
-
-                    in_selection_mode = !in_selection_mode;
                 },
                 KeyEvent{ code: KeyCode::Char('y'), .. } if cursor.is_byte() => {
                     command = Some(Command::YankBlock);
@@ -705,10 +703,9 @@ fn main() {
             }
         }
 
+        //set selection to current filebuffer
         if in_selection_mode {
-            if let Some((start,_)) = file_buffers[active_fb_index].selection() {
-                file_buffers[active_fb_index].set_selection(Some((start, cursor.position())));
-            }
+            file_buffers[active_fb_index].set_selection(Some((selection_start, cursor.position())));
         }
 
         //redraw screen
