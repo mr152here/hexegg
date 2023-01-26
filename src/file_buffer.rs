@@ -12,6 +12,7 @@ pub struct FileBuffer {
     current_position: usize,
     selection: Option<(usize, usize)>,
     highlights: Vec<(usize, usize, Color)>,
+    bookmarks: [Option<usize>; 10],
     location_list: LocationList,
     original_hash: u64,
     modified: bool
@@ -31,6 +32,7 @@ impl FileBuffer {
             current_position: 0,
             selection: None,
             highlights: Vec::new(),
+            bookmarks: [None; 10],
             location_list: LocationList::new(),
             original_hash: hasher.finish(),
             modified: false
@@ -229,6 +231,19 @@ impl FileBuffer {
             mid_idx = (high_idx + low_idx) / 2;
         }
         None
+    }
+
+    pub fn set_bookmark(&mut self, idx: usize, offset: Option<usize>) {
+        if let Some(bookmark) = self.bookmarks.get_mut(idx) {
+            *bookmark = offset;
+        }
+    }
+
+    pub fn bookmark(&self, idx: usize) -> Option<usize> {
+        match self.bookmarks.get(idx) {
+            Some(&u) => u,
+            None => None,
+        }
     }
 
     //restore original byte in file buffer from patch map

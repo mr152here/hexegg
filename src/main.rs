@@ -26,6 +26,7 @@ mod file_buffer;
 use file_buffer::FileBuffer;
 
 mod location_list;
+use location_list::LocationList;
 mod signatures;
 
 fn create_screens(cols: u16, rows: u16) -> Vec<Box<dyn Screen>> {
@@ -319,11 +320,19 @@ fn main() {
                 //all other keys
                 KeyEvent{ code, .. } => {
                     match code {
-                        KeyCode::Char(ch) if cursor.is_text() && ch >= ' ' && ch <= '~' => {
+                        //jump to bookmark
+                        KeyCode::Char(ch) if !cursor.is_visible() && ('0'..='9').contains(&ch) => {
+                            let ch = ch.to_digit(10).unwrap() as usize;
+                            command = Some(Command::GotoBookmark(ch));
+                        },
+
+                        //edit in text mode
+                        KeyCode::Char(ch) if cursor.is_text() && (' '..='~').contains(&ch) => {
                             file_buffers[active_fb_index].set(cursor.position(), ch as u8);
                             command = Some(Command::GotoRelative(1));
                         },
                         
+                        //edit in byte mode
                         KeyCode::Char(ch) if cursor.is_byte() && (ch >= '0' && ch <= '9' || ch >= 'a' && ch <= 'f'|| ch >= 'A' && ch <= 'F') => {
 
                             let ch = ch.to_digit(16).unwrap() as u8;
@@ -437,6 +446,35 @@ fn main() {
                         command_functions::set_position(&mut file_buffers, active_fb_index, new_pos, config.lock_file_buffers);
                     }
                 },
+                Some(Command::GotoBookmark(idx)) => {
+                    if let Some(b_offset) = file_buffers[active_fb_index].bookmark(idx) {
+                        if cursor.is_visible() {
+                            cursor.set_position(b_offset);
+
+                            if b_offset < file_view_offset || b_offset >= file_view_offset + page_size {
+                                command_functions::set_position(&mut file_buffers, active_fb_index, b_offset, config.lock_file_buffers);
+                            }
+                        } else {
+                            command_functions::set_position(&mut file_buffers, active_fb_index, b_offset, config.lock_file_buffers);
+                        }
+                    } else if idx > 9 {
+                        MessageBox::new(0, rows-2, cols).show(&mut stdout, "Please specify 'bookmark_index' from 0 to 9!", MessageBoxType::Error, &color_scheme);
+                    } else {
+                        MessageBox::new(0, rows-2, cols).show(&mut stdout, format!("Bookmark '{}' not set.", idx as u8).as_str(), MessageBoxType::Error, &color_scheme);
+                    }
+                },
+                Some(Command::Bookmark(bookmark_idx, offset)) => {
+                    if bookmark_idx > 9 {
+                        MessageBox::new(0, rows-2, cols).show(&mut stdout, "Please specify 'bookmark_index' from 0 to 9!", MessageBoxType::Error, &color_scheme);
+                    } else {
+                        let o = match offset {
+                            Some(_) => offset,
+                            None if cursor.is_visible() => Some(cursor.position()),
+                            None => Some(file_view_offset),
+                        };
+                        file_buffers[active_fb_index].set_bookmark(bookmark_idx, o);
+                    }
+                },
                 Some(Command::FindPatch) => {
                     match command_functions::find_patch(&file_buffers[active_fb_index]) {
                         Ok(o) => command_functions::set_position(&mut file_buffers, active_fb_index, o, config.lock_file_buffers),
@@ -528,6 +566,15 @@ fn main() {
                 Some(Command::FindAllSignatures) => {
                     let ll = command_functions::find_all_headers(&file_buffers, active_fb_index);
                     file_buffers[active_fb_index].set_location_list(ll);
+                    screens.iter_mut().for_each(|s| s.show_location_bar(true));
+                },
+                Some(Command::FindAllBookmarks) => {
+                    let fb = &mut file_buffers[active_fb_index];
+                    let ll = (0..10).into_iter()
+                        .filter_map(|idx| fb.bookmark(idx).map(|o| (o,format!("bm_{}",idx))))
+                        .collect::<LocationList>();
+
+                    fb.set_location_list(ll);
                     screens.iter_mut().for_each(|s| s.show_location_bar(true));
                 },
                 Some(Command::Entropy(block_size, margin)) => {

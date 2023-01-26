@@ -2,6 +2,8 @@ pub enum Command {
     Quit(bool),
     Goto(usize),
     GotoRelative(isize),
+    GotoBookmark(usize),
+    Bookmark(usize, Option<usize>),
     Find(Vec<u8>),
     FindAll(Vec<u8>),
     FindString(usize, Vec<u8>),
@@ -11,6 +13,7 @@ pub enum Command {
     FindPatch,
     FindAllPatches,
     FindAllSignatures,
+    FindAllBookmarks,
     YankBlock,
     InsertBlock,
     AppendBlock,
@@ -45,8 +48,14 @@ impl Command {
             Some(&"quit!") => Ok(Command::Quit(false)),
             Some(&"q!") => Ok(Command::Quit(false)),
             
-            Some(&"goto") => Command::parse_goto(&cmd_vec ),
-            Some(&"g") => Command::parse_goto(&cmd_vec ),
+            Some(&"goto") => Command::parse_goto(&cmd_vec),
+            Some(&"g") => Command::parse_goto(&cmd_vec),
+
+            Some(&"bookmark") => Command::parse_bookmark(&cmd_vec),
+            Some(&"b") => Command::parse_bookmark(&cmd_vec),
+
+            Some(&"findallbookmarks") => Ok(Command::FindAllBookmarks),
+            Some(&"fab") => Ok(Command::FindAllBookmarks),
 
             Some(&"findallpatches") => Ok(Command::FindAllPatches),
             Some(&"fap") => Ok(Command::FindAllPatches),
@@ -108,13 +117,16 @@ impl Command {
             Some(&s) => {
                 let negative_goto = s.starts_with('-');
                 let relative_goto = negative_goto || s.starts_with('+');
-                let s = if relative_goto { &s[1..] } else { s };
+                let bookmark_goto = s.starts_with('b');
+                let s = if relative_goto || bookmark_goto { &s[1..] } else { s };
 
                 let (offset_str, radix) = if s.starts_with('x') || s.starts_with('X') { (&s[1..], 16) } else { (s, 10) };
                 match isize::from_str_radix(offset_str, radix) {
                     Ok(offset) => Ok( 
                         if relative_goto {
                             Command::GotoRelative(if negative_goto { -offset } else { offset })
+                        } else if bookmark_goto {
+                            Command::GotoBookmark(offset as usize)
                         } else {
                             Command::Goto(offset as usize)
                         }),
@@ -123,6 +135,32 @@ impl Command {
             },
             None => Err("Missing 'position' parameter!"),
         }
+    }
+
+    fn parse_bookmark(v: &[&str]) -> Result<Command, &'static str> {
+        //first parameter is bookmark idx
+        let bookmark_idx: usize = match v.get(1) {
+            Some(&s) => {
+                match s.parse::<usize>() {
+                    Ok(bs) => bs,
+                    Err(_) => return Err("Can't convert 'bookmark_index' to integer!"),
+                }
+            },
+            None => return Err("Please specify 'bookmark_index' from 0 to 9!"),
+        };
+
+        //second parameter is optional and is bookmark offset
+        let offset: Option<usize> = match v.get(2) {
+            Some(&s) => {
+                let (offset_str, radix) = if s.starts_with('x') || s.starts_with('X') { (&s[1..], 16) } else { (s, 10) };
+                match usize::from_str_radix(offset_str, radix) {
+                    Ok(offset) => Some(offset),
+                    Err(_) => return Err("Can't convert 'bookmark_offset' to integer!"),
+                }
+            },
+            None => None,
+        };
+        Ok(Command::Bookmark(bookmark_idx, offset))
     }
 
     fn pattern_to_vec(pattern: &[u8]) -> Result<Vec<u8>, &'static str> {
