@@ -5,7 +5,7 @@ static SIGS_00: [SignatureFn; 1] = [is_signature_ico];
 static SIGS_01: [SignatureFn; 1] = [|_| None];
 static SIGS_02: [SignatureFn; 1] = [|_| None];
 static SIGS_03: [SignatureFn; 1] = [|_| None];
-static SIGS_04: [SignatureFn; 1] = [|_| None];
+static SIGS_04: [SignatureFn; 1] = [is_signature_lz4];
 static SIGS_05: [SignatureFn; 1] = [|_| None];
 static SIGS_06: [SignatureFn; 1] = [|_| None];
 static SIGS_07: [SignatureFn; 1] = [|_| None];
@@ -121,7 +121,7 @@ static SIGS_74: [SignatureFn; 1] = [|_| None];
 static SIGS_75: [SignatureFn; 1] = [|_| None];
 static SIGS_76: [SignatureFn; 1] = [|_| None];
 static SIGS_77: [SignatureFn; 1] = [|_| None];
-static SIGS_78: [SignatureFn; 1] = [|_| None];
+static SIGS_78: [SignatureFn; 1] = [is_signature_xar];
 static SIGS_79: [SignatureFn; 1] = [|_| None];
 static SIGS_7A: [SignatureFn; 1] = [is_signature_zpaq_blk];
 static SIGS_7B: [SignatureFn; 1] = [|_| None];
@@ -451,6 +451,18 @@ fn is_signature_zpaq(data: &[u8]) -> Option<&'static str> {
 fn is_signature_zpaq_blk(data: &[u8]) -> Option<&'static str> {
 
     (data.len() > 5 && data[0] == 0x7A && data[1] == 0x50 && data[2] == 0x51 && (data[3] == 2 || data[3] == 1) && data[4] == 1).then_some("zpaq_blk")
+}
+
+//try to recognize xar header
+fn is_signature_xar(data: &[u8]) -> Option<&'static str> {
+
+    (data.len() > 28 && data.starts_with(&[0x78, 0x61, 0x72, 0x21, 0x00, 0x1C, 0x00, 0x01])).then_some("xar")
+}
+
+//try to recognize lz4 header
+fn is_signature_lz4(data: &[u8]) -> Option<&'static str> {
+
+    (data.len() > 12 && data.starts_with(&[0x04, 0x22, 0x4D, 0x18]) && data[4] & 0b11000010 == 0b01000000).then_some("lz4")
 }
 
 //try to recognize deb header
