@@ -77,7 +77,7 @@ static SIGS_48: [SignatureFn; 1] = [|_| None];
 static SIGS_49: [SignatureFn; 1] = [|_| None];
 static SIGS_4A: [SignatureFn; 1] = [|_| None];
 static SIGS_4B: [SignatureFn; 1] = [|_| None];
-static SIGS_4C: [SignatureFn; 1] = [|_| None];
+static SIGS_4C: [SignatureFn; 1] = [is_signature_lzip];
 static SIGS_4D: [SignatureFn; 3] = [is_signature_cab, is_signature_mzpe, is_signature_midi];
 static SIGS_4E: [SignatureFn; 1] = [|_| None];
 static SIGS_4F: [SignatureFn; 1] = [|_| None];
@@ -138,7 +138,7 @@ static SIGS_85: [SignatureFn; 1] = [|_| None];
 static SIGS_86: [SignatureFn; 1] = [|_| None];
 static SIGS_87: [SignatureFn; 1] = [|_| None];
 static SIGS_88: [SignatureFn; 1] = [|_| None];
-static SIGS_89: [SignatureFn; 1] = [is_signature_png];
+static SIGS_89: [SignatureFn; 2] = [is_signature_png, is_signature_lzo];
 static SIGS_8A: [SignatureFn; 1] = [|_| None];
 static SIGS_8B: [SignatureFn; 1] = [|_| None];
 static SIGS_8C: [SignatureFn; 1] = [|_| None];
@@ -240,7 +240,7 @@ static SIGS_EB: [SignatureFn; 1] = [|_| None];
 static SIGS_EC: [SignatureFn; 1] = [|_| None];
 static SIGS_ED: [SignatureFn; 1] = [is_signature_rpm];
 static SIGS_EE: [SignatureFn; 1] = [|_| None];
-static SIGS_EF: [SignatureFn; 1] = [|_| None];
+static SIGS_EF: [SignatureFn; 1] = [is_signature_nsis];
 static SIGS_F0: [SignatureFn; 1] = [|_| None];
 static SIGS_F1: [SignatureFn; 1] = [|_| None];
 static SIGS_F2: [SignatureFn; 1] = [|_| None];
@@ -433,6 +433,18 @@ fn is_signature_gzip(data: &[u8]) -> Option<&'static str> {
             && (data[8] == 0 || data[8] == 2 || data[8] == 4) && (data[9] <= 13 || data[9] == 0xFF)).then_some("gzip")
 }
 
+//try to recognize lzip header
+fn is_signature_lzip(data: &[u8]) -> Option<&'static str> {
+
+    (data.len() > 12 && data.starts_with(&[0x4C, 0x5A, 0x49, 0x50, 0x01])).then_some("lzip")
+}
+
+//try to recognize lzo header
+fn is_signature_lzo(data: &[u8]) -> Option<&'static str> {
+
+    (data.len() > 12 && data.starts_with(&[0x89, 0x4c, 0x5a, 0x4f, 0x00, 0x0d, 0x0a, 0x1a, 0x0a])).then_some("lzo")
+}
+
 //try to recognize cab header
 fn is_signature_cab(data: &[u8]) -> Option<&'static str> {
 
@@ -463,6 +475,12 @@ fn is_signature_xar(data: &[u8]) -> Option<&'static str> {
 fn is_signature_lz4(data: &[u8]) -> Option<&'static str> {
 
     (data.len() > 12 && data.starts_with(&[0x04, 0x22, 0x4D, 0x18]) && data[4] & 0b11000010 == 0b01000000).then_some("lz4")
+}
+
+//try to recognize nsis header
+fn is_signature_nsis(data: &[u8]) -> Option<&'static str> {
+
+    (data.len() > 16 && data.starts_with(&[0xEF, 0xBE, 0xAD, 0xDE, 0x4E, 0x75, 0x6C, 0x6C, 0x73, 0x6F, 0x66, 0x74, 0x49, 0x6E, 0x73, 0x74])).then_some("nsis")
 }
 
 //try to recognize deb header
