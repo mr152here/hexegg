@@ -203,7 +203,7 @@ static SIGS_C6: [SignatureFn; 1] = [|_| None];
 static SIGS_C7: [SignatureFn; 1] = [|_| None];
 static SIGS_C8: [SignatureFn; 1] = [|_| None];
 static SIGS_C9: [SignatureFn; 1] = [|_| None];
-static SIGS_CA: [SignatureFn; 1] = [|_| None];
+static SIGS_CA: [SignatureFn; 1] = [is_signature_java];
 static SIGS_CB: [SignatureFn; 1] = [|_| None];
 static SIGS_CC: [SignatureFn; 1] = [|_| None];
 static SIGS_CD: [SignatureFn; 1] = [|_| None];
@@ -255,7 +255,7 @@ static SIGS_FA: [SignatureFn; 1] = [|_| None];
 static SIGS_FB: [SignatureFn; 1] = [|_| None];
 static SIGS_FC: [SignatureFn; 1] = [|_| None];
 static SIGS_FD: [SignatureFn; 1] = [is_signature_xz];
-static SIGS_FE: [SignatureFn; 1] = [is_signature_macho];
+static SIGS_FE: [SignatureFn; 1] = [|_| None];
 static SIGS_FF: [SignatureFn; 1] = [is_signature_jpeg];
 
 //map of all sig fn indexed by first byte
@@ -483,6 +483,19 @@ fn is_signature_nsis(data: &[u8]) -> Option<&'static str> {
     (data.len() > 16 && data.starts_with(&[0xEF, 0xBE, 0xAD, 0xDE, 0x4E, 0x75, 0x6C, 0x6C, 0x73, 0x6F, 0x66, 0x74, 0x49, 0x6E, 0x73, 0x74])).then_some("nsis")
 }
 
+//try to recognize java header
+fn is_signature_java(data: &[u8]) -> Option<&'static str> {
+
+    if data.len() > 16 && data.starts_with(&[0xCA, 0xFE, 0xBA, 0xBE]) {
+        return Some(if data[6] == 0 && data[7] >= 0x2D {
+            "java"
+        } else {
+            "fat"
+        });
+    }
+    None
+}
+
 //try to recognize dmg header
 fn is_signature_dmg(data: &[u8]) -> Option<&'static str> {
 
@@ -530,9 +543,9 @@ fn is_signature_elf(data: &[u8]) -> Option<&'static str> {
 fn is_signature_macho(data: &[u8]) -> Option<&'static str> {
 
     (data.len() > 12 && (data.starts_with(&[0xCE, 0xFA, 0xED, 0xFE]) ||
-            data.starts_with(&[0xFE, 0xED, 0xFA, 0xCE]) ||
-            data.starts_with(&[0xCF, 0xFA, 0xED, 0xFE]) ||
-            data.starts_with(&[0xFE, 0xED, 0xFA, 0xCF]))).then_some("mach-o")
+            //data.starts_with(&[0xFE, 0xED, 0xFA, 0xCE]) ||
+            data.starts_with(&[0xCF, 0xFA, 0xED, 0xFE]))).then_some("mach-o")
+            //data.starts_with(&[0xFE, 0xED, 0xFA, 0xCF]))).then_some("mach-o")
 }
 
 //try to recognize DLS header
