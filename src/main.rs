@@ -55,6 +55,9 @@ fn generate_highlight_color(rnd_seed: &mut u32, highlight_style: HighlightStyle,
             let g = (xor_shift_rng(rnd_seed) % len + min) as u8;
             let b = (xor_shift_rng(rnd_seed) % len + min) as u8;
             Color::Rgb{r, g, b}
+        },
+        HighlightStyle::RandomAnsi => {
+            Color::AnsiValue((xor_shift_rng(rnd_seed) & 0xFF) as u8)
         }
     }
 }

@@ -18,7 +18,8 @@ pub enum HighlightStyle {
     None,
     Solid,
     RandomDark,
-    RandomLight
+    RandomLight,
+    RandomAnsi
 }
 
 #[derive(Deserialize)]
@@ -67,6 +68,7 @@ impl HighlightStyle {
             "Solid" => Some(HighlightStyle::Solid),
             "RandomDark" => Some(HighlightStyle::RandomDark),
             "RandomLight" => Some(HighlightStyle::RandomLight),
+            "RandomAnsi" => Some(HighlightStyle::RandomAnsi),
             _ => None
         }
     }
