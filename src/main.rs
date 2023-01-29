@@ -679,6 +679,12 @@ fn main() {
                         MessageBox::new(0, rows-2, cols).show(&mut stdout, "Nothing to yank. Buffer cleared.", MessageBoxType::Informative, &color_scheme);
                     }
                 },
+                Some(Command::OpenBlock) => {
+                    match command_functions::open_block(&mut file_buffers, active_fb_index, &yank_buffer) {
+                        Ok(_) => active_fb_index = file_buffers.len() - 1,
+                        Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
+                    }
+                },
                 Some(Command::InsertBlock) => {
                     if cursor.is_visible() {
                         //insert bytes to the file from selected or yanked block. 

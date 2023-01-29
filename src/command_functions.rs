@@ -284,6 +284,25 @@ pub fn calculate_entropy(fb: &FileBuffer, block_size: usize, margin: f32) -> Loc
         .collect::<LocationList>()
 }
 
+//create a new filebuffer from selected/yanked block
+pub fn open_block(file_buffers: &mut Vec<FileBuffer>, active_fb_index: usize, yank_buffer: &[u8]) -> Result<(), String> {
+    if let Some((s,e)) = file_buffers[active_fb_index].selection() {
+        let file_data = file_buffers[active_fb_index].as_slice()[s..=e].to_vec();
+        let mut fb = FileBuffer::from_vec(file_data);
+        fb.set_filename(format!("dump_{:08X}_{:08X}", s, e).as_str());
+        file_buffers.push(fb);
+
+    } else if !yank_buffer.is_empty() {
+        let mut fb = FileBuffer::from_vec(yank_buffer.to_vec());
+        fb.set_filename("dump_yanked");
+        file_buffers.push(fb);
+
+    } else {
+        return Err("Please select or yank the block first.".to_owned());
+    }
+    Ok(())
+}
+
 //open and read file into Vec<u8>.
 pub fn read_file(file_name: &String) -> Result<Vec<u8>, String> {
     match fs::read(file_name) {

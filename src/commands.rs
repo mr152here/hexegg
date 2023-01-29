@@ -15,6 +15,7 @@ pub enum Command {
     FindAllSignatures,
     FindAllBookmarks,
     YankBlock,
+    OpenBlock,
     InsertBlock,
     AppendBlock,
     DeleteBlock,
@@ -85,6 +86,7 @@ impl Command {
             Some(&"fasi") => Ok(Command::FindAllSignatures),
 
             Some(&"yankblock") => Ok(Command::YankBlock),
+            Some(&"openblock") => Ok(Command::OpenBlock),
             Some(&"insertblock") => Ok(Command::InsertBlock),
             Some(&"appendblock") => Ok(Command::AppendBlock),
             Some(&"deleteblock") => Ok(Command::DeleteBlock),
