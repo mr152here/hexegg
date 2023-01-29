@@ -141,7 +141,7 @@ pub fn find_string(fb: &FileBuffer, min_size: usize, substring: &Vec<u8>) -> Res
 }
 
 //returns location of all strings that contains specified substring and have at least min_size in length
-pub fn find_all_strings(fb: &FileBuffer, min_size: usize, substring: &Vec<u8>) -> LocationList {
+pub fn find_all_strings(fb: &FileBuffer, min_size: usize, substring: &Vec<u8>) -> Result<LocationList, String> {
     let data = fb.as_slice();
     let mut loc_list = LocationList::new();
     let mut start_index: usize = 0;
@@ -173,7 +173,10 @@ pub fn find_all_strings(fb: &FileBuffer, min_size: usize, substring: &Vec<u8>) -
         }
     }
     
-    loc_list
+    match loc_list.is_empty() {
+        true => Err("Not found!".to_owned()),
+        false => Ok(loc_list),
+    }
 }
 
 //find and returns first diff from current file position
@@ -192,20 +195,25 @@ pub fn find_diff(file_buffers: &[FileBuffer], active_fb_index: usize) -> Option<
 }
 
 //find and returns list of all diffs
-pub fn find_all_diffs(file_buffers: &[FileBuffer], active_fb_index: usize) -> LocationList {
+pub fn find_all_diffs(file_buffers: &[FileBuffer], active_fb_index: usize) -> Result<LocationList, String> {
 
-    file_buffers[active_fb_index].as_slice()
+    let ll = file_buffers[active_fb_index].as_slice()
         .iter()
         .enumerate()
         .filter(|&(offset, byte)| {
             file_buffers.iter().any(|filebuf| { if let Some(b) = filebuf.get(offset) { b != *byte } else { true } })
         })
         .map(|(o,_)| (o, format!("{:08X}", o)))
-        .collect::<LocationList>()
+        .collect::<LocationList>();
+
+    match ll.is_empty() {
+        true => Err("Not found!".to_owned()),
+        false => Ok(ll),
+    }
 }
 
 //find all headers and structs
-pub fn find_all_headers(file_buffers: &[FileBuffer], active_fb_index: usize) -> LocationList {
+pub fn find_all_headers(file_buffers: &[FileBuffer], active_fb_index: usize) -> Result<LocationList, String> {
 
     let mut result_ll = LocationList::new();
     let file_len = file_buffers[active_fb_index].len();
@@ -219,7 +227,23 @@ pub fn find_all_headers(file_buffers: &[FileBuffer], active_fb_index: usize) -> 
         }
     }
 
-    result_ll
+    match result_ll.is_empty() {
+        true => Err("Not found!".to_owned()),
+        false => Ok(result_ll),
+    }
+}
+
+//find all boomarks
+pub fn find_all_bookmarks(file_buffers: &[FileBuffer], active_fb_index: usize) -> Result<LocationList, String> {
+    let fb = &file_buffers[active_fb_index];
+    let ll = (0..10).into_iter()
+        .filter_map(|idx| fb.bookmark(idx).map(|o| (o,format!("bm_{}",idx))))
+        .collect::<LocationList>();
+
+    match ll.is_empty() {
+        true => Err("No bookmarks set.".to_owned()),
+        false => Ok(ll),
+    }
 }
 
 //helper function that calculate entropy of data block

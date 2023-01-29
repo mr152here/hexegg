@@ -26,7 +26,6 @@ mod file_buffer;
 use file_buffer::FileBuffer;
 
 mod location_list;
-use location_list::LocationList;
 mod signatures;
 
 fn create_screens(cols: u16, rows: u16) -> Vec<Box<dyn Screen>> {
@@ -546,14 +545,18 @@ fn main() {
                     }
                 },
                 Some(Command::FindAllStrings(min_size, substring)) => {
-                    let ll = command_functions::find_all_strings(&file_buffers[active_fb_index], min_size, &substring);
-                    file_buffers[active_fb_index].clear_highlights();
-                    ll.iter().for_each(|(o,s)| {
-                        let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
-                        file_buffers[active_fb_index].add_highlight(*o, *o + s.len() - 1, color);
-                    });
-                    file_buffers[active_fb_index].set_location_list(ll);
-                    screens.iter_mut().for_each(|s| s.show_location_bar(true));
+                    match command_functions::find_all_strings(&file_buffers[active_fb_index], min_size, &substring) {
+                        Ok(ll) => {
+                            file_buffers[active_fb_index].clear_highlights();
+                            ll.iter().for_each(|(o,s)| {
+                                let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
+                                file_buffers[active_fb_index].add_highlight(*o, *o + s.len() - 1, color);
+                            });
+                            file_buffers[active_fb_index].set_location_list(ll);
+                            screens.iter_mut().for_each(|s| s.show_location_bar(true));
+                        },
+                        Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
+                    }
                 },
                 Some(Command::FindDiff) => {
                     match command_functions::find_diff(&file_buffers, active_fb_index) {
@@ -562,23 +565,31 @@ fn main() {
                     }
                 },
                 Some(Command::FindAllDiffs) => {
-                    let ll = command_functions::find_all_diffs(&file_buffers, active_fb_index);
-                    file_buffers[active_fb_index].set_location_list(ll);
-                    screens.iter_mut().for_each(|s| s.show_location_bar(true));
+                    match command_functions::find_all_diffs(&file_buffers, active_fb_index) {
+                        Ok(ll) => {
+                            file_buffers[active_fb_index].set_location_list(ll);
+                            screens.iter_mut().for_each(|s| s.show_location_bar(true));
+                        },
+                        Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
+                    }
                 },
                 Some(Command::FindAllSignatures) => {
-                    let ll = command_functions::find_all_headers(&file_buffers, active_fb_index);
-                    file_buffers[active_fb_index].set_location_list(ll);
-                    screens.iter_mut().for_each(|s| s.show_location_bar(true));
+                    match command_functions::find_all_headers(&file_buffers, active_fb_index) {
+                        Ok(ll) => {
+                            file_buffers[active_fb_index].set_location_list(ll);
+                            screens.iter_mut().for_each(|s| s.show_location_bar(true));
+                        },
+                        Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
+                    }
                 },
                 Some(Command::FindAllBookmarks) => {
-                    let fb = &mut file_buffers[active_fb_index];
-                    let ll = (0..10).into_iter()
-                        .filter_map(|idx| fb.bookmark(idx).map(|o| (o,format!("bm_{}",idx))))
-                        .collect::<LocationList>();
-
-                    fb.set_location_list(ll);
-                    screens.iter_mut().for_each(|s| s.show_location_bar(true));
+                    match command_functions::find_all_bookmarks(&file_buffers, active_fb_index) {
+                        Ok(ll) => {
+                            file_buffers[active_fb_index].set_location_list(ll);
+                            screens.iter_mut().for_each(|s| s.show_location_bar(true));
+                        },
+                        Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
+                    }
                 },
                 Some(Command::Entropy(block_size, margin)) => {
                     let ll = command_functions::calculate_entropy(&file_buffers[active_fb_index], block_size, margin);
