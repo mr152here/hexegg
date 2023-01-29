@@ -108,7 +108,7 @@ static SIGS_67: [SignatureFn; 1] = [|_| None];
 static SIGS_68: [SignatureFn; 1] = [|_| None];
 static SIGS_69: [SignatureFn; 1] = [|_| None];
 static SIGS_6A: [SignatureFn; 1] = [|_| None];
-static SIGS_6B: [SignatureFn; 1] = [|_| None];
+static SIGS_6B: [SignatureFn; 1] = [is_signature_dmg];
 static SIGS_6C: [SignatureFn; 1] = [|_| None];
 static SIGS_6D: [SignatureFn; 1] = [|_| None];
 static SIGS_6E: [SignatureFn; 1] = [|_| None];
@@ -207,8 +207,8 @@ static SIGS_CA: [SignatureFn; 1] = [|_| None];
 static SIGS_CB: [SignatureFn; 1] = [|_| None];
 static SIGS_CC: [SignatureFn; 1] = [|_| None];
 static SIGS_CD: [SignatureFn; 1] = [|_| None];
-static SIGS_CE: [SignatureFn; 1] = [|_| None];
-static SIGS_CF: [SignatureFn; 1] = [|_| None];
+static SIGS_CE: [SignatureFn; 1] = [is_signature_macho];
+static SIGS_CF: [SignatureFn; 1] = [is_signature_macho];
 static SIGS_D0: [SignatureFn; 1] = [|_| None];
 static SIGS_D1: [SignatureFn; 1] = [|_| None];
 static SIGS_D2: [SignatureFn; 1] = [|_| None];
@@ -255,7 +255,7 @@ static SIGS_FA: [SignatureFn; 1] = [|_| None];
 static SIGS_FB: [SignatureFn; 1] = [|_| None];
 static SIGS_FC: [SignatureFn; 1] = [|_| None];
 static SIGS_FD: [SignatureFn; 1] = [is_signature_xz];
-static SIGS_FE: [SignatureFn; 1] = [|_| None];
+static SIGS_FE: [SignatureFn; 1] = [is_signature_macho];
 static SIGS_FF: [SignatureFn; 1] = [is_signature_jpeg];
 
 //map of all sig fn indexed by first byte
@@ -483,6 +483,12 @@ fn is_signature_nsis(data: &[u8]) -> Option<&'static str> {
     (data.len() > 16 && data.starts_with(&[0xEF, 0xBE, 0xAD, 0xDE, 0x4E, 0x75, 0x6C, 0x6C, 0x73, 0x6F, 0x66, 0x74, 0x49, 0x6E, 0x73, 0x74])).then_some("nsis")
 }
 
+//try to recognize dmg header
+fn is_signature_dmg(data: &[u8]) -> Option<&'static str> {
+
+    (data.len() > 12 && data.starts_with(&[0x6B, 0x6F, 0x6C, 0x79, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x02, 0x00])).then_some("dmg")
+}
+
 //try to recognize deb header
 fn is_signature_deb(data: &[u8]) -> Option<&'static str> {
 
@@ -517,6 +523,16 @@ fn is_signature_elf(data: &[u8]) -> Option<&'static str> {
         return ((data[4] == 1 || data[4] == 2) && (data[5] == 1 || data[5] == 2) && data[6] == 1).then_some("elf");
     }
     None
+}
+
+//try to recognize macho header
+//TODO: add more recognision cputype filetype .. etc
+fn is_signature_macho(data: &[u8]) -> Option<&'static str> {
+
+    (data.len() > 12 && (data.starts_with(&[0xCE, 0xFA, 0xED, 0xFE]) ||
+            data.starts_with(&[0xFE, 0xED, 0xFA, 0xCE]) ||
+            data.starts_with(&[0xCF, 0xFA, 0xED, 0xFE]) ||
+            data.starts_with(&[0xFE, 0xED, 0xFA, 0xCF]))).then_some("mach-o")
 }
 
 //try to recognize DLS header
