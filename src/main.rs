@@ -647,14 +647,9 @@ fn main() {
                     }
                 },
                 Some(Command::SaveBlock(file_name)) => {
-                    match file_buffers[active_fb_index].selection() {
-                        Some((start, end)) => {
-                            match command_functions::save_file(&file_name, &file_buffers[active_fb_index].as_slice()[start..=end]) {
-                                Ok(count) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, format!("written {} bytes to '{}'.", count, file_name).as_str(), MessageBoxType::Informative, &color_scheme); },
-                                Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
-                            }
-                        },
-                        None => { MessageBox::new(0, rows-2, cols).show(&mut stdout, "Please select the block first.", MessageBoxType::Error, &color_scheme); },
+                    match command_functions::save_block(&file_buffers, active_fb_index, &file_name) {
+                        Ok(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Informative, &color_scheme); },
+                        Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
                     }
                 },
                 Some(Command::FillBlock(pattern_bytes)) => {
