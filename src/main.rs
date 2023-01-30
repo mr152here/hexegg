@@ -113,7 +113,7 @@ fn main() {
         println!("Copyright 2023 Michal Kopera\n\
             This software is licensed under the terms of Apache 2.0 license. http://www.apache.org/licenses/LICENSE-2.0\n\
             Is distributed on an \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n\n\
-            hexegg version {}\nusage: hexegg [file1] <file2> <file3> ...\n", VERSION);
+            hexegg version {}\nusage: hexegg <file1> [file2] [file3] ...\n", VERSION);
         return;
     }
 

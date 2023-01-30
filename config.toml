@@ -1,6 +1,6 @@
 #highlight different bytes among all opened files.
 #use the 'h' key to toggle this
-highlight_diff = true
+highlight_diff = false
 
 #show only printable characters. Other are replaced with space.
 #use the 'p' key to toggle this
@@ -19,8 +19,9 @@ screen_paging_size = "Row"
 #style used for highlights. Choose one from:
 #"None" - results are not highlighted, colorscheme bg_color is used.
 #"Solid" - highlight_bg_color from colorscheme used.
-#"RandomDark" - highlights have random colors from rgb 30-130. 
-#"RandomLight" - highlights have random colors from rgb 120-220. 
+#"RandomDark" - highlights have random colors from rgb 30-130.
+#"RandomLight" - highlights have random colors from rgb 120-220.
+#"RandomAnsi" - highlights have random ANSI color.
 highlight_style = "RandomDark"
 
 #the name of the initial color scheme.
