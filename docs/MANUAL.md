@@ -42,9 +42,15 @@ Switching program modes:
 - 't' - toggles the view or byte mode to text mode
 - ESC - return to view mode from byte or text mode
 - 's' - start or finish selection
-- 'S' - select highlighted block under the cursor
+- 'S' - select highlighted block or string at the cursor position
+- 'y' - yank selected block
 
-If the program is in byte mode, you may also select a block of bytes. To select some bytes, start by pressing the 's' key. Selection starts from the current cursor position, adjust it to the required size with standard movement keys, and press the 's' again to finish the selection (or you can cancel it by 'ESC'). Furthermore, if a block of bytes is highlighted (e.g. as a result of some command), you may select the entire highlighted block. Place cursor to it and press 'S' (capital S). The mouse is not supported yet. 
+If the program is in byte mode, you may also select a block of bytes. To select it, start by pressing the 's' key. Selection starts from the current cursor position, adjust it to the required size with standard movement keys, and press the 's' again to finish the selection (or you can cancel it by 'ESC'). You can also select whole block of highlighted bytes or entire (ASCII) string at the cursor position by pressing 'S' key.
+
+You can yank (copy) selected block with 'y' key. This makes easy to move blocks from one file to another. To put yanked block to the file use *insertblock* or *appendblock* commands. Note: System clipboard is not implemented yet.
+
+#### Bookmarks
+Command *bookmark* store actual cursor or file position in the boomark index register. You can than go to the stored locations by pressing its index number: '0','1' ... '9' if program is not in byte/text mode. Or by using *goto b* index command.
 
 #### Patches
 
@@ -95,7 +101,7 @@ Hexegg has a build-in command interface with a simple history of last used comma
 - DOWN - select a next command from history  
 - BACKSPACE - delete last character from the command
 
-Next is a list of available commands, their parameters, and their descriptions. The parameters in [] are optional, the parameters in <> are mandatory, and the parameters in {} have a predefined default value. All parameters must be specified in order. If the {default} parameter is in front of another non-default parameter, it cannot be skipped.  Some commands also have shorthand notation.
+Next is a list of available commands, their parameters, and their descriptions. The parameters in [] are optional, the parameters in <> are mandatory, and the parameters in {} have a predefined default value. If not stated otherwise, all parameters must be specified in order. If the {default} parameter is in front of another non-default parameter, it cannot be skipped. You can specify command by typing its full name (e.g. *findallstrings*) or (if any) by typing its sort name (e.g. *fas*). 
 
 #### Command list
 
@@ -109,12 +115,22 @@ Next is a list of available commands, their parameters, and their descriptions. 
 
 *goto \<position\>*  
 *g \<position\>*
-> go to the file *position*. Specified as a decimal or hexadecimal value. If *position* starts with + or - sign, then is interpreted as relative value from the current position. 
+> go to the file *position*. Specified as a decimal or hexadecimal value. If *position* starts with + or - sign, then is interpreted as relative value from the current position. And if starts with 'b' than is interpreted as bookmark index.
 > 
+> 'goto 152' - go to to the file offset 152  
 > 'g 10' - go to the file offset 10  
 > 'g xBEEF' - go to the file offset 48879  
 > 'g -x10' - go 16 bytes back from the current position  
-> 'g +50' - go 50 bytes forward
+> 'g +50' - go 50 bytes forward  
+> 'g b5' - go to the bookmark 5 position
+
+*bookmark \<bookmark_index\>*  
+*b \<bookmark_index\>*
+> store the current file or cursor position in the boomark register under the *bookmark_index* number. You can go to the stored location with *goto* command or by pressing that index number.
+
+*findallbookmarks*  
+*fab*
+> show all bookmarks and their indexes in the location bar. You can navigate through them using standard '[',']' keys.
 
 *findallpatches*  
 *fap*
@@ -126,7 +142,7 @@ Next is a list of available commands, their parameters, and their descriptions. 
 
 *findallsignatures*  
 *fasi*
-> find the locations of all embedded blocks with a known signature. Currently implemented signatures are for: BMP, PNG, ICO/CUR, ANI, GIF, JPEG, WEBP, ZIP, 7ZIP, GZIP, BZIP2, XZ, RAR, CAB, DEB, RPM, MZPE, ELF, WAV, MIDI
+> find the locations of all embedded blocks with a known signature. Currently implemented signatures are for: 7ZIP, ANI, AVI, BMP, BZIP2, CAB, CDR, DEB, DLS, DMG, ELF, FAT, GIF, GZIP, ICO/CUR, JAVA, JPEG, LZ4, LZIP, LZO, MACH-O, MIDI, MZ_PE, NSIS, PNG, RAR, RPM, VCD_DAT, WAV, WEBP, XAR, XZ, ZIP, ZPAQ
 
 *find \[pattern\]*  
 *f \[pattern\]*
@@ -169,6 +185,9 @@ Next is a list of available commands, their parameters, and their descriptions. 
 *deleteblock*
 > delete the selected block from the file
 
+*openblock*
+> open selected or yanked block as a new file. Selection takes priority.
+
 *saveblock \<filename\>*
 > save the selected block into the file with *filename*.
 
@@ -179,6 +198,15 @@ Next is a list of available commands, their parameters, and their descriptions. 
 > 'fillblock \xFF' - fill the selected block with 0xFF.  
 > 'fillblock \x10\x20\x30' - fill the selected block with repeated bytes 0x10, 0x20, 0x30  ...  
 > 'fillblock M\x40il\\' - fill the selected block with repeated bytes M@il\ ...
+
+*yankblock*
+> copy selected block into the yank buffer. If nothing is selected, buffer is cleared.
+
+*insertblock*
+> insert selected or yanked block into the file at the cursor position. Selection has higher priority.
+
+*appendblock*
+> same as *insertblock* but put block after the cursor position.
 
 *insertfilledblock \<size\> \[pattern\]*
 > create and insert a filled block at the cursor position. *size* is the requested size of the block and may be in decimal or hexadecimal notation. *pattern* has the same syntax and will be repeated if is shorter then block *size*. Same as in the *fillblock* command. If not specified, it will create a block filled with 0.
@@ -212,6 +240,6 @@ Next is a list of available commands, their parameters, and their descriptions. 
 > clear all results from the location bar, including all highlights.  
 
 *set \<variable_name\> \<variable_value\>*
-> set values of inner variables in the running program. *variable_name* must be one from 'colorscheme', 'higlightstyle', 'screenpagingsize'. *variable_value* is a variable name specific and can be found in the configuration file config.toml.
+> set values of inner variables in the running program. *variable_name* must be one from 'colorscheme', 'highlightstyle', 'screenpagingsize'. *variable_value* is a variable name specific and can be found in the configuration file config.toml.
 
 
