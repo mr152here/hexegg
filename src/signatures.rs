@@ -447,7 +447,9 @@ fn is_signature_zpaq_blk(data: &[u8]) -> Option<&'static str> {
 //try to recognize xar header
 fn is_signature_xar(data: &[u8]) -> Option<&'static str> {
 
-    (data.len() > 28 && data.starts_with(&[0x78, 0x61, 0x72, 0x21, 0x00, 0x1C, 0x00, 0x01])).then_some("xar")
+    (data.len() > 28 && data.starts_with(&[0x78, 0x61, 0x72, 0x21, 0x00]) &&
+                        data[5] >= 0x1C && data[6] == 0 && data[7] == 1 &&
+                        data[24] == 0 && data[25] == 0 && data[26] == 0 && data[27] <= 3).then_some("xar")
 }
 
 //try to recognize lz4 header
