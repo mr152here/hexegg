@@ -212,7 +212,7 @@ pub fn find_all_diffs(file_buffers: &[FileBuffer], active_fb_index: usize) -> Re
 }
 
 //find all headers and structs
-pub fn find_all_headers(file_buffers: &[FileBuffer], active_fb_index: usize) -> Result<LocationList, String> {
+pub fn find_all_signatures(file_buffers: &[FileBuffer], active_fb_index: usize, signature_names: Option<Vec<String>>, ignored: bool) -> Result<LocationList, String> {
 
     let mut result_ll = LocationList::new();
     let file_len = file_buffers[active_fb_index].len();
@@ -222,7 +222,15 @@ pub fn find_all_headers(file_buffers: &[FileBuffer], active_fb_index: usize) -> 
         let tmp_file_slice = &file_slice[i..];
 
         if let Some(sig_name) = get_signature(tmp_file_slice) {
-            result_ll.add_location(i, sig_name.to_owned());
+            if let Some(ref name_list) = signature_names {
+                let matched = name_list.iter().any(|name| name.eq(sig_name));
+                
+                if !matched && ignored || matched && !ignored {
+                    result_ll.add_location(i, sig_name.to_owned());
+                }
+            } else {
+                result_ll.add_location(i, sig_name.to_owned());
+            }
         }
     }
 

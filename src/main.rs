@@ -573,8 +573,8 @@ fn main() {
                         Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
                     }
                 },
-                Some(Command::FindAllSignatures) => {
-                    match command_functions::find_all_headers(&file_buffers, active_fb_index) {
+                Some(Command::FindAllSignatures(signature_list, ignored)) => {
+                    match command_functions::find_all_signatures(&file_buffers, active_fb_index, signature_list, ignored) {
                         Ok(ll) => {
                             file_buffers[active_fb_index].set_location_list(ll);
                             screens.iter_mut().for_each(|s| s.show_location_bar(true));

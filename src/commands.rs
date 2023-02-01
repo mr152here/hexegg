@@ -12,7 +12,7 @@ pub enum Command {
     FindAllDiffs,
     FindPatch,
     FindAllPatches,
-    FindAllSignatures,
+    FindAllSignatures(Option<Vec<String>>, bool),
     FindAllBookmarks,
     YankBlock,
     OpenBlock,
@@ -82,8 +82,10 @@ impl Command {
             Some(&"findalldiffs") => Ok(Command::FindAllDiffs),
             Some(&"fad") => Ok(Command::FindAllDiffs),
 
-            Some(&"findallsignatures") => Ok(Command::FindAllSignatures),
-            Some(&"fasi") => Ok(Command::FindAllSignatures),
+            Some(&"findallsignatures") => Command::parse_find_all_signatures(&cmd_vec, false),
+            Some(&"fasi") => Command::parse_find_all_signatures(&cmd_vec, false),
+            Some(&"findallsignatures!") => Command::parse_find_all_signatures(&cmd_vec, true),
+            Some(&"fasi!") => Command::parse_find_all_signatures(&cmd_vec, true),
 
             Some(&"yankblock") => Ok(Command::YankBlock),
             Some(&"openblock") => Ok(Command::OpenBlock),
@@ -320,6 +322,20 @@ impl Command {
             return Ok(Command::FindAllStrings(m,s));
         }
         cmd
+    }
+
+    fn parse_find_all_signatures(v: &[&str], ignored: bool) -> Result<Command, &'static str> {
+        //if there is any parameter
+        if v.len() > 1 {
+            
+            //get all parameters into the vector of strings.
+            let sig_names = v.iter().skip(1)
+                        .map(|s| s.to_string())
+                        .collect::<Vec<String>>();
+
+            return Ok(Command::FindAllSignatures(Some(sig_names), ignored));
+        }
+        Ok(Command::FindAllSignatures(None, ignored))
     }
 
     fn parse_entropy(v: &[&str]) -> Result<Command, &'static str> {
