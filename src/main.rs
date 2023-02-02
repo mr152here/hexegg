@@ -635,7 +635,7 @@ fn main() {
                     }
                 },
                 Some(Command::SaveFile(file_name)) => {
-                    let file_name = if file_name.is_empty() { file_buffers[active_fb_index].filename().to_owned() } else { file_name };
+                    let file_name = file_name.unwrap_or(file_buffers[active_fb_index].filename().to_owned());
                     match command_functions::save_file(&file_name, file_buffers[active_fb_index].as_slice()) {
                         Ok(count) => {
                             MessageBox::new(0, rows-2, cols).show(&mut stdout, format!("written {} bytes to '{}'.", count, file_name).as_str(), MessageBoxType::Informative, &color_scheme);

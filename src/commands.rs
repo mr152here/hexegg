@@ -24,7 +24,7 @@ pub enum Command {
     InsertFilledBlock(Vec<u8>),
     AppendFilledBlock(Vec<u8>),
     OpenFile(String),
-    SaveFile(String),
+    SaveFile(Option<String>),
     CloseFile,
     InsertFile(String),
     AppendFile(String),
@@ -373,10 +373,7 @@ impl Command {
     }
 
     fn parse_save_file(v: &[&str]) -> Result<Command, &'static str> {
-        match v.get(1) {
-            Some(s) => Ok(Command::SaveFile(s.to_string())),
-            None => Ok(Command::SaveFile("".to_string())),
-        }
+        Ok(Command::SaveFile(v.get(1).map(|s| s.to_string())))
     }
 
     fn parse_save_block(v: &[&str]) -> Result<Command, &'static str> {
