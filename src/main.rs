@@ -4,6 +4,7 @@ use crossterm::style::{Color, Print, ResetColor};
 use crossterm::terminal::{Clear, ClearType, size};
 use crossterm::QueueableCommand;
 use crossterm::event::{Event, KeyEvent, KeyCode, read, KeyModifiers};
+use crossterm::event::{MouseEvent, MouseEventKind, EnableMouseCapture, DisableMouseCapture};
 
 mod config;
 use config::{Config, ColorScheme, HighlightStyle, ScreenPagingSize};
@@ -125,6 +126,11 @@ fn main() {
             stdout.queue(crossterm::cursor::Hide).unwrap();
         },
         Err(s) => { println!("{}", s); return; },
+    }
+
+    //init mouse
+    if config.mouse_enabled {
+        stdout.queue(EnableMouseCapture).unwrap();
     }
 
     let (mut cols, mut rows) = size().unwrap();
@@ -359,6 +365,25 @@ fn main() {
                         _ => (),
                     }
                 },
+            }
+        } else if let Event::Mouse(mouse_event) = event {
+            let row_size = screens[active_screen_index].row_size() as usize;
+            let page_size = screens[active_screen_index].page_size();
+
+            let scroll_size = config.mouse_scroll_size * match config.mouse_scroll_type {
+                ScreenPagingSize::Byte => 1,
+                ScreenPagingSize::Row => row_size,
+                ScreenPagingSize::Page => page_size,
+            };
+
+            match mouse_event {
+                MouseEvent { kind: MouseEventKind::ScrollUp, .. } => {
+                    command = Some(Command::GotoRelative(-(scroll_size as isize)));
+                },
+                MouseEvent { kind: MouseEventKind::ScrollDown, .. } => {
+                    command = Some(Command::GotoRelative(scroll_size as isize));
+                },
+                _ => (),
             }
         }
 
@@ -775,10 +800,15 @@ fn main() {
         stdout.flush().unwrap();
     }
 
+    //deinit mouse
+    if config.mouse_enabled {
+        stdout.queue(DisableMouseCapture).unwrap();
+    }
+
     //deint terminal
     crossterm::terminal::disable_raw_mode().unwrap();
-    stdout.queue( crossterm::cursor::Show ).unwrap();
-    stdout.queue( ResetColor ).unwrap();
+    stdout.queue(crossterm::cursor::Show).unwrap();
+    stdout.queue(ResetColor).unwrap();
     if config.clear_screen_on_exit {
         stdout.queue(crossterm::cursor::MoveTo(0,0)).unwrap();
         stdout.queue(Print(Clear(ClearType::All))).unwrap();

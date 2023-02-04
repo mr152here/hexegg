@@ -16,6 +16,20 @@ lock_file_buffers = true
 #"Page" - shift screen by pages
 screen_paging_size = "Row"
 
+#mouse support
+#true - enable mouse
+#false - disable mouse
+mouse_enabled = true
+
+#defines how scroll with the mouse wheel.
+#"Byte" - move screen/cursor <NUMBER> of bytes
+#"Row" - move screen/cursor <NUMBER> of rows
+#"Page" - move screen/cursor <NUMBER> of pages
+mouse_scroll_type = "Row"
+
+#defines <NUMBER> of bytes/rows/pages cursor/screen will move per one tick of mouse wheel.
+mouse_scroll_size = 4
+
 #style used for highlights. Choose one from:
 #"None" - results are not highlighted, colorscheme bg_color is used.
 #"Solid" - highlight_bg_color from colorscheme used.
