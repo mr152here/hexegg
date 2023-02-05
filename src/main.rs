@@ -4,7 +4,7 @@ use crossterm::style::{Color, Print, ResetColor};
 use crossterm::terminal::{Clear, ClearType, size};
 use crossterm::QueueableCommand;
 use crossterm::event::{Event, KeyEvent, KeyCode, read, KeyModifiers};
-use crossterm::event::{MouseEvent, MouseEventKind, EnableMouseCapture, DisableMouseCapture};
+use crossterm::event::{MouseEvent, MouseEventKind, MouseButton, EnableMouseCapture, DisableMouseCapture};
 
 mod config;
 use config::{Config, ColorScheme, HighlightStyle, ScreenPagingSize};
@@ -367,6 +367,7 @@ fn main() {
                 },
             }
         } else if let Event::Mouse(mouse_event) = event {
+            let file_view_offset = file_buffers[active_fb_index].position();
             let row_size = screens[active_screen_index].row_size() as usize;
             let page_size = screens[active_screen_index].page_size();
 
@@ -377,10 +378,10 @@ fn main() {
             };
 
             match mouse_event {
-                MouseEvent { kind: MouseEventKind::ScrollUp, .. } => {
+                MouseEvent{ kind: MouseEventKind::ScrollUp, .. } => {
                     command = Some(Command::GotoRelative(-(scroll_size as isize)));
                 },
-                MouseEvent { kind: MouseEventKind::ScrollDown, .. } => {
+                MouseEvent{ kind: MouseEventKind::ScrollDown, .. } => {
                     command = Some(Command::GotoRelative(scroll_size as isize));
                 },
                 _ => (),

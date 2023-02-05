@@ -138,6 +138,14 @@ impl Screen for TextScreen {
     fn toggle_location_bar(&mut self) {
         self.show_location_bar(!self.show_location_bar);
     }
+
+    fn screen_coord_to_file_offset(&self, init_offset: usize, column: u16, row: u16) -> Option<usize> {
+        if let Some((loc_col, loc_row)) = self.text_area.to_local_coords(column, row) {
+            let w = self.text_area.width() as usize;
+            return Some(init_offset + (loc_row as usize * w) + loc_col as usize);
+        }
+        None
+    }
     
     fn draw(&self, stdout: &mut std::io::Stdout, file_buffers: &[FileBuffer], active_fb_index: usize, cursor_state: &Cursor, color_scheme: &ColorScheme, config: &Config) {
         let offset = file_buffers[active_fb_index].position();

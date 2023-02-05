@@ -143,6 +143,10 @@ impl Screen for ByteScreen {
         self.show_location_bar(!self.show_location_bar);
     }
 
+    fn screen_coord_to_file_offset(&self, _init_offset: usize, _column: u16, _row: u16) -> Option<usize> {
+        None
+    }
+
     fn draw(&self, stdout: &mut std::io::Stdout, file_buffers: &[FileBuffer], active_fb_index: usize, cursor_state: &Cursor, color_scheme: &ColorScheme, config: &Config) {
         let offset = file_buffers[active_fb_index].position();
 

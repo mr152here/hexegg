@@ -117,4 +117,8 @@ impl Element for LocationBar {
     fn set_height(&mut self, h: u16) {
         self.h = h;
     }
+
+    fn to_local_coords(&self, _col: u16, _row: u16) -> Option<(u16, u16)> {
+        None
+    }
 }
