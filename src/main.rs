@@ -384,6 +384,21 @@ fn main() {
                 MouseEvent{ kind: MouseEventKind::ScrollDown, .. } => {
                     command = Some(Command::GotoRelative(scroll_size as isize));
                 },
+                MouseEvent{ kind: MouseEventKind::Down(mouse_button), column, row, .. } if mouse_button == MouseButton::Left => {
+                    if let Some(fo) = screens[active_screen_index].screen_coord_to_file_offset(file_view_offset, column, row) {
+                        cursor.set_position(fo);
+                    }
+                }
+                MouseEvent{ kind: MouseEventKind::Down(mouse_button), column, row, .. } if mouse_button == MouseButton::Right => {
+                    if let Some(fo) = screens[active_screen_index].screen_coord_to_file_offset(file_view_offset, column, row) {
+                        file_buffers[active_fb_index].set_selection(Some((cursor.position(), fo)));
+                    }
+                }
+                MouseEvent{ kind: MouseEventKind::Drag(mouse_button), column, row, .. } if mouse_button == MouseButton::Left => {
+                    if let Some(fo) = screens[active_screen_index].screen_coord_to_file_offset(file_view_offset, column, row) {
+                        file_buffers[active_fb_index].set_selection(Some((cursor.position(), fo)));
+                    }
+                }
                 _ => (),
             }
         }

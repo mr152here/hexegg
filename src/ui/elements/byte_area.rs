@@ -179,7 +179,13 @@ impl Element for ByteArea {
         self.h = h;
     }
 
-    fn to_local_coords(&self, _col: u16, _row: u16) -> Option<(u16, u16)> {
+    fn to_local_coords(&self, col: u16, row: u16) -> Option<(u16, u16)> {
+        let x1 = self.x + self.w;
+        let y1 = self.y + self.h;
+
+        if self.x <= col && self.y <= row && x1 > col && y1 > row {
+            return Some(((col - self.x)/3, row - self.y));
+        }
         None
     }
 }
