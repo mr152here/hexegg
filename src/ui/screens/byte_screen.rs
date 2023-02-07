@@ -143,13 +143,21 @@ impl Screen for ByteScreen {
         self.show_location_bar(!self.show_location_bar);
     }
 
+    fn is_over_location_bar(&self, col: u16, row: u16) -> bool {
+        self.show_location_bar && self.location_bar.contains_position(col, row)
+    }
+
+    fn is_over_data_area(&self, col: u16, row: u16) -> bool {
+        self.text_area.contains_position(col, row) || self.byte_area.contains_position(col, row)
+    }
+
     fn screen_coord_to_file_offset(&self, init_offset: usize, column: u16, row: u16) -> Option<usize> {
 
-        if let Some((loc_col, loc_row)) = self.byte_area.to_local_coords(column, row) {
+        if let Some((loc_col, loc_row)) = self.byte_area.to_local_position(column, row) {
             let bytes_per_row = self.byte_area.row_size() as usize;
             return Some(init_offset + (loc_row as usize * bytes_per_row) + loc_col as usize);
 
-        } else if let Some((loc_col, loc_row)) = self.text_area.to_local_coords(column, row) {
+        } else if let Some((loc_col, loc_row)) = self.text_area.to_local_position(column, row) {
             let w = self.text_area.width() as usize;
             return Some(init_offset + (loc_row as usize * w) + loc_col as usize);
         }

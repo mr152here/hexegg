@@ -21,5 +21,6 @@ pub trait Element {
     fn height(&self) -> u16;
     fn set_height(&mut self, h: u16);
 
-    fn to_local_coords(&self, col: u16, row: u16) -> Option<(u16, u16)>;
+    fn contains_position(&self, col: u16, row: u16) -> bool;
+    fn to_local_position(&self, col: u16, row: u16) -> Option<(u16, u16)>;
 }

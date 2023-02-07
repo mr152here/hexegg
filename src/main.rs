@@ -322,7 +322,7 @@ fn main() {
                         in_selection_mode = false;
                     }
                 },
-                KeyEvent{ code: KeyCode::Char('y'), .. } if cursor.is_byte() => {
+                KeyEvent{ code: KeyCode::Char('y'), .. } if !cursor.is_text() => {
                     command = Some(Command::YankBlock);
                 },
                 //all other keys
@@ -378,23 +378,27 @@ fn main() {
             };
 
             match mouse_event {
-                MouseEvent{ kind: MouseEventKind::ScrollUp, .. } => {
-                    command = Some(Command::GotoRelative(-(scroll_size as isize)));
+                MouseEvent{ kind: MouseEventKind::ScrollUp, column, row, .. } => {
+                    if screens[active_screen_index].is_over_data_area(column, row) {
+                        command = Some(Command::GotoRelative(-(scroll_size as isize)));
+                    }
                 },
-                MouseEvent{ kind: MouseEventKind::ScrollDown, .. } => {
-                    command = Some(Command::GotoRelative(scroll_size as isize));
+                MouseEvent{ kind: MouseEventKind::ScrollDown, column, row, .. } => {
+                    if screens[active_screen_index].is_over_data_area(column, row) {
+                        command = Some(Command::GotoRelative(scroll_size as isize));
+                    }
                 },
-                MouseEvent{ kind: MouseEventKind::Down(mouse_button), column, row, .. } if mouse_button == MouseButton::Left => {
+                MouseEvent{ kind: MouseEventKind::Down(MouseButton::Left), column, row, .. } => {
                     if let Some(fo) = screens[active_screen_index].screen_coord_to_file_offset(file_view_offset, column, row) {
                         cursor.set_position(fo);
                     }
                 }
-                MouseEvent{ kind: MouseEventKind::Down(mouse_button), column, row, .. } if mouse_button == MouseButton::Right => {
+                MouseEvent{ kind: MouseEventKind::Down(MouseButton::Right), column, row, .. } => {
                     if let Some(fo) = screens[active_screen_index].screen_coord_to_file_offset(file_view_offset, column, row) {
                         file_buffers[active_fb_index].set_selection(Some((cursor.position(), fo)));
                     }
                 }
-                MouseEvent{ kind: MouseEventKind::Drag(mouse_button), column, row, .. } if mouse_button == MouseButton::Left => {
+                MouseEvent{ kind: MouseEventKind::Drag(MouseButton::Left), column, row, .. } => {
                     if let Some(fo) = screens[active_screen_index].screen_coord_to_file_offset(file_view_offset, column, row) {
                         file_buffers[active_fb_index].set_selection(Some((cursor.position(), fo)));
                     }

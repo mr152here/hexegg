@@ -118,7 +118,13 @@ impl Element for LocationBar {
         self.h = h;
     }
 
-    fn to_local_coords(&self, _col: u16, _row: u16) -> Option<(u16, u16)> {
+    fn contains_position(&self, col: u16, row: u16) -> bool {
+        let x1 = self.x + self.w;
+        let y1 = self.y + self.h;
+        self.x <= col && self.y <= row && x1 > col && y1 > row
+    }
+
+    fn to_local_position(&self, _col: u16, _row: u16) -> Option<(u16, u16)> {
         None
     }
 }
