@@ -1,6 +1,7 @@
 use crate::cursor::Cursor;
 use crate::config::{ColorScheme, Config};
 use crate::file_buffer::FileBuffer;
+use crate::location_list::LocationList;
 
 pub mod text_screen;
 pub mod byte_screen;
@@ -22,6 +23,7 @@ pub trait Screen {
     fn show_location_bar(&mut self, value: bool);
     fn toggle_location_bar(&mut self);
 
+    fn location_list_index(&self, col: u16, row: u16, location_list: &LocationList) -> Option<usize>;
     fn is_over_location_bar(&self, col: u16, row: u16) -> bool;
     fn is_over_data_area(&self, col: u16, row: u16) -> bool;
     fn screen_coord_to_file_offset(&self, init_offset: usize, column: u16, row: u16) -> Option<usize>;

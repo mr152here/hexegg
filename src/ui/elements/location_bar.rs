@@ -19,6 +19,15 @@ impl LocationBar {
         LocationBar { x, y, w, h }
     }
 
+    pub fn location_list_index(&self, row: u16, location_list: &LocationList) -> Option<usize> {
+        let start_from_index = location_list.current_index().saturating_sub(self.h as usize);
+
+        if (start_from_index + row as usize) < location_list.len() {
+            return Some(start_from_index + row as usize);
+        }
+        None
+    }
+
     pub fn draw(&self, stdout: &mut std::io::Stdout, location_list: &LocationList, color_scheme: &ColorScheme) {
 
         let mut current_fg_color = color_scheme.location_list_fg_color;
@@ -124,7 +133,7 @@ impl Element for LocationBar {
         self.x <= col && self.y <= row && x1 > col && y1 > row
     }
 
-    fn to_local_position(&self, _col: u16, _row: u16) -> Option<(u16, u16)> {
-        None
+    fn to_local_position(&self, col: u16, row: u16) -> Option<(u16, u16)> {
+        self.contains_position(col, row).then_some((col - self.x, row - self.y))
     }
 }

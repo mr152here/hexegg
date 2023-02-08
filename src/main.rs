@@ -381,26 +381,51 @@ fn main() {
                 MouseEvent{ kind: MouseEventKind::ScrollUp, column, row, .. } => {
                     if screens[active_screen_index].is_over_data_area(column, row) {
                         command = Some(Command::GotoRelative(-(scroll_size as isize)));
+
+                    } else if screens[active_screen_index].is_over_location_bar(column, row) {
+                        if let Some((o,_)) = file_buffers[active_fb_index].location_list_mut().previous() {
+                            command = Some(Command::Goto(o))
+                        }
                     }
                 },
                 MouseEvent{ kind: MouseEventKind::ScrollDown, column, row, .. } => {
                     if screens[active_screen_index].is_over_data_area(column, row) {
                         command = Some(Command::GotoRelative(scroll_size as isize));
+
+                    } else if screens[active_screen_index].is_over_location_bar(column, row) {
+                        if let Some((o,_)) = file_buffers[active_fb_index].location_list_mut().next() {
+                            command = Some(Command::Goto(o))
+                        }
                     }
                 },
                 MouseEvent{ kind: MouseEventKind::Down(MouseButton::Left), column, row, .. } => {
-                    if let Some(fo) = screens[active_screen_index].screen_coord_to_file_offset(file_view_offset, column, row) {
-                        cursor.set_position(fo);
+                    let screen = &screens[active_screen_index];
+                    if screen.is_over_data_area(column, row) {
+                        if let Some(fo) = screen.screen_coord_to_file_offset(file_view_offset, column, row) {
+                            cursor.set_position(fo);
+                        }
+                    } else if screen.is_over_location_bar(column, row) {
+                        let fb = &mut file_buffers[active_screen_index];
+                        if let Some(loc_list_idx) = screen.location_list_index(column, row, fb.location_list()) {
+                            if let Some((o,_)) = fb.location_list().get(loc_list_idx) {
+                                fb.location_list_mut().set_current_index(loc_list_idx);
+                                command = Some(Command::Goto(o));
+                            }
+                        }
                     }
                 }
                 MouseEvent{ kind: MouseEventKind::Down(MouseButton::Right), column, row, .. } => {
-                    if let Some(fo) = screens[active_screen_index].screen_coord_to_file_offset(file_view_offset, column, row) {
-                        file_buffers[active_fb_index].set_selection(Some((cursor.position(), fo)));
+                    if screens[active_screen_index].is_over_data_area(column, row) {
+                        if let Some(fo) = screens[active_screen_index].screen_coord_to_file_offset(file_view_offset, column, row) {
+                            file_buffers[active_fb_index].set_selection(Some((cursor.position(), fo)));
+                        }
                     }
                 }
                 MouseEvent{ kind: MouseEventKind::Drag(MouseButton::Left), column, row, .. } => {
-                    if let Some(fo) = screens[active_screen_index].screen_coord_to_file_offset(file_view_offset, column, row) {
-                        file_buffers[active_fb_index].set_selection(Some((cursor.position(), fo)));
+                    if screens[active_screen_index].is_over_data_area(column, row) {
+                        if let Some(fo) = screens[active_screen_index].screen_coord_to_file_offset(file_view_offset, column, row) {
+                            file_buffers[active_fb_index].set_selection(Some((cursor.position(), fo)));
+                        }
                     }
                 }
                 _ => (),

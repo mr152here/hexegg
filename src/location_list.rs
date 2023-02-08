@@ -45,6 +45,12 @@ impl LocationList {
         self.current_index
     }
 
+    pub fn set_current_index(&mut self, index: usize) {
+        if index < self.loc_list.len() {
+            self.current_index = index;
+        }
+    }
+
     //add new location to list
     pub fn add_location(&mut self, offset: usize, string: String) {
         self.loc_list.push((offset, string));

@@ -1,4 +1,5 @@
 use crate::file_buffer::FileBuffer;
+use crate::location_list::LocationList;
 use crate::ui::screens::Screen;
 use crate::ui::elements::Element;
 use crate::ui::elements::info_bar::InfoBar;
@@ -145,6 +146,13 @@ impl Screen for TextScreen {
 
     fn is_over_data_area(&self, col: u16, row: u16) -> bool {
         self.text_area.contains_position(col, row)
+    }
+
+    fn location_list_index(&self, col: u16, row: u16, location_list: &LocationList) -> Option<usize> {
+        if let Some((_, row)) = self.location_bar.to_local_position(col, row) {
+            return self.location_bar.location_list_index(row, location_list)
+        }
+        None
     }
 
     fn screen_coord_to_file_offset(&self, init_offset: usize, column: u16, row: u16) -> Option<usize> {
