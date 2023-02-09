@@ -391,10 +391,10 @@ fn main() {
                                 let fb = &mut file_buffers[active_screen_index];
 
                                 //select highlighted block and if not possible, select string under the cursor
-                                fb.set_selection(if let Some((s,e,_)) = fb.get_highlight(cursor.position()) {
+                                fb.set_selection(if let Some((s,e,_)) = fb.get_highlight(fo) {
                                         Some((s,e))
                                     } else {
-                                        command_functions::find_string_at_position(fb, cursor.position())
+                                        command_functions::find_string_at_position(fb, fo)
                                     });
                             } else {
                                 cursor.set_position(fo);
