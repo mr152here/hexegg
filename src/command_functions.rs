@@ -102,6 +102,33 @@ pub fn find_all(fb: &FileBuffer, b: &[u8]) -> Result<LocationList, String> {
     }
 }
 
+//find if there is any string at the position
+pub fn find_string_at_position(fb: &FileBuffer, position: usize) -> Option<(usize, usize)> {
+
+    if let Some(b) = fb.get(position) {
+        if (0x20..=0x7E).contains(&b) {
+
+            //find start/end of the string
+            let (mut s, mut e) = (position, position);
+            while let Some(b) = fb.get(e + 1) {
+                if !(0x20..=0x7E).contains(&b) {
+                    break;
+                }
+                e += 1;
+            }
+
+            while let Some(b) = fb.get(s.saturating_sub(1)) {
+                if !(0x20..=0x7E).contains(&b) {
+                    break;
+                }
+                s = s.saturating_sub(1);
+            }
+            return Some((s,e));
+        }
+    }
+    None
+}
+
 //returns location of first string from current position in filebuffer. String must contains
 //substring and must be at least min_size long
 pub fn find_string(fb: &FileBuffer, min_size: usize, substring: &Vec<u8>) -> Result<usize, String> {

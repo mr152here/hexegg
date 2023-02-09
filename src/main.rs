@@ -1,5 +1,6 @@
 use std::{env, fs};
 use std::io::{Read, Write};
+use std::time::Instant;
 use crossterm::style::{Color, Print, ResetColor};
 use crossterm::terminal::{Clear, ClearType, size};
 use crossterm::QueueableCommand;
@@ -144,6 +145,8 @@ fn main() {
     let mut in_selection_mode = false;
     let mut selection_start = 0;
     let mut cmd_history = Vec::<String>::new();
+    let (mut last_mouse_col, mut last_mouse_row) = (0 as u16, 0 as u16);
+    let mut last_click_time = Instant::now();
 
     //main program loop
     loop {
@@ -287,32 +290,12 @@ fn main() {
                 KeyEvent{ code: KeyCode::Char('S'), .. } if cursor.is_byte() => {
                     let fb = &mut file_buffers[active_screen_index];
 
-                    //get highlighted block, if not possible select string under the cursor
-                    if let Some((s,e,_)) = fb.get_highlight(cursor.position()) {
-                        fb.set_selection(Some((s,e)));
-
-                    } else if let Some(b) = fb.get(cursor.position()) {
-                        if (0x20..=0x7E).contains(&b) {
-                            let (mut s, mut e) = (cursor.position(), cursor.position());
-
-                            //find start/end of the string
-                            while let Some(b) = fb.get(e + 1) {
-                                if !(0x20..=0x7E).contains(&b) {
-                                    break;
-                                } 
-                                e += 1;
-                            }
-                            while let Some(b) = fb.get(s.saturating_sub(1)) {
-                                if !(0x20..=0x7E).contains(&b) {
-                                    break;
-                                } 
-                                s = s.saturating_sub(1);
-                            }
-                            fb.set_selection(Some((s,e)));
+                    //select highlighted block and if not possible, select string under the cursor
+                    fb.set_selection(if let Some((s,e,_)) = fb.get_highlight(cursor.position()) {
+                            Some((s,e))
                         } else {
-                            fb.set_selection(None);
-                        }
-                    } 
+                            command_functions::find_string_at_position(fb, cursor.position())
+                        });
                 },
                 KeyEvent{ code: KeyCode::Char('s'), .. } if cursor.is_byte() => {
                     if !in_selection_mode && cursor.position() < file_buffers[active_fb_index].len() {
@@ -400,12 +383,30 @@ fn main() {
                 },
                 MouseEvent{ kind: MouseEventKind::Down(MouseButton::Left), column, row, .. } => {
                     let screen = &screens[active_screen_index];
+                    let is_double_click = column == last_mouse_col && row == last_mouse_row && last_click_time.elapsed().as_millis() < 500;
+
                     if screen.is_over_data_area(column, row) {
                         if let Some(fo) = screen.screen_coord_to_file_offset(file_view_offset, column, row) {
-                            cursor.set_position(fo);
+                            if is_double_click {
+                                let fb = &mut file_buffers[active_screen_index];
+
+                                //select highlighted block and if not possible, select string under the cursor
+                                fb.set_selection(if let Some((s,e,_)) = fb.get_highlight(cursor.position()) {
+                                        Some((s,e))
+                                    } else {
+                                        command_functions::find_string_at_position(fb, cursor.position())
+                                    });
+                            } else {
+                                cursor.set_position(fo);
+                            }
                         }
+
                     } else if screen.is_over_location_bar(column, row) {
                         let fb = &mut file_buffers[active_screen_index];
+
+                        //TODO: add selection from location_list when will contains ranges
+                        //if is_double_click {
+                        //} else if let Some(loc_list_idx) = screen.location_list_index(column, row, fb.location_list()) {
                         if let Some(loc_list_idx) = screen.location_list_index(column, row, fb.location_list()) {
                             if let Some((o,_)) = fb.location_list().get(loc_list_idx) {
                                 fb.location_list_mut().set_current_index(loc_list_idx);
@@ -413,6 +414,10 @@ fn main() {
                             }
                         }
                     }
+
+                    last_click_time = Instant::now();
+                    last_mouse_col = column;
+                    last_mouse_row = row;
                 }
                 MouseEvent{ kind: MouseEventKind::Down(MouseButton::Right), column, row, .. } => {
                     if screens[active_screen_index].is_over_data_area(column, row) {
