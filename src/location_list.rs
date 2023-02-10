@@ -51,6 +51,13 @@ impl LocationList {
         }
     }
 
+    pub fn remove_current_location(&mut self) {
+        if self.current_index < self.loc_list.len() {
+            self.loc_list.remove(self.current_index);
+            self.current_index = std::cmp::min(self.current_index, self.loc_list.len().saturating_sub(1));
+        }
+    }
+
     //add new location to list
     pub fn add_location(&mut self, offset: usize, string: String) {
         self.loc_list.push((offset, string));

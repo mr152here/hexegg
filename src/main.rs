@@ -260,6 +260,13 @@ fn main() {
                         command = Some(Command::Goto(o))
                     }
                 },
+                KeyEvent{ code: KeyCode::Char('r'), .. } if cursor.is_byte() || !cursor.is_visible() => {
+                    //remove currently selected locattion and jump to new current
+                    file_buffers[active_fb_index].location_list_mut().remove_current_location();
+                    if let Some((o,_)) = file_buffers[active_fb_index].location_list().current() {
+                        command = Some(Command::Goto(o))
+                    }
+                },
                 KeyEvent{ code: KeyCode::Char('-'), .. } if cursor.is_byte() || !cursor.is_visible() => screens[active_screen_index].dec_row_size(),
                 KeyEvent{ code: KeyCode::Char('+'), .. } if cursor.is_byte() || !cursor.is_visible() => screens[active_screen_index].inc_row_size(),
                 KeyEvent{ code: KeyCode::Char('/'), .. } if cursor.is_byte() || !cursor.is_visible() => {
@@ -404,9 +411,6 @@ fn main() {
                     } else if screen.is_over_location_bar(column, row) {
                         let fb = &mut file_buffers[active_screen_index];
 
-                        //TODO: add selection from location_list when will contains ranges
-                        //if is_double_click {
-                        //} else if let Some(loc_list_idx) = screen.location_list_index(column, row, fb.location_list()) {
                         if let Some(loc_list_idx) = screen.location_list_index(column, row, fb.location_list()) {
                             if let Some((o,_)) = fb.location_list().get(loc_list_idx) {
                                 fb.location_list_mut().set_current_index(loc_list_idx);
