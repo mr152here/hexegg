@@ -25,10 +25,12 @@ Basic controls are pretty intuitive. The arrow keys move the file viewing positi
 Hexegg offers various interpretations of the input data. Those are called "screens". In the current version, there are two screens: text and byte screen. You can cycle between them using 'ENTER' key.
 
 ##### text screen
+
 Display data as they are in the file with (almost) cp437 character set.
 ![text_screen](assets/text_screen.png)
 
 ##### byte screen
+
 Display data as they hexadecimal values and also as their "text" values.
 ![byte_screen](assets/byte_screen.png) 
 
@@ -45,11 +47,16 @@ Switching program modes:
 - 'S' - select highlighted block or string at the cursor position
 - 'y' - yank selected block
 
-If the program is in byte mode, you may also select a block of bytes. To select it, start by pressing the 's' key. Selection starts from the current cursor position, adjust it to the required size with standard movement keys, and press the 's' again to finish the selection (or you can cancel it by 'ESC'). You can also select whole block of highlighted bytes or entire (ASCII) string at the cursor position by pressing 'S' key.
+If the program is in byte mode, you may select a block of bytes. Start by pressing the 's' key. Selection starts from the current cursor position, adjust it to the required size with standard movement keys, and press the 's' again to finish the selection (or you can cancel it anytime by 'ESC'). You can also select whole block of highlighted bytes or entire (ASCII) string at the cursor position by pressing 'S' key.
 
 You can yank (copy) selected block with 'y' key. This makes easy to move blocks from one file to another. To put yanked block to the file use *insertblock* or *appendblock* commands. Note: System clipboard is not implemented yet.
 
+#### Mouse
+
+You may enable/disable mouse by setting *mouse_enabled* in the configuration *config.toml* file. Is enabled by default. If your terminal doesn't support mouse, is recommended to disable it. You can move cursor anywhere to the file by left click (even if is not visible). To select a block, press and hold down left button and drag the mouse (if crossterm library support mouse drag event for your terminal). If not, you can always right click and block between cursor and current mouse position will be selected. You may adjust behavior of mouse wheel by setting *mouse_scroll_type* and *mouse_scroll_size* variables. Double click somewhere at highlighted block or ASCII string will select it. Same as 'S' key.
+
 #### Bookmarks
+
 Command *bookmark* store actual cursor or file position in the boomark index register. You can than go to the stored locations by pressing its index number: '0','1' ... '9' if program is not in byte/text mode. Or by using *goto b* index command.
 
 #### Patches
@@ -69,18 +76,22 @@ Almost every file modification is stored in the "patch map", which contains the 
 - 'i' - toggles the visibility of the info bar
 - 'o' - toggles the visibility of the offset bar
 
-When you enable highlighting different bytes ('h' key), program shows those bytes in a different color, making changes in files easy to spot. You can also use '.' key to jump to the next diff location. 
+When you enable highlighting different bytes ('h' key), program shows those bytes in a different color, makes changes in files easy to spot. You can also use '.' key to jump to the next diff location.
 ![](assets/byte_screen_diff.png)  
 
 #### Location bar
 
-Whenever you perform an operation that may returns multiple results, the results are displayed on the right side of the screen in a panel called the "location bar". You can quickly jump through the results and their associated offsets using:
+Whenever you perform an operation that returns multiple results, the results are displayed on the right side of the screen in a panel called the "location bar". You can quickly jump through the results and their associated offsets using:
 - ']' - navigate to the next location
 - '[' - navigate to the previous location
 - '=' - navigate to the currently selected location
+- 'r' - remove selected result from location bar
 - 'l' - toggles location bar visibility (shortcuts still works)
 
+Location bar also support mouse events. By clicking on the item in the list, you will jump to the associated offset. Or you can quickly travers results by mouse wheel.
+
 #### Info bar
+
 ![info_bar](assets/info_bar.png)  
 
 The info bar is at the top of the screen. There is information about the current file and program state. On the left is the current file index and the number of opened files. The current file name, where '+' indicates if the file has been modified. Next is the current position in the file in decimal, hexadecimal, and percentage representation. The following four (VPLD) letters indict:
@@ -140,9 +151,19 @@ Next is a list of available commands, their parameters, and their descriptions. 
 *fad*
 > find all diffs (different bytes among all opened files) and show their offsets in the location bar.
 
-*findallsignatures*  
-*fasi*
-> find the locations of all embedded blocks with a known signature. Currently implemented signatures are for: 7ZIP, ANI, AVI, BMP, BZIP2, CAB, CDR, DEB, DLS, DMG, ELF, FAT, GIF, GZIP, ICO/CUR, JAVA, JPEG, LZ4, LZIP, LZO, MACH-O, MIDI, MZ_PE, NSIS, PNG, RAR, RPM, VCD_DAT, WAV, WEBP, XAR, XZ, ZIP, ZPAQ
+*findallsignatures \[sig_name\]* ...  
+*fasi \[sig_name\]* ...  
+> find the locations of embedded blocks specified with one or more *sig_name* parameter. If nothing is specified, find all known signatures. Currently implemented signatures are for: 7zip, ani, avi, bmp, bzip2, cab, cdr, deb, dls, dmg, elf, fat, gif, gzip, ico, java, jpeg, lz4, lzip, lzo, macho, midi, mzpe, nsis, png, rar, rpm, vcd_dat, wav, webp, xar, xz, zip, zpaq
+> 
+> 'fasi' - find all known signatures  
+> 'fasi elf gzip xar' - find locations of all "ELF", "GZIP" and "XAR" signatures
+
+*findallsignatures! \[sig_name\]* ...  
+*fasi! \[sig_name\]* ...  
+> find location of all signatures that are NOT specified. If nothing is specified, return all known signatures.
+> 
+> 'fasi!' - find all known signatures  
+> 'fasi! elf gzip xar' - find all signatures, except "ELF", "GZIP" and "XAR"
 
 *find \[pattern\]*  
 *f \[pattern\]*

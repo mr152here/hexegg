@@ -1,6 +1,6 @@
 # hexegg
 
-Cross-platform terminal hex editor with some advanced features.
+Interactive hex editor for linux terminal (and other platforms) with some advanced features.
 
 ![hexegg](docs/assets/hexegg.png)  
 
@@ -10,12 +10,12 @@ Cross-platform terminal hex editor with some advanced features.
 - simple custom color schemes with 16, 256, and full RGB support
 - multiple input files
 - highlight diffs between files
-- toggle visibility of printable characters
-- advanced block manipulation such as insert, delete, fill from generator other files, etc ...
+- advanced block manipulation such as insert, delete, fill from generator, from other files, etc ...
 - advanced search options
 - results highlighting
 - command interface
 - minimal external dependencies
+- mouse support
 
 Please read the [manual](docs/MANUAL.md) to see all commands and features. 
 
