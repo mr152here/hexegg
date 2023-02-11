@@ -321,7 +321,7 @@ pub fn calculate_entropy(fb: &FileBuffer, block_size: usize, margin: f32) -> Loc
 //save selected block into the file
 pub fn save_block(file_buffers: &[FileBuffer], active_fb_index: usize, file_name: &str) -> Result<String, String> {
     if let Some((start,end)) = file_buffers[active_fb_index].selection() {
-        return match save_file(&file_name, &file_buffers[active_fb_index].as_slice()[start..=end]) {
+        return match save_file(file_name, &file_buffers[active_fb_index].as_slice()[start..=end]) {
             Ok(count) => Ok(format!("written {} bytes to '{}'.", count, file_name)),
             Err(s) => Err(s),
         };

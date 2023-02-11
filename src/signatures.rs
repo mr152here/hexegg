@@ -524,9 +524,7 @@ fn is_signature_elf(data: &[u8]) -> Option<&'static str> {
 fn is_signature_macho(data: &[u8]) -> Option<&'static str> {
 
     (data.len() > 12 && (data.starts_with(&[0xCE, 0xFA, 0xED, 0xFE]) ||
-            //data.starts_with(&[0xFE, 0xED, 0xFA, 0xCE]) ||
-            data.starts_with(&[0xCF, 0xFA, 0xED, 0xFE]))).then_some("mach-o")
-            //data.starts_with(&[0xFE, 0xED, 0xFA, 0xCF]))).then_some("mach-o")
+            data.starts_with(&[0xCF, 0xFA, 0xED, 0xFE]))).then_some("macho")
 }
 
 //try to recognize midi header
