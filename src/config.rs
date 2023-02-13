@@ -13,6 +13,7 @@ pub struct Config {
     pub clear_screen_on_exit: bool,
     pub highlight_style: HighlightStyle,
     pub active_color_scheme: String,
+    screen_settings: Vec<ScreenSettings>,
     color_scheme: Vec<ColorScheme>
 }
 
@@ -30,6 +31,16 @@ pub enum ScreenPagingSize {
     Byte,
     Row,
     Page
+}
+
+#[derive(Deserialize)]
+pub struct ScreenSettings {
+    pub name: String,
+    pub data_area_width: u16,
+    pub location_bar_width: u16,
+    pub show_info_bar: bool,
+    pub show_offset_bar: bool,
+    pub show_location_bar: bool
 }
 
 #[derive(Deserialize, Clone)]
@@ -60,6 +71,10 @@ impl Config {
 
     pub fn color_scheme(&self, name: &str) -> Option<&ColorScheme> {
         self.color_scheme.iter().find(|cs| cs.name.eq(name))
+    }
+
+    pub fn screen_settings(&self, name: &str) -> Option<&ScreenSettings> {
+        self.screen_settings.iter().find(|s| s.name.eq(name))
     }
 }
 

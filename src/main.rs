@@ -30,10 +30,10 @@ use file_buffer::FileBuffer;
 mod location_list;
 mod signatures;
 
-fn create_screens(cols: u16, rows: u16) -> Vec<Box<dyn Screen>> {
+fn create_screens(cols: u16, rows: u16, config: &Config) -> Vec<Box<dyn Screen>> {
     vec![
-        Box::new(TextScreen::new(cols, rows)),
-        Box::new(ByteScreen::new(cols, rows))
+        Box::new(TextScreen::new(cols, rows, config.screen_settings("text_screen").expect("Settings for 'text_screen' not found!"))),
+        Box::new(ByteScreen::new(cols, rows, config.screen_settings("byte_screen").expect("Settings for 'byte_screen' not found!")))
     ]
 }
 
@@ -136,7 +136,7 @@ fn main() {
 
     let (mut cols, mut rows) = size().unwrap();
     let mut cursor = Cursor::new(0, CursorState::Hidden);
-    let mut screens = create_screens(cols, rows);
+    let mut screens = create_screens(cols, rows, &config);
     screens[0].draw(&mut stdout, &file_buffers, active_fb_index, &cursor, &color_scheme, &config); 
     stdout.flush().unwrap();
    
@@ -156,7 +156,7 @@ fn main() {
         if new_cols != cols || new_rows != rows {
             cols = new_cols;
             rows = new_rows;
-            screens = create_screens(cols, rows);
+            screens = create_screens(cols, rows, &config);
         }
 
         let mut command: Option<Command> = None;

@@ -7,10 +7,11 @@ use crate::ui::elements::location_bar::LocationBar;
 use crate::ui::elements::offset_bar::OffsetBar;
 use crate::ui::elements::text_area::TextArea;
 use crate::ui::elements::separator::Separator;
-use crate::config::{ColorScheme, Config};
+use crate::config::{ColorScheme, Config, ScreenSettings};
 use crate::cursor::Cursor;
 
 pub struct TextScreen {
+    w: u16,
     h: u16,
     info_bar: InfoBar,
     offset_bar: OffsetBar,
@@ -25,16 +26,33 @@ pub struct TextScreen {
 }
 
 impl TextScreen {
-    pub fn new(w: u16, h: u16) -> TextScreen {
+
+    pub fn new(w: u16, h: u16, screen_settings: &ScreenSettings) -> TextScreen {
+        Self::create_layout(w, h, screen_settings.data_area_width, screen_settings.show_info_bar, screen_settings.show_offset_bar, screen_settings.show_location_bar, screen_settings.location_bar_width)
+    }
+
+    fn create_layout(w: u16, h: u16, data_area_width: u16, show_info_bar: bool, show_offset_bar: bool, show_location_bar: bool, location_bar_width: u16)-> TextScreen {
+        let y0 = show_info_bar as u16;
+        let new_h = h - y0;
+
         let ib = InfoBar::new(w);
-        let ob = OffsetBar::new(0, ib.height(), h-ib.height());
-        let ls = Separator::new(ob.width(), ib.height(), 1, h-ib.height());
-        let lb = LocationBar::new(w-8, ib.height(), 8, h-ib.height());
-        let rs = Separator::new(w-1, ib.height(), 1, h-ib.height());
-        let ta = TextArea::new(ob.width() + ls.width(), ib.height(), rs.x0()-ls.x0()-1, h-ib.height());
-        let max_ta_width = ta.width();
+        let ob = OffsetBar::new(0, y0, new_h);
+
+        let ob_width = if show_offset_bar { ob.width() } else { 0 };
+        let lb_width = if show_location_bar { location_bar_width } else { 0 };
+
+        let ls = Separator::new(ob_width, y0, 1, new_h);
+
+        let ta_max_width = w - ob_width - lb_width - ls.width() - 1; //-1 => minimum for rs.width()
+        let ta_width = std::cmp::min(data_area_width, ta_max_width);
+        let ta = TextArea::new(ob_width + ls.width(), y0, ta_width, new_h);
+
+        let rs_width = w - ob_width - ls.width() - ta_width - lb_width;
+        let rs = Separator::new(ta.x0() + ta_width, y0, rs_width, new_h);
+        let lb = LocationBar::new(w - location_bar_width, y0, location_bar_width, new_h);
 
         TextScreen {
+            w,
             h,
             info_bar: ib,
             offset_bar: ob,
@@ -42,10 +60,10 @@ impl TextScreen {
             right_separator: rs,
             text_area: ta,
             location_bar: lb,
-            max_text_area_width: max_ta_width,
-            show_info_bar: true,
-            show_offset_bar: true,
-            show_location_bar: false
+            max_text_area_width: ta_max_width,
+            show_info_bar,
+            show_offset_bar,
+            show_location_bar
         }
     }
 }
@@ -76,68 +94,25 @@ impl Screen for TextScreen {
         }
     }
 
-    fn show_info_bar(&mut self, value: bool) {
-        let y0 = value as u16; 
-        let h = self.h - y0;
-        self.offset_bar.set_y0(y0);
-        self.offset_bar.set_height(h);
-        self.left_separator.set_y0(y0);
-        self.left_separator.set_height(h);
-        self.right_separator.set_y0(y0);
-        self.right_separator.set_height(h);
-        self.text_area.set_y0(y0);
-        self.text_area.set_height(h);
-        self.location_bar.set_y0(y0);
-        self.location_bar.set_height(h);
-        self.show_info_bar = value;
-    }
-
     fn toggle_info_bar(&mut self) {
-        self.show_info_bar(!self.show_info_bar);
-    }
-
-    fn show_offset_bar(&mut self, value: bool) {
-        if value != self.show_offset_bar{
-        let obw = self.offset_bar.width();
-            if value {
-                self.left_separator.set_x0(self.left_separator.x0() + obw);
-                self.text_area.set_x0(self.text_area.x0() + obw);
-                self.text_area.set_width(self.text_area.width() - obw);
-                self.max_text_area_width -= obw;
-            } else {
-                self.left_separator.set_x0(self.left_separator.x0() -obw);
-                self.text_area.set_x0(self.text_area.x0() - obw);
-                self.text_area.set_width(self.text_area.width() + obw);
-                self.max_text_area_width += obw;
-            }
-            self.show_offset_bar = value;
-        }
+        let ta_width = if self.text_area.width() == self.max_text_area_width { u16::MAX } else { self.text_area.width() };
+        *self = Self::create_layout(self.w, self.h, ta_width, !self.show_info_bar, self.show_offset_bar, self.show_location_bar, self.location_bar.width());
     }
 
     fn toggle_offset_bar(&mut self) {
-        self.show_offset_bar(!self.show_offset_bar);
+        let ta_width = if self.text_area.width() == self.max_text_area_width { u16::MAX } else { self.text_area.width() };
+        *self = Self::create_layout(self.w, self.h, ta_width, self.show_info_bar, !self.show_offset_bar, self.show_location_bar, self.location_bar.width());
+    }
+
+    fn toggle_location_bar(&mut self) {
+        let ta_width = if self.text_area.width() == self.max_text_area_width { u16::MAX } else { self.text_area.width() };
+        *self = Self::create_layout(self.w, self.h, ta_width, self.show_info_bar, self.show_offset_bar, !self.show_location_bar, self.location_bar.width());
     }
 
     fn show_location_bar(&mut self, value: bool) {
         if value != self.show_location_bar {
-            let lbw = self.location_bar.width();
-
-            if value {
-                self.right_separator.set_x0(self.right_separator.x0() - lbw);
-                self.text_area.set_width(self.text_area.width() - lbw);
-                self.max_text_area_width -= lbw;
-            } else {
-                self.right_separator.set_x0(self.right_separator.x0() + lbw);
-                self.text_area.set_width(self.text_area.width() + lbw);
-                self.max_text_area_width += lbw;
-            }
-
-            self.show_location_bar = value;
+            *self = Self::create_layout(self.w, self.h, self.text_area.width(), self.show_info_bar, self.show_offset_bar, value, self.location_bar.width());
         }
-    }
-
-    fn toggle_location_bar(&mut self) {
-        self.show_location_bar(!self.show_location_bar);
     }
 
     fn is_over_location_bar(&self, col: u16, row: u16) -> bool {

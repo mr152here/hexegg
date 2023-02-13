@@ -8,7 +8,7 @@ use crate::ui::elements::offset_bar::OffsetBar;
 use crate::ui::elements::byte_area::ByteArea;
 use crate::ui::elements::text_area::TextArea;
 use crate::ui::elements::separator::Separator;
-use crate::config::{ColorScheme, Config};
+use crate::config::{ColorScheme, Config, ScreenSettings};
 use crate::cursor::Cursor;
 
 pub struct ByteScreen {
@@ -27,7 +27,8 @@ pub struct ByteScreen {
 }
 
 impl ByteScreen {
-    pub fn new(w: u16, h: u16) -> ByteScreen {
+
+    pub fn new(w: u16, h: u16, screen_settings: &ScreenSettings) -> ByteScreen {
         let ib = InfoBar::new(w);
         let ob = OffsetBar::new(0, ib.height(), h-ib.height());
         let ls = Separator::new(ob.width(), ib.height(), 1, h-ib.height());
@@ -51,13 +52,14 @@ impl ByteScreen {
             info_bar: ib,
             location_bar: lb,
             max_data_width: max_width,
-            show_info_bar: true,
+            show_info_bar: screen_settings.show_info_bar,
             show_location_bar: false
         }
     }
 }
 
 impl Screen for ByteScreen {
+
     fn row_size(&self) -> u16 {
         self.byte_area.row_size()
     }
@@ -88,34 +90,34 @@ impl Screen for ByteScreen {
         }
     }
 
-    fn show_offset_bar(&mut self, _value: bool) {
-    }
+    //fn show_offset_bar(&mut self, _value: bool) {
+    //}
 
     fn toggle_offset_bar(&mut self) {
     }
 
-    fn show_info_bar(&mut self, value: bool) {
-        let y0 = value as u16; 
-        let h = self.h - y0;
-        self.offset_bar.set_y0(y0);
-        self.offset_bar.set_height(h);
-        self.left_separator.set_y0(y0);
-        self.left_separator.set_height(h);
-        self.right_separator.set_y0(y0);
-        self.right_separator.set_height(h);
-        self.center_separator.set_y0(y0);
-        self.center_separator.set_height(h);
-        self.text_area.set_y0(y0);
-        self.text_area.set_height(h);
-        self.byte_area.set_y0(y0);
-        self.byte_area.set_height(h);
-        self.location_bar.set_y0(y0);
-        self.location_bar.set_height(h);
-        self.show_info_bar = value;
-    }
+    //fn show_info_bar(&mut self, value: bool) {
+    //    let y0 = value as u16; 
+    //    let h = self.h - y0;
+    //    self.offset_bar.set_y0(y0);
+    //    self.offset_bar.set_height(h);
+    //    self.left_separator.set_y0(y0);
+    //    self.left_separator.set_height(h);
+    //    self.right_separator.set_y0(y0);
+    //    self.right_separator.set_height(h);
+    //    self.center_separator.set_y0(y0);
+    //    self.center_separator.set_height(h);
+    //    self.text_area.set_y0(y0);
+    //    self.text_area.set_height(h);
+    //    self.byte_area.set_y0(y0);
+    //    self.byte_area.set_height(h);
+    //    self.location_bar.set_y0(y0);
+    //    self.location_bar.set_height(h);
+    //    self.show_info_bar = value;
+    //}
 
     fn toggle_info_bar(&mut self) {
-        self.show_info_bar(!self.show_info_bar);
+        //self.show_info_bar(!self.show_info_bar);
     }
 
     fn show_location_bar(&mut self, value: bool) {

@@ -14,14 +14,11 @@ pub trait Screen {
     fn inc_row_size(&mut self);
     fn dec_row_size(&mut self);
     
-    fn show_offset_bar(&mut self, value: bool);
     fn toggle_offset_bar(&mut self);
-
-    fn show_info_bar(&mut self, value: bool);
     fn toggle_info_bar(&mut self);
+    fn toggle_location_bar(&mut self);
 
     fn show_location_bar(&mut self, value: bool);
-    fn toggle_location_bar(&mut self);
 
     fn location_list_index(&self, col: u16, row: u16, location_list: &LocationList) -> Option<usize>;
     fn is_over_location_bar(&self, col: u16, row: u16) -> bool;

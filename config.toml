@@ -44,6 +44,24 @@ active_color_scheme = "gudinuf"
 #clear terminal when program ends
 clear_screen_on_exit = false
 
+#this section defines custom settings for each screen individualy. Screen is identified by it's name.
+#data_area_width is clamped to terminal size (minus other TUI elements width).
+[[screen_settings]]
+name = "text_screen"
+data_area_width = 9999
+location_bar_width = 8
+show_info_bar = true
+show_offset_bar = true
+show_location_bar = false
+
+[[screen_settings]]
+name = "byte_screen"
+data_area_width = 9999
+location_bar_width = 8
+show_info_bar = true
+show_offset_bar = true
+show_location_bar = false
+
 #color schemes define how program's UI looks. To create a new colorscheme simply create a new [[color_scheme]] section with your colors with unique name.
 # for 16 color terminal:
 #   "black", "white", "grey", "dark_grey", "red", "dark_red", "green", "dark_green", "yellow", "dark_yellow",
