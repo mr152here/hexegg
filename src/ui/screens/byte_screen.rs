@@ -12,6 +12,7 @@ use crate::config::{ColorScheme, Config, ScreenSettings};
 use crate::cursor::Cursor;
 
 pub struct ByteScreen {
+    w: u16,
     h: u16,
     info_bar: InfoBar,
     offset_bar: OffsetBar,
@@ -23,26 +24,44 @@ pub struct ByteScreen {
     location_bar: LocationBar,
     max_data_width: u16,
     show_info_bar: bool,
-    show_location_bar: bool,
+    show_offset_bar: bool,
+    show_location_bar: bool
 }
 
 impl ByteScreen {
 
     pub fn new(w: u16, h: u16, screen_settings: &ScreenSettings) -> ByteScreen {
+        Self::create_layout(w, h, screen_settings.data_area_width, screen_settings.show_info_bar, screen_settings.show_offset_bar, screen_settings.show_location_bar, screen_settings.location_bar_width)
+    }
+
+    fn create_layout(w: u16, h: u16, data_area_width: u16, show_info_bar: bool, show_offset_bar: bool, show_location_bar: bool, location_bar_width: u16) -> ByteScreen {
+        let y0 = show_info_bar as u16;
+        let new_h = h - y0;
+
         let ib = InfoBar::new(w);
-        let ob = OffsetBar::new(0, ib.height(), h-ib.height());
-        let ls = Separator::new(ob.width(), ib.height(), 1, h-ib.height());
-        let lb = LocationBar::new(w - 8, ib.height(), 8, h-ib.height());
-        //TODO: use x0 + width instead of width + width + width ...
-        let data_area_width = 3 * (w - ob.width() - ls.width() - 1 - 1) / 4;
-        let ba = ByteArea::new(ob.width() + ls.width(), ib.height(), data_area_width, h - ib.height());
-        let cs = Separator::new(ob.width() + ls.width() + ba.width(), ib.height(), 1, h-ib.height());
-        let ta = TextArea::new(ob.width() + ls.width() + ba.width() + cs.width(), ib.height(), ba.row_size(), h- ib.height());
-        let rs = Separator::new(ta.x0() + ta.width(), ib.height(), w - ob.width() - ls.width() - ba.width() - cs.width() - ta.width(), h-ib.height());
-        let max_width = ba.row_size();
+        let ob = OffsetBar::new(0, y0, new_h);
+
+        let ob_width = if show_offset_bar { ob.width() } else { 0 };
+        let lb_width = if show_location_bar { location_bar_width } else { 0 };
+
+        let ls = Separator::new(ob_width, y0, 1, new_h);
+        let max_aviable_width = w - ob_width - lb_width - ls.width() - 1; //-1 => minimum for rs.width()
+
+        let max_width = max_aviable_width / 4;
+        let ba_width = std::cmp::min(data_area_width, max_width) * 3;
+        let ta_width = std::cmp::min(data_area_width, max_width);
+        let ba = ByteArea::new(ob_width + ls.width(), y0, ba_width, new_h);
+
+        let cs_width = 3 * (max_aviable_width - ba_width - ta_width) / 4;
+        let cs = Separator::new(ba.x0() + ba.width(), y0, cs_width, new_h);
+        let ta = TextArea::new(cs.x0() + cs.width(), y0, ta_width, new_h);
+
+        let rs_width = w - ob_width - ls.width() - ba_width - cs_width - ta_width - lb_width;
+        let rs = Separator::new(ta.x0() + ta.width(), y0, rs_width, new_h);
+        let lb = LocationBar::new(w - location_bar_width, y0, location_bar_width, new_h);
 
         ByteScreen {
-            h,
+            w, h,
             offset_bar: ob,
             left_separator: ls,
             center_separator: cs,
@@ -52,8 +71,9 @@ impl ByteScreen {
             info_bar: ib,
             location_bar: lb,
             max_data_width: max_width,
-            show_info_bar: screen_settings.show_info_bar,
-            show_location_bar: false
+            show_info_bar,
+            show_offset_bar,
+            show_location_bar
         }
     }
 }
@@ -70,80 +90,35 @@ impl Screen for ByteScreen {
 
     fn inc_row_size(&mut self) {
         if self.byte_area.row_size() < self.max_data_width {
-            self.byte_area.set_width(self.byte_area.width() + 3);
-            self.center_separator.set_x0( self.center_separator.x0() + 3);
-            self.center_separator.set_width( self.center_separator.width() - 3);
-            self.text_area.set_width(self.text_area.width() + 1);
-            self.right_separator.set_x0( self.right_separator.x0() + 1);
-            self.right_separator.set_width( self.right_separator.width() - 1);
+            *self = Self::create_layout(self.w, self.h, self.byte_area.row_size() + 1 , self.show_info_bar, self.show_offset_bar, self.show_location_bar, self.location_bar.width());
         }
     }
 
     fn dec_row_size(&mut self) {
-        if self.byte_area.width() > 3 {
-            self.byte_area.set_width(self.byte_area.width() - 3);
-            self.center_separator.set_x0( self.center_separator.x0() - 3);
-            self.center_separator.set_width( self.center_separator.width() + 3);
-            self.text_area.set_width(self.text_area.width() - 1);
-            self.right_separator.set_x0( self.right_separator.x0() - 1);
-            self.right_separator.set_width( self.right_separator.width() + 1);
+        if self.byte_area.row_size() > 1 {
+            *self = Self::create_layout(self.w, self.h, self.byte_area.row_size() - 1 , self.show_info_bar, self.show_offset_bar, self.show_location_bar, self.location_bar.width());
         }
     }
 
-    //fn show_offset_bar(&mut self, _value: bool) {
-    //}
-
     fn toggle_offset_bar(&mut self) {
+        let data_width = if self.byte_area.row_size() == self.max_data_width { u16::MAX } else { self.byte_area.row_size() };
+        *self = Self::create_layout(self.w, self.h, data_width, self.show_info_bar, !self.show_offset_bar, self.show_location_bar, self.location_bar.width());
     }
 
-    //fn show_info_bar(&mut self, value: bool) {
-    //    let y0 = value as u16; 
-    //    let h = self.h - y0;
-    //    self.offset_bar.set_y0(y0);
-    //    self.offset_bar.set_height(h);
-    //    self.left_separator.set_y0(y0);
-    //    self.left_separator.set_height(h);
-    //    self.right_separator.set_y0(y0);
-    //    self.right_separator.set_height(h);
-    //    self.center_separator.set_y0(y0);
-    //    self.center_separator.set_height(h);
-    //    self.text_area.set_y0(y0);
-    //    self.text_area.set_height(h);
-    //    self.byte_area.set_y0(y0);
-    //    self.byte_area.set_height(h);
-    //    self.location_bar.set_y0(y0);
-    //    self.location_bar.set_height(h);
-    //    self.show_info_bar = value;
-    //}
-
     fn toggle_info_bar(&mut self) {
-        //self.show_info_bar(!self.show_info_bar);
+        let data_width = if self.byte_area.row_size() == self.max_data_width { u16::MAX } else { self.byte_area.row_size() };
+        *self = Self::create_layout(self.w, self.h, data_width, !self.show_info_bar, self.show_offset_bar, self.show_location_bar, self.location_bar.width());
+    }
+
+    fn toggle_location_bar(&mut self) {
+        let data_width = if self.byte_area.row_size() == self.max_data_width { u16::MAX } else { self.byte_area.row_size() };
+        *self = Self::create_layout(self.w, self.h, data_width, self.show_info_bar, self.show_offset_bar, !self.show_location_bar, self.location_bar.width());
     }
 
     fn show_location_bar(&mut self, value: bool) {
         if value != self.show_location_bar {
-            let lbw = self.location_bar.width();
-            if value {
-                self.byte_area.set_width(self.byte_area.width() - 3*lbw/4);
-                self.center_separator.set_x0( self.byte_area.x0() + self.byte_area.width() );
-                self.text_area.set_x0(self.center_separator.x0() + self.center_separator.width());
-                self.text_area.set_width(self.text_area.width() - lbw/4);
-                self.right_separator.set_x0( self.text_area.x0() + self.text_area.width());
-                self.max_data_width -= lbw/4;
-            } else {
-                self.byte_area.set_width(self.byte_area.width() + 3*lbw/4);
-                self.center_separator.set_x0( self.byte_area.x0() + self.byte_area.width() );
-                self.text_area.set_x0(self.center_separator.x0() + self.center_separator.width());
-                self.text_area.set_width(self.text_area.width() + lbw/4);
-                self.right_separator.set_x0( self.text_area.x0() + self.text_area.width());
-                self.max_data_width += lbw/4;
-            }
-            self.show_location_bar = value;
+            *self = Self::create_layout(self.w, self.h, self.text_area.width(), self.show_info_bar, self.show_offset_bar, value, self.location_bar.width());
         }
-    }
-
-    fn toggle_location_bar(&mut self) {
-        self.show_location_bar(!self.show_location_bar);
     }
 
     fn is_over_location_bar(&self, col: u16, row: u16) -> bool {

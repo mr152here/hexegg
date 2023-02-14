@@ -31,7 +31,7 @@ impl TextScreen {
         Self::create_layout(w, h, screen_settings.data_area_width, screen_settings.show_info_bar, screen_settings.show_offset_bar, screen_settings.show_location_bar, screen_settings.location_bar_width)
     }
 
-    fn create_layout(w: u16, h: u16, data_area_width: u16, show_info_bar: bool, show_offset_bar: bool, show_location_bar: bool, location_bar_width: u16)-> TextScreen {
+    fn create_layout(w: u16, h: u16, data_area_width: u16, show_info_bar: bool, show_offset_bar: bool, show_location_bar: bool, location_bar_width: u16) -> TextScreen {
         let y0 = show_info_bar as u16;
         let new_h = h - y0;
 
@@ -52,8 +52,7 @@ impl TextScreen {
         let lb = LocationBar::new(w - location_bar_width, y0, location_bar_width, new_h);
 
         TextScreen {
-            w,
-            h,
+            w, h,
             info_bar: ib,
             offset_bar: ob,
             left_separator: ls,
@@ -80,17 +79,13 @@ impl Screen for TextScreen {
     
     fn inc_row_size(&mut self) {
         if self.text_area.width() < self.max_text_area_width {
-            self.text_area.set_width(self.text_area.width() + 1);
-            self.right_separator.set_width(self.right_separator.width() - 1);
-            self.right_separator.set_x0(self.right_separator.x0() + 1);
+            *self = Self::create_layout(self.w, self.h, self.text_area.width() + 1, self.show_info_bar, self.show_offset_bar, self.show_location_bar, self.location_bar.width());
         }
     }
 
     fn dec_row_size(&mut self) {
         if self.text_area.width() > 1 {
-            self.text_area.set_width(self.text_area.width() - 1);
-            self.right_separator.set_width(self.right_separator.width() + 1);
-            self.right_separator.set_x0(self.right_separator.x0() - 1);
+            *self = Self::create_layout(self.w, self.h, self.text_area.width() - 1, self.show_info_bar, self.show_offset_bar, self.show_location_bar, self.location_bar.width());
         }
     }
 
