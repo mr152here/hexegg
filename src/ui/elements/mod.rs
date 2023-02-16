@@ -1,6 +1,7 @@
 pub mod offset_bar;
 pub mod text_area;
 pub mod byte_area;
+pub mod word_area;
 pub mod location_bar;
 pub mod info_bar;
 pub mod user_input;
