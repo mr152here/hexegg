@@ -395,7 +395,7 @@ fn main() {
                     if screen.is_over_data_area(column, row) {
                         if let Some(fo) = screen.screen_coord_to_file_offset(file_view_offset, column, row) {
                             if is_double_click {
-                                let fb = &mut file_buffers[active_screen_index];
+                                let fb = &mut file_buffers[active_fb_index];
 
                                 //select highlighted block and if not possible, select string under the cursor
                                 fb.set_selection(if let Some((s,e,_)) = fb.get_highlight(fo) {
