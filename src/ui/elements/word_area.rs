@@ -187,8 +187,6 @@ impl Element for WordArea {
     }
 
     fn to_local_position(&self, col: u16, row: u16) -> Option<(u16, u16)> {
-        //TODO: add this for mouse support
-        //self.contains_position(col, row).then_some(((col - self.x)/3, row - self.y))
-        None
+        self.contains_position(col, row).then_some((2 * (col - self.x) / 5, row - self.y))
     }
 }

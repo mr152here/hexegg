@@ -5,6 +5,7 @@ use crate::location_list::LocationList;
 
 pub mod text_screen;
 pub mod byte_screen;
+pub mod word_screen;
 
 pub trait Screen {
 

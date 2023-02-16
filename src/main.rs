@@ -21,6 +21,7 @@ mod ui;
 use ui::screens::Screen;
 use ui::screens::text_screen::TextScreen;
 use ui::screens::byte_screen::ByteScreen;
+use ui::screens::word_screen::WordScreen;
 use ui::elements::user_input::UserInput;
 use ui::elements::message_box::*;
 
@@ -33,7 +34,8 @@ mod signatures;
 fn create_screens(cols: u16, rows: u16, config: &Config) -> Vec<Box<dyn Screen>> {
     vec![
         Box::new(TextScreen::new(cols, rows, config.screen_settings("text_screen").expect("Settings for 'text_screen' not found!"))),
-        Box::new(ByteScreen::new(cols, rows, config.screen_settings("byte_screen").expect("Settings for 'byte_screen' not found!")))
+        Box::new(ByteScreen::new(cols, rows, config.screen_settings("byte_screen").expect("Settings for 'byte_screen' not found!"))),
+        Box::new(WordScreen::new(cols, rows, config.screen_settings("word_screen").expect("Settings for 'word_screen' not found!")))
     ]
 }
 
