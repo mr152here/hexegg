@@ -22,7 +22,7 @@ Basic controls are pretty intuitive. The arrow keys move the file viewing positi
 - ENTER - cycle through the screens
 - TAB - cycle through all opened files
 
-Hexegg offers various interpretations of the input data. Those are called "screens". In the current version, there are two screens: text and byte screen. You can cycle between them using 'ENTER' key.
+Hexegg offers various interpretations of the input data. Those are called "screens". In the current version, there are three screens: text, byte and word screen. You can cycle between them using 'ENTER' key. Each screen reads its setting from the *config.toml* file. Where you can set which one is default, width of some user interace elements and even disable unwanted screens.
 
 ##### text screen
 
@@ -31,8 +31,13 @@ Display data as they are in the file with (almost) cp437 character set.
 
 ##### byte screen
 
-Display data as they hexadecimal values and also as their "text" values.
-![byte_screen](assets/byte_screen.png) 
+Display data as hexadecimal values and also as their "text" values.
+![byte_screen](assets/byte_screen.png)
+
+##### word screen
+
+Display data as hexadecimal values in the pairs and their "text" values.
+![byte_screen](assets/word_screen.png)
 
 #### Program modes
 
