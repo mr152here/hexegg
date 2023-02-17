@@ -167,11 +167,12 @@ fn main() {
         Err(s) => { println!("{}", s); return; },
     }
 
-    screens[0].draw(&mut stdout, &file_buffers, active_fb_index, &cursor, &color_scheme, &config); 
+    //find default screen. If not found, load the first one.
+    let mut active_screen_index = screens.iter().enumerate().find_map(|(i,scr)| (scr.screen_name() == config.default_screen).then_some(i)).unwrap_or(0);
+    screens[active_screen_index].draw(&mut stdout, &file_buffers, active_fb_index, &cursor, &color_scheme, &config);
     stdout.flush().unwrap();
    
     let mut random_seed = 0x5EED;
-    let mut active_screen_index = 0;
     let mut in_selection_mode = false;
     let mut selection_start = 0;
     let mut cmd_history = Vec::<String>::new();
