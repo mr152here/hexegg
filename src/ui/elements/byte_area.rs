@@ -131,15 +131,14 @@ impl ByteArea {
 
                 if (x+1) != self.bytes_per_row {
                     stdout.queue(Print(if (x+1) % 4 != 0 { " " } else{ "-" })).unwrap();
-
-                //end of the row will be printed with empty spaces to the end of area
-                } else {
-                    let fill_width = self.w - x * 3 - 2;
-                    stdout.queue(Print(" ".repeat(fill_width as usize))).unwrap();
                 }
 
                 counter += 1;
             }
+
+            //end of the row will be printed with empty spaces to the end of area
+            let fill_width = self.w - self.bytes_per_row * 3 + 1;
+            stdout.queue(Print(" ".repeat(fill_width as usize))).unwrap();
         }
     }
 }
