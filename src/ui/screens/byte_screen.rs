@@ -80,6 +80,10 @@ impl ByteScreen {
 
 impl Screen for ByteScreen {
 
+    fn screen_name(&self) -> &'static str {
+        "byte_screen"
+    }
+
     fn row_size(&self) -> u16 {
         self.byte_area.row_size()
     }

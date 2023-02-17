@@ -44,10 +44,15 @@ active_color_scheme = "gudinuf"
 #clear terminal when program ends
 clear_screen_on_exit = false
 
+#which screen is loaded when program starts
+default_screen = "text_screen"
+
 #this section defines custom settings for each screen individualy. Screen is identified by it's name.
-#data_area_width is clamped to terminal size (minus other TUI elements width).
+#disabled screens will not be shown in program.
+#data_area_width is clamped to terminal size (minus other TUI elements).
 [[screen_settings]]
 name = "text_screen"
+enabled = true
 data_area_width = 9999
 location_bar_width = 8
 show_info_bar = true
@@ -56,6 +61,7 @@ show_location_bar = false
 
 [[screen_settings]]
 name = "byte_screen"
+enabled = true
 data_area_width = 9999
 location_bar_width = 8
 show_info_bar = true
@@ -64,6 +70,7 @@ show_location_bar = false
 
 [[screen_settings]]
 name = "word_screen"
+enabled = true
 data_area_width = 9999
 location_bar_width = 8
 show_info_bar = true

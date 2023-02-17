@@ -9,6 +9,8 @@ pub mod word_screen;
 
 pub trait Screen {
 
+    fn screen_name(&self) -> &'static str;
+
     fn row_size(&self) -> u16;
     fn page_size(&self) -> usize;
 

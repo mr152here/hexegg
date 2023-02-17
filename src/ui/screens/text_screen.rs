@@ -69,6 +69,10 @@ impl TextScreen {
 
 impl Screen for TextScreen {
 
+    fn screen_name(&self) -> &'static str {
+        "text_screen"
+    }
+
     fn row_size(&self) -> u16 {
         self.text_area.width()
     }

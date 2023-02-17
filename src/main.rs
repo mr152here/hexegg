@@ -32,11 +32,33 @@ mod location_list;
 mod signatures;
 
 fn create_screens(cols: u16, rows: u16, config: &Config) -> Vec<Box<dyn Screen>> {
-    vec![
-        Box::new(TextScreen::new(cols, rows, config.screen_settings("text_screen").expect("Settings for 'text_screen' not found!"))),
-        Box::new(ByteScreen::new(cols, rows, config.screen_settings("byte_screen").expect("Settings for 'byte_screen' not found!"))),
-        Box::new(WordScreen::new(cols, rows, config.screen_settings("word_screen").expect("Settings for 'word_screen' not found!")))
-    ]
+    let mut screens = Vec::<Box<dyn Screen>>::new();
+
+    if let Some(s) = config.screen_settings("text_screen") {
+        if s.enabled {
+            screens.push(Box::new(TextScreen::new(cols, rows, s)));
+        }
+    } else {
+        println!("Can't found setting for '{}' in 'config.toml' file.", "text_screen");
+    }
+
+    if let Some(s) = config.screen_settings("byte_screen") {
+        if s.enabled {
+            screens.push(Box::new( ByteScreen::new(cols, rows, s)));
+        }
+    } else {
+        println!("Can't found setting for '{}' in 'config.toml' file.", "byte_screen");
+    }
+
+    if let Some(s) = config.screen_settings("word_screen") {
+        if s.enabled {
+            screens.push(Box::new(WordScreen::new(cols, rows, s)));
+        }
+    } else {
+        println!("Can't found setting for '{}' in 'config.toml' file.", "word_screen");
+    }
+
+    screens
 }
 
 fn generate_highlight_color(rnd_seed: &mut u32, highlight_style: HighlightStyle, color_scheme: &ColorScheme) -> Color {
@@ -123,22 +145,28 @@ fn main() {
 
     //init terminal
     let mut stdout = std::io::stdout();
+    let (mut cols, mut rows) = size().unwrap();
+    let mut cursor = Cursor::new(0, CursorState::Hidden);
+
+    //load and create screens
+    let mut screens = create_screens(cols, rows, &config);
+    if screens.is_empty() {
+        println!("All screens are disabled in 'config.toml' file!");
+        return;
+    }
+
+    //set up terminal and mouse
     match crossterm::terminal::enable_raw_mode() {
         Ok(_) => {
             stdout.queue(Print(Clear(ClearType::All))).unwrap();
             stdout.queue(crossterm::cursor::Hide).unwrap();
+            if config.mouse_enabled {
+                stdout.queue(EnableMouseCapture).unwrap();
+            }
         },
         Err(s) => { println!("{}", s); return; },
     }
 
-    //init mouse
-    if config.mouse_enabled {
-        stdout.queue(EnableMouseCapture).unwrap();
-    }
-
-    let (mut cols, mut rows) = size().unwrap();
-    let mut cursor = Cursor::new(0, CursorState::Hidden);
-    let mut screens = create_screens(cols, rows, &config);
     screens[0].draw(&mut stdout, &file_buffers, active_fb_index, &cursor, &color_scheme, &config); 
     stdout.flush().unwrap();
    

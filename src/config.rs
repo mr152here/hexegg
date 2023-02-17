@@ -13,6 +13,7 @@ pub struct Config {
     pub clear_screen_on_exit: bool,
     pub highlight_style: HighlightStyle,
     pub active_color_scheme: String,
+    pub default_screen: String,
     screen_settings: Vec<ScreenSettings>,
     color_scheme: Vec<ColorScheme>
 }
@@ -36,6 +37,7 @@ pub enum ScreenPagingSize {
 #[derive(Deserialize)]
 pub struct ScreenSettings {
     pub name: String,
+    pub enabled: bool,
     pub data_area_width: u16,
     pub location_bar_width: u16,
     pub show_info_bar: bool,

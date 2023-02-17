@@ -80,6 +80,10 @@ impl WordScreen {
 
 impl Screen for WordScreen {
 
+    fn screen_name(&self) -> &'static str {
+        "word_screen"
+    }
+
     fn row_size(&self) -> u16 {
         self.word_area.row_size()
     }
