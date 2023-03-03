@@ -92,7 +92,8 @@ impl TextArea {
                     let new_bg_color = if file_buffer.is_selected(offset + counter) {
                         color_scheme.selection_bg_color
 
-                    } else if let Some((_,_,color)) = file_buffer.get_highlight(offset + counter) {
+                    //} else if let Some((_,_,color)) = file_buffer.get_highlight(offset + counter) {
+                    } else if let Some(color) = file_buffer.get_highlight(offset + counter) {
                         color
 
                     } else {

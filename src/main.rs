@@ -333,11 +333,12 @@ fn main() {
                     let fb = &mut file_buffers[active_screen_index];
 
                     //select highlighted block and if not possible, select string under the cursor
-                    fb.set_selection(if let Some((s,e,_)) = fb.get_highlight(cursor.position()) {
-                            Some((s,e))
-                        } else {
-                            command_functions::find_string_at_position(fb, cursor.position())
-                        });
+                    //fb.set_selection(if let Some((s,e,_)) = fb.get_highlight(cursor.position()) {
+                    //        Some((s,e))
+                    //    } else {
+                    //        command_functions::find_string_at_position(fb, cursor.position())
+                    //    });
+                    fb.set_selection(command_functions::find_string_at_position(fb, cursor.position()));
                 },
                 KeyEvent{ code: KeyCode::Char('s'), .. } if cursor.is_byte() => {
                     if !in_selection_mode && cursor.position() < file_buffers[active_fb_index].len() {
@@ -349,6 +350,19 @@ fn main() {
                 },
                 KeyEvent{ code: KeyCode::Char('y'), .. } if !cursor.is_text() => {
                     command = Some(Command::YankBlock);
+                },
+                KeyEvent{ code: KeyCode::Char('m'), .. } if !cursor.is_text() => {
+                    if let Some((s,e)) = file_buffers[active_fb_index].selection() {
+                        let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
+                        file_buffers[active_fb_index].add_highlight(s, e, color);
+                        file_buffers[active_fb_index].set_selection(None);
+                    }
+                },
+                KeyEvent{ code: KeyCode::Char('M'), .. } if !cursor.is_text() => {
+                    if let Some((s,e)) = file_buffers[active_fb_index].selection() {
+                        file_buffers[active_fb_index].remove_highlight(s, e);
+                        file_buffers[active_fb_index].set_selection(None);
+                    }
                 },
                 //all other keys
                 KeyEvent{ code, .. } => {
@@ -433,11 +447,12 @@ fn main() {
                                 let fb = &mut file_buffers[active_fb_index];
 
                                 //select highlighted block and if not possible, select string under the cursor
-                                fb.set_selection(if let Some((s,e,_)) = fb.get_highlight(fo) {
-                                        Some((s,e))
-                                    } else {
-                                        command_functions::find_string_at_position(fb, fo)
-                                    });
+                                //fb.set_selection(if let Some((s,e,_)) = fb.get_highlight(fo) {
+                                //        Some((s,e))
+                                //    } else {
+                                //        command_functions::find_string_at_position(fb, fo)
+                                //    });
+                                fb.set_selection(command_functions::find_string_at_position(fb, cursor.position()));
                             } else {
                                 cursor.set_position(fo);
                             }

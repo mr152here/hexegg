@@ -11,7 +11,8 @@ pub struct FileBuffer {
     patch_map: HashMap<usize, u8>,
     current_position: usize,
     selection: Option<(usize, usize)>,
-    highlights: Vec<(usize, usize, Color)>,
+    //highlights: Vec<(usize, usize, Color)>,
+    highlights2: Vec<(usize, Option<Color>)>,
     bookmarks: [Option<usize>; 10],
     location_list: LocationList,
     original_hash: u64,
@@ -31,7 +32,8 @@ impl FileBuffer {
             patch_map: HashMap::new(),
             current_position: 0,
             selection: None,
-            highlights: Vec::new(),
+            //highlights: Vec::new(),
+            highlights2: vec![(0,None)],
             bookmarks: [None; 10],
             location_list: LocationList::new(),
             original_hash: hasher.finish(),
@@ -188,49 +190,80 @@ impl FileBuffer {
         }
     }
 
-    //add highlighted interval to the list
-    pub fn add_highlight(&mut self, start_offset: usize, end_offset: usize, color: Color) {
-        self.highlights.push((start_offset, end_offset, color));
-    }
-
-    //clear all highlighted intervals
-    pub fn clear_highlights(&mut self) {
-        self.highlights.clear();
-    }
-
-    //find if offset is highlighted and return its range and color. Using binary search.
-    pub fn get_highlight(&self, offset: usize) -> Option<(usize, usize, Color)> {
+    //return IDX where offset belong to (the left)
+    fn highlight_idx(&self, offset: usize) -> Option<usize> {
         let mut low_idx = 0;
-        let mut high_idx = self.highlights.len();
+        let mut high_idx = self.highlights2.len();
         let mut mid_idx = high_idx / 2;
 
-        while let Some(&(s,e,c)) = self.highlights.get(mid_idx) {
+        while let Some(&(s,_)) = self.highlights2.get(mid_idx) {
+                            
+            if offset >= s {
 
-            if offset > e {
-                low_idx = mid_idx + 1;
+                //get offset from the next element
+                if let Some(&(next_s,_)) = self.highlights2.get(mid_idx+1) {
 
-                if low_idx > high_idx {
-                    break;
+                    //if it is between them mid_idx is target idx
+                    if offset < next_s {
+                        return Some(mid_idx);
+                    //if not, we must go the right side of the tree
+                    } else {
+                        low_idx = mid_idx; 
+                    }
+
+                //if we are the last element in the vector return mid_idx
+                } else {
+                    return Some(mid_idx);
                 }
 
-            } else if offset < s {
-                if mid_idx == 0 {
-                    break;
-                }
-
-                high_idx = mid_idx - 1;
-
-                if high_idx < low_idx {
-                    break;
-                }
-
+            //check the left side of the tree
             } else {
-                return Some((s,e,c));
+                high_idx = mid_idx;
             }
-
             mid_idx = (high_idx + low_idx) / 2;
         }
         None
+    }
+
+    //add highlighted interval to the list
+    pub fn add_highlight(&mut self, start_offset: usize, end_offset: usize, color: Color) {
+
+        //find index where new range should be
+        if let Some(idx1) = self.highlight_idx(start_offset) {
+            let mut to_remove = 0;
+
+            if let Some(idx2) = self.highlight_idx(end_offset + 1) {
+                self.highlights2.insert(idx2 + 1, (end_offset + 1, self.highlights2[idx2].1));
+                to_remove = idx2-idx1;
+            }
+
+            self.highlights2.insert(idx1 + 1, (start_offset, Some(color)));
+
+            //remove all ranges that overlaped be new one
+            for _ in 0..to_remove {
+                self.highlights2.remove(idx1 + 2);
+            }
+        }
+    }
+
+    //clear highlighting for interval
+    pub fn remove_highlight(&mut self, _start_offset: usize, _end_offset: usize) {
+        //TODO:
+    }
+
+
+    //clear all highlighted intervals
+    pub fn clear_highlights(&mut self) {
+        self.highlights2.clear();
+        self.highlights2.push((0, None));
+    }
+
+    //find if offset is highlighted and return it color.
+    pub fn get_highlight(&self, offset: usize) -> Option<Color> {
+        match self.highlight_idx(offset) {
+            Some(idx) => self.highlights2[idx].1,
+            None => None,
+        }
     }
 
     pub fn set_bookmark(&mut self, idx: usize, offset: Option<usize>) {
