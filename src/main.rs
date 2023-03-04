@@ -29,6 +29,8 @@ mod file_buffer;
 use file_buffer::FileBuffer;
 
 mod location_list;
+mod highlight_list;
+use highlight_list::HighlightList;
 mod signatures;
 
 fn create_screens(cols: u16, rows: u16, config: &Config) -> Vec<Box<dyn Screen>> {
@@ -354,13 +356,13 @@ fn main() {
                 KeyEvent{ code: KeyCode::Char('m'), .. } if !cursor.is_text() => {
                     if let Some((s,e)) = file_buffers[active_fb_index].selection() {
                         let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
-                        file_buffers[active_fb_index].add_highlight(s, e, Some(color));
+                        file_buffers[active_fb_index].highlight_list_mut().add(s, e, Some(color));
                         file_buffers[active_fb_index].set_selection(None);
                     }
                 },
                 KeyEvent{ code: KeyCode::Char('M'), .. } if !cursor.is_text() => {
                     if let Some((s,e)) = file_buffers[active_fb_index].selection() {
-                        file_buffers[active_fb_index].add_highlight(s, e, None);
+                        file_buffers[active_fb_index].highlight_list_mut().add(s, e, None);
                         file_buffers[active_fb_index].set_selection(None);
                     }
                 },
@@ -654,12 +656,15 @@ fn main() {
                             Ok(ll) => {
                                 if let Some((o,_)) = ll.get(0) {
                                     command_functions::set_position(&mut file_buffers, active_fb_index, o, config.lock_file_buffers);
-                                    file_buffers[active_fb_index].clear_highlights();
-                                    ll.iter().for_each(|(o,_)| {
-                                        let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
-                                        file_buffers[active_fb_index].add_highlight(*o, *o + b.len() - 1, Some(color));
-                                    });
+                                    let hl = ll.iter()
+                                                .map(|(o,_)| {
+                                                    let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
+                                                    (*o, *o + b.len() - 1, Some(color))
+                                                })
+                                                .collect::<HighlightList>();
+
                                     file_buffers[active_fb_index].set_location_list(ll);
+                                    file_buffers[active_fb_index].set_highlight_list(hl);
                                     screens.iter_mut().for_each(|s| s.show_location_bar(true));
                                 }
                             },
@@ -676,12 +681,15 @@ fn main() {
                 Some(Command::FindAllStrings(min_size, substring)) => {
                     match command_functions::find_all_strings(&file_buffers[active_fb_index], min_size, &substring) {
                         Ok(ll) => {
-                            file_buffers[active_fb_index].clear_highlights();
-                            ll.iter().for_each(|(o,s)| {
-                                let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
-                                file_buffers[active_fb_index].add_highlight(*o, *o + s.len() - 1, Some(color));
-                            });
+                            let hl = ll.iter()
+                                        .map(|(o,s)| {
+                                            let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
+                                            (*o, *o + s.len() - 1, Some(color))
+                                        })
+                                        .collect::<HighlightList>();
+
                             file_buffers[active_fb_index].set_location_list(ll);
+                            file_buffers[active_fb_index].set_highlight_list(hl);
                             screens.iter_mut().for_each(|s| s.show_location_bar(true));
                         },
                         Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
@@ -883,7 +891,7 @@ fn main() {
                 },
                 Some(Command::ClearLocationBar) => {
                     file_buffers[active_fb_index].set_location_list(location_list::LocationList::new());
-                    file_buffers[active_fb_index].clear_highlights();
+                    file_buffers[active_fb_index].highlight_list_mut().clear();
                 },
                 Some(Command::Set(name, value)) => {
                     if let Err(s) = command_functions::set_variable(&name, &value, &mut config, &mut color_scheme) {

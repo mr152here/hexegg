@@ -2,8 +2,9 @@ use std::collections::HashMap;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::Hasher;
 use std::cmp::min;
-use crossterm::style::Color;
+//use crossterm::style::Color;
 use crate::location_list::LocationList;
+use crate::highlight_list::HighlightList;
 
 pub struct FileBuffer {
     file_name: String,
@@ -11,7 +12,7 @@ pub struct FileBuffer {
     patch_map: HashMap<usize, u8>,
     current_position: usize,
     selection: Option<(usize, usize)>,
-    highlights: Vec<(usize, Option<Color>)>,
+    highlight_list: HighlightList,
     bookmarks: [Option<usize>; 10],
     location_list: LocationList,
     original_hash: u64,
@@ -31,7 +32,7 @@ impl FileBuffer {
             patch_map: HashMap::new(),
             current_position: 0,
             selection: None,
-            highlights: vec![(0,None)],
+            highlight_list: HighlightList::new(),
             bookmarks: [None; 10],
             location_list: LocationList::new(),
             original_hash: hasher.finish(),
@@ -188,93 +189,6 @@ impl FileBuffer {
         }
     }
 
-    //return IDX where offset belong to (the left)
-    fn highlight_idx(&self, offset: usize) -> Option<usize> {
-        let mut low_idx = 0;
-        let mut high_idx = self.highlights.len();
-        let mut mid_idx = high_idx / 2;
-
-        while let Some(&(s,_)) = self.highlights.get(mid_idx) {
-                            
-            if offset >= s {
-
-                //get offset from the next element
-                if let Some(&(next_s,_)) = self.highlights.get(mid_idx+1) {
-
-                    //if it is between them mid_idx is target idx
-                    if offset < next_s {
-                        return Some(mid_idx);
-                    //if not, we must go the right side of the tree
-                    } else {
-                        low_idx = mid_idx; 
-                    }
-
-                //if we are the last element in the vector return mid_idx
-                } else {
-                    return Some(mid_idx);
-                }
-
-            //check the left side of the tree
-            } else {
-                high_idx = mid_idx;
-            }
-            mid_idx = (high_idx + low_idx) / 2;
-        }
-        None
-    }
-
-    //add highlighted interval to the list
-    pub fn add_highlight(&mut self, start_offset: usize, end_offset: usize, color: Option<Color>) {
-
-        //find index where new range should be
-        if let Some(idx1) = self.highlight_idx(start_offset) {
-            let mut to_remove = 0;
-
-            if let Some(idx2) = self.highlight_idx(end_offset + 1) {
-                let c = self.highlights[idx2].1;
-
-                if color.is_some() || c.is_some() {
-                    self.highlights.insert(idx2 + 1, (end_offset + 1, c));
-                }
-                to_remove = idx2 - idx1;
-            }
-
-            //if it is the same offset as original one, update the color
-            let didx = if self.highlights[idx1].0 == start_offset {
-                self.highlights[idx1].1 = color;
-                1
-
-            //if the new interval's color is None and IDX1 is None. Just do nothing.
-            } else if color.is_none() && self.highlights[idx1].1.is_none() {
-                1
-
-            //otherwise insert a new element
-            } else {
-                self.highlights.insert(idx1 + 1, (start_offset, color));
-                0
-            };
-
-            //remove all ranges that overlaped be the new one
-            for _ in 0..to_remove {
-                self.highlights.remove(idx1 + 2 - didx);
-            }
-        }
-    }
-
-    //clear all highlighted intervals
-    pub fn clear_highlights(&mut self) {
-        self.highlights.clear();
-        self.highlights.push((0, None));
-    }
-
-    //find if offset is highlighted and return it color.
-    pub fn get_highlight(&self, offset: usize) -> Option<Color> {
-        match self.highlight_idx(offset) {
-            Some(idx) => self.highlights[idx].1,
-            None => None,
-        }
-    }
-
     pub fn set_bookmark(&mut self, idx: usize, offset: Option<usize>) {
         if let Some(bookmark) = self.bookmarks.get_mut(idx) {
             *bookmark = offset;
@@ -314,6 +228,18 @@ impl FileBuffer {
 
         v.sort_by_key(|t| t.0);
         v
+    }
+
+    pub fn highlight_list(&self) -> &HighlightList {
+        &self.highlight_list
+    }
+
+    pub fn highlight_list_mut(&mut self) -> &mut HighlightList {
+        &mut self.highlight_list
+    }
+
+    pub fn set_highlight_list(&mut self, highlight_list: HighlightList) {
+        self.highlight_list = highlight_list;
     }
 
     //returns actual location list
