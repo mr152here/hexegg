@@ -330,7 +330,7 @@ fn main() {
                     }
                 },
                 KeyEvent{ code: KeyCode::Char('S'), .. } if cursor.is_byte() => {
-                    let fb = &mut file_buffers[active_screen_index];
+                    let fb = &mut file_buffers[active_fb_index];
 
                     //select highlighted block and if not possible, select string under the cursor
                     //fb.set_selection(if let Some((s,e,_)) = fb.get_highlight(cursor.position()) {

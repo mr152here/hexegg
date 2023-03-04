@@ -11,8 +11,7 @@ pub struct FileBuffer {
     patch_map: HashMap<usize, u8>,
     current_position: usize,
     selection: Option<(usize, usize)>,
-    //highlights: Vec<(usize, usize, Color)>,
-    highlights2: Vec<(usize, Option<Color>)>,
+    highlights: Vec<(usize, Option<Color>)>,
     bookmarks: [Option<usize>; 10],
     location_list: LocationList,
     original_hash: u64,
@@ -32,8 +31,7 @@ impl FileBuffer {
             patch_map: HashMap::new(),
             current_position: 0,
             selection: None,
-            //highlights: Vec::new(),
-            highlights2: vec![(0,None)],
+            highlights: vec![(0,None)],
             bookmarks: [None; 10],
             location_list: LocationList::new(),
             original_hash: hasher.finish(),
@@ -193,15 +191,15 @@ impl FileBuffer {
     //return IDX where offset belong to (the left)
     fn highlight_idx(&self, offset: usize) -> Option<usize> {
         let mut low_idx = 0;
-        let mut high_idx = self.highlights2.len();
+        let mut high_idx = self.highlights.len();
         let mut mid_idx = high_idx / 2;
 
-        while let Some(&(s,_)) = self.highlights2.get(mid_idx) {
+        while let Some(&(s,_)) = self.highlights.get(mid_idx) {
                             
             if offset >= s {
 
                 //get offset from the next element
-                if let Some(&(next_s,_)) = self.highlights2.get(mid_idx+1) {
+                if let Some(&(next_s,_)) = self.highlights.get(mid_idx+1) {
 
                     //if it is between them mid_idx is target idx
                     if offset < next_s {
@@ -233,15 +231,22 @@ impl FileBuffer {
             let mut to_remove = 0;
 
             if let Some(idx2) = self.highlight_idx(end_offset + 1) {
-                self.highlights2.insert(idx2 + 1, (end_offset + 1, self.highlights2[idx2].1));
+                self.highlights.insert(idx2 + 1, (end_offset + 1, self.highlights[idx2].1));
                 to_remove = idx2-idx1;
             }
 
-            self.highlights2.insert(idx1 + 1, (start_offset, Some(color)));
+            //if it is same offset as original, just update the color. If not insert new one
+            let didx = if self.highlights[idx1].0 == start_offset {
+                self.highlights[idx1].1 = Some(color);
+                1
+            } else {
+                self.highlights.insert(idx1 + 1, (start_offset, Some(color)));
+                0
+            };
 
             //remove all ranges that overlaped be new one
             for _ in 0..to_remove {
-                self.highlights2.remove(idx1 + 2);
+                self.highlights.remove(idx1 + 2 - didx);
             }
         }
     }
@@ -254,14 +259,14 @@ impl FileBuffer {
 
     //clear all highlighted intervals
     pub fn clear_highlights(&mut self) {
-        self.highlights2.clear();
-        self.highlights2.push((0, None));
+        self.highlights.clear();
+        self.highlights.push((0, None));
     }
 
     //find if offset is highlighted and return it color.
     pub fn get_highlight(&self, offset: usize) -> Option<Color> {
         match self.highlight_idx(offset) {
-            Some(idx) => self.highlights2[idx].1,
+            Some(idx) => self.highlights[idx].1,
             None => None,
         }
     }
