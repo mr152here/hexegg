@@ -224,38 +224,42 @@ impl FileBuffer {
     }
 
     //add highlighted interval to the list
-    pub fn add_highlight(&mut self, start_offset: usize, end_offset: usize, color: Color) {
+    pub fn add_highlight(&mut self, start_offset: usize, end_offset: usize, color: Option<Color>) {
 
         //find index where new range should be
         if let Some(idx1) = self.highlight_idx(start_offset) {
             let mut to_remove = 0;
 
             if let Some(idx2) = self.highlight_idx(end_offset + 1) {
-                self.highlights.insert(idx2 + 1, (end_offset + 1, self.highlights[idx2].1));
-                to_remove = idx2-idx1;
+                let c = self.highlights[idx2].1;
+
+                if color.is_some() || c.is_some() {
+                    self.highlights.insert(idx2 + 1, (end_offset + 1, c));
+                }
+                to_remove = idx2 - idx1;
             }
 
-            //if it is same offset as original, just update the color. If not insert new one
+            //if it is the same offset as original one, update the color
             let didx = if self.highlights[idx1].0 == start_offset {
-                self.highlights[idx1].1 = Some(color);
+                self.highlights[idx1].1 = color;
                 1
+
+            //if the new interval's color is None and IDX1 is None. Just do nothing.
+            } else if color.is_none() && self.highlights[idx1].1.is_none() {
+                1
+
+            //otherwise insert a new element
             } else {
-                self.highlights.insert(idx1 + 1, (start_offset, Some(color)));
+                self.highlights.insert(idx1 + 1, (start_offset, color));
                 0
             };
 
-            //remove all ranges that overlaped be new one
+            //remove all ranges that overlaped be the new one
             for _ in 0..to_remove {
                 self.highlights.remove(idx1 + 2 - didx);
             }
         }
     }
-
-    //clear highlighting for interval
-    pub fn remove_highlight(&mut self, _start_offset: usize, _end_offset: usize) {
-        //TODO:
-    }
-
 
     //clear all highlighted intervals
     pub fn clear_highlights(&mut self) {

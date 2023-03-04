@@ -354,13 +354,13 @@ fn main() {
                 KeyEvent{ code: KeyCode::Char('m'), .. } if !cursor.is_text() => {
                     if let Some((s,e)) = file_buffers[active_fb_index].selection() {
                         let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
-                        file_buffers[active_fb_index].add_highlight(s, e, color);
+                        file_buffers[active_fb_index].add_highlight(s, e, Some(color));
                         file_buffers[active_fb_index].set_selection(None);
                     }
                 },
                 KeyEvent{ code: KeyCode::Char('M'), .. } if !cursor.is_text() => {
                     if let Some((s,e)) = file_buffers[active_fb_index].selection() {
-                        file_buffers[active_fb_index].remove_highlight(s, e);
+                        file_buffers[active_fb_index].add_highlight(s, e, None);
                         file_buffers[active_fb_index].set_selection(None);
                     }
                 },
@@ -657,7 +657,7 @@ fn main() {
                                     file_buffers[active_fb_index].clear_highlights();
                                     ll.iter().for_each(|(o,_)| {
                                         let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
-                                        file_buffers[active_fb_index].add_highlight(*o, *o + b.len() - 1, color);
+                                        file_buffers[active_fb_index].add_highlight(*o, *o + b.len() - 1, Some(color));
                                     });
                                     file_buffers[active_fb_index].set_location_list(ll);
                                     screens.iter_mut().for_each(|s| s.show_location_bar(true));
@@ -679,7 +679,7 @@ fn main() {
                             file_buffers[active_fb_index].clear_highlights();
                             ll.iter().for_each(|(o,s)| {
                                 let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
-                                file_buffers[active_fb_index].add_highlight(*o, *o + s.len() - 1, color);
+                                file_buffers[active_fb_index].add_highlight(*o, *o + s.len() - 1, Some(color));
                             });
                             file_buffers[active_fb_index].set_location_list(ll);
                             screens.iter_mut().for_each(|s| s.show_location_bar(true));
