@@ -620,19 +620,29 @@ fn main() {
                     }
                 },
                 Some(Command::Find(mut b)) => {
-                    //if pattern is empty try to use selection
+                    let fb = &file_buffers[active_fb_index];
+
+                    //if pattern is empty try to use data from selection
                     if b.is_empty() {
-                        if let Some((s,e)) = file_buffers[active_fb_index].selection() {
-                            b = file_buffers[active_fb_index].as_slice()[s..=e].to_vec();
+                        if let Some((s,e)) = fb.selection() {
+                            b = fb.as_slice()[s..=e].to_vec();
                         }
                     }
 
-                    //if it is still empty no block was selected. Display error message
+                    //if it is still empty, no block was selected. Display error message
                     if b.is_empty() {
                         MessageBox::new(0, rows-2, cols).show(&mut stdout, "No pattern or block specified!", MessageBoxType::Error, &color_scheme);
                     } else {
-                        match command_functions::find(&file_buffers[active_fb_index], &b) {
-                            Ok(o) => command_functions::set_position(&mut file_buffers, active_fb_index, o, config.lock_file_buffers),
+                        let start_offset = if cursor.is_visible() { cursor.position() } else { fb.position() } + 1;
+                        match command_functions::find(fb.as_slice(), start_offset, &b) {
+                            Ok(o) if cursor.is_visible() => {
+                                cursor.set_position(o);
+
+                                if o < file_view_offset || o >= file_view_offset + page_size {
+                                    command_functions::set_position(&mut file_buffers, active_fb_index, o, config.lock_file_buffers);
+                                }
+                            },
+                            Ok(o) => { command_functions::set_position(&mut file_buffers, active_fb_index, o, config.lock_file_buffers); },
                             Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
                         }
                     }
@@ -669,7 +679,17 @@ fn main() {
                     }
                 },
                 Some(Command::FindString(min_size, substring)) => {
-                    match command_functions::find_string(&file_buffers[active_fb_index], min_size, &substring) {
+                    let fb = &file_buffers[active_fb_index];
+                    let start_offset = if cursor.is_visible() { cursor.position() } else { fb.position() } + 1;
+
+                    match command_functions::find_string(fb.as_slice(), start_offset, min_size, &substring) {
+                        Ok(o) if cursor.is_visible() => {
+                            cursor.set_position(o);
+
+                            if o < file_view_offset || o >= file_view_offset + page_size {
+                                command_functions::set_position(&mut file_buffers, active_fb_index, o, config.lock_file_buffers);
+                            }
+                        },
                         Ok(o) => command_functions::set_position(&mut file_buffers, active_fb_index, o, config.lock_file_buffers),
                         Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
                     }

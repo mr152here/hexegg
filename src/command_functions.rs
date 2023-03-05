@@ -60,10 +60,9 @@ fn find_all_patterns(buffer: &[u8], pattern: &[u8]) -> Vec<usize> {
 }
 
 //return first offset of the byte pattern from the current file position
-pub fn find(fb: &FileBuffer, b: &[u8]) -> Result<usize, String> {
-    let start_offset = fb.position() + 1;
+pub fn find(buffer: &[u8], start_offset: usize, b: &[u8]) -> Result<usize, String> {
 
-    match find_pattern(&fb.as_slice()[start_offset..], b) {
+    match find_pattern(&buffer[start_offset..], b) {
         Some(o) => Ok(o + start_offset),
         None => {
             let mut s = String::from("Pattern ");
@@ -131,9 +130,8 @@ pub fn find_string_at_position(fb: &FileBuffer, position: usize) -> Option<(usiz
 
 //returns location of first string from current position in filebuffer. String must contains
 //substring and must be at least min_size long
-pub fn find_string(fb: &FileBuffer, min_size: usize, substring: &Vec<u8>) -> Result<usize, String> {
-    let data_start_offset = fb.position() + 1;
-    let data = &fb.as_slice()[data_start_offset..];
+pub fn find_string(buffer: &[u8], start_offset: usize, min_size: usize, substring: &Vec<u8>) -> Result<usize, String> {
+    let data = &buffer[start_offset..];
     let mut start_index: usize = 0;
     let mut in_string = false;
 
@@ -149,7 +147,7 @@ pub fn find_string(fb: &FileBuffer, min_size: usize, substring: &Vec<u8>) -> Res
             //process only strings longer or equal to minimal size
             if (index - start_index) >= min_size {
                 if substring.is_empty() || data[start_index..index].windows( substring.len() ).any(|s| s.starts_with(substring)) {
-                    return Ok(start_index + data_start_offset);
+                    return Ok(start_index + start_offset);
                 }
             }
             in_string = false;
@@ -159,7 +157,7 @@ pub fn find_string(fb: &FileBuffer, min_size: usize, substring: &Vec<u8>) -> Res
     //if data ends with string
     if in_string && (data.len() - start_index) >= min_size { 
         if substring.is_empty() || data[start_index..].windows( substring.len() ).any(|s| s.starts_with(substring)) {
-            return Ok(start_index + data_start_offset);
+            return Ok(start_index + start_offset);
         }
     }
 
