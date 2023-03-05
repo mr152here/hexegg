@@ -94,9 +94,12 @@ impl HighlightList {
     //if the range is the last one. The end offset is set to usize::MAX
     pub fn range(&self, offset: usize) -> Option<(usize, usize)> {
         if let Some(idx) = self.highlight_idx(offset) {
-            let start_offset = self.highlights[idx].0;
-            let &(end_offset,_) = self.highlights.get(idx + 1).unwrap_or(&(usize::MAX, None));
-            return Some((start_offset, end_offset));
+            let &(start_offset, c) = self.highlights.get(idx).unwrap();
+
+            if c.is_some() {
+                let &(end_offset,_) = self.highlights.get(idx + 1).unwrap_or(&(usize::MAX, None));
+                return Some((start_offset, end_offset - 1));
+            }
         }
         None
     }

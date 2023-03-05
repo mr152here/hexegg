@@ -335,12 +335,11 @@ fn main() {
                     let fb = &mut file_buffers[active_fb_index];
 
                     //select highlighted block and if not possible, select string under the cursor
-                    //fb.set_selection(if let Some((s,e,_)) = fb.get_highlight(cursor.position()) {
-                    //        Some((s,e))
-                    //    } else {
-                    //        command_functions::find_string_at_position(fb, cursor.position())
-                    //    });
-                    fb.set_selection(command_functions::find_string_at_position(fb, cursor.position()));
+                    fb.set_selection(if let Some((s,e)) = fb.highlight_list().range(cursor.position()) {
+                            Some((s, std::cmp::min(e, fb.len())))
+                        } else {
+                            command_functions::find_string_at_position(fb, cursor.position())
+                        });
                 },
                 KeyEvent{ code: KeyCode::Char('s'), .. } if cursor.is_byte() => {
                     if !in_selection_mode && cursor.position() < file_buffers[active_fb_index].len() {
@@ -447,14 +446,11 @@ fn main() {
                         if let Some(fo) = screen.screen_coord_to_file_offset(file_view_offset, column, row) {
                             if is_double_click {
                                 let fb = &mut file_buffers[active_fb_index];
-
-                                //select highlighted block and if not possible, select string under the cursor
-                                //fb.set_selection(if let Some((s,e,_)) = fb.get_highlight(fo) {
-                                //        Some((s,e))
-                                //    } else {
-                                //        command_functions::find_string_at_position(fb, fo)
-                                //    });
-                                fb.set_selection(command_functions::find_string_at_position(fb, cursor.position()));
+                                fb.set_selection(if let Some((s,e)) = fb.highlight_list().range(cursor.position()) {
+                                        Some((s, std::cmp::min(e, fb.len())))
+                                    } else {
+                                        command_functions::find_string_at_position(fb, cursor.position())
+                                    });
                             } else {
                                 cursor.set_position(fo);
                             }
