@@ -16,15 +16,14 @@ pub fn set_position(file_buffers: &mut [FileBuffer], active_fb: usize, position:
     }
 }
 
-//find and returns next patch
-pub fn find_patch(fb: &FileBuffer) -> Result<usize, String> {
+//find and returns location of the next patch
+pub fn find_patch(fb: &FileBuffer, start_offset: usize) -> Result<usize, String> {
 
     if fb.patches().is_empty() {
         Err("Patch list is empty.".to_owned()) 
 
     } else {
-        let position = fb.position();
-        match fb.patches().iter().find(|(o,_)| *o > position) {
+        match fb.patches().iter().find(|(o,_)| *o > start_offset) {
             Some((pos,_)) => Ok(*pos),
             None => Err("Can't find next patch.".to_owned()),
         }
@@ -204,13 +203,12 @@ pub fn find_all_strings(fb: &FileBuffer, min_size: usize, substring: &Vec<u8>) -
 }
 
 //find and returns first diff from current file position
-pub fn find_diff(file_buffers: &[FileBuffer], active_fb_index: usize) -> Option<usize> {
-    let position = &file_buffers[active_fb_index].position() + 1;
+pub fn find_diff(file_buffers: &[FileBuffer], start_offset: usize, active_fb_index: usize) -> Option<usize> {
 
     file_buffers[active_fb_index].as_slice()
         .iter()
         .enumerate()
-        .skip(position)
+        .skip(start_offset)
         .find_map(|(o, byte)| {
             file_buffers.iter()
                 .any(|filebuf| { if let Some(b) = filebuf.get(o) { b != *byte } else { true } })

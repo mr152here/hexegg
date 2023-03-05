@@ -605,7 +605,17 @@ fn main() {
                     }
                 },
                 Some(Command::FindPatch) => {
-                    match command_functions::find_patch(&file_buffers[active_fb_index]) {
+                    let fb = &file_buffers[active_fb_index];
+                    let start_offset = if cursor.is_visible() { cursor.position() } else { fb.position() } + 1;
+
+                    match command_functions::find_patch(&file_buffers[active_fb_index], start_offset) {
+                        Ok(o) if cursor.is_visible() => {
+                            cursor.set_position(o);
+
+                            if o < file_view_offset || o >= file_view_offset + page_size {
+                                command_functions::set_position(&mut file_buffers, active_fb_index, o, config.lock_file_buffers);
+                            }
+                        },
                         Ok(o) => command_functions::set_position(&mut file_buffers, active_fb_index, o, config.lock_file_buffers),
                         Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
                     }
@@ -712,7 +722,17 @@ fn main() {
                     }
                 },
                 Some(Command::FindDiff) => {
-                    match command_functions::find_diff(&file_buffers, active_fb_index) {
+                    let fb = &file_buffers[active_fb_index];
+                    let start_offset = if cursor.is_visible() { cursor.position() } else { fb.position() } + 1;
+
+                    match command_functions::find_diff(&file_buffers, start_offset, active_fb_index) {
+                        Some(o) if cursor.is_visible() => {
+                            cursor.set_position(o);
+
+                            if o < file_view_offset || o >= file_view_offset + page_size {
+                                command_functions::set_position(&mut file_buffers, active_fb_index, o, config.lock_file_buffers);
+                            }
+                        },
                         Some(o) => command_functions::set_position(&mut file_buffers, active_fb_index, o, config.lock_file_buffers),
                         None => { MessageBox::new(0, rows-2, cols).show(&mut stdout, "No more diffs.", MessageBoxType::Error, &color_scheme); },
                     }
