@@ -12,6 +12,7 @@ pub enum Command {
     FindAllDiffs,
     FindPatch,
     FindAllPatches,
+    FindAllHighlights,
     FindAllSignatures(Option<Vec<String>>, bool),
     FindAllBookmarks,
     YankBlock,
@@ -81,6 +82,9 @@ impl Command {
 
             Some(&"findalldiffs") => Ok(Command::FindAllDiffs),
             Some(&"fad") => Ok(Command::FindAllDiffs),
+
+            Some(&"findallhighlights") => Ok(Command::FindAllHighlights),
+            Some(&"fah") => Ok(Command::FindAllHighlights),
 
             Some(&"findallsignatures") => Command::parse_find_all_signatures(&cmd_vec, false),
             Some(&"fasi") => Command::parse_find_all_signatures(&cmd_vec, false),

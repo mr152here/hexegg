@@ -29,8 +29,11 @@ mod file_buffer;
 use file_buffer::FileBuffer;
 
 mod location_list;
+use location_list::LocationList;
+
 mod highlight_list;
 use highlight_list::HighlightList;
+
 mod signatures;
 
 fn create_screens(cols: u16, rows: u16, config: &Config) -> Vec<Box<dyn Screen>> {
@@ -762,6 +765,17 @@ fn main() {
                             screens.iter_mut().for_each(|s| s.show_location_bar(true));
                         },
                         Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
+                    }
+                },
+                Some(Command::FindAllHighlights) => {
+                    let fb = &mut file_buffers[active_fb_index];
+                    let ll = fb.highlight_list().iter().filter_map(|(o, c)| c.is_some().then_some((*o, format!("{:08X}", o))) ).collect::<LocationList>();
+
+                    if ll.is_empty() {
+                        MessageBox::new(0, rows-2, cols).show(&mut stdout, "No highlights found!", MessageBoxType::Error, &color_scheme);
+                    } else {
+                        fb.set_location_list(ll);
+                        screens.iter_mut().for_each(|s| s.show_location_bar(true));
                     }
                 },
                 Some(Command::Entropy(block_size, margin)) => {

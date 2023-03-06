@@ -11,6 +11,10 @@ impl HighlightList {
         HighlightList { highlights: vec![(0,None)] }
     }
 
+    pub fn iter(&self) -> std::slice::Iter<'_, (usize, Option<Color>)> {
+        self.highlights.iter()
+    }
+
     fn highlight_idx(&self, offset: usize) -> Option<usize> {
         let mut low_idx = 0;
         let mut high_idx = self.highlights.len();
