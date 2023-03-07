@@ -295,9 +295,23 @@ fn main() {
                         command = Some(Command::Goto(o)) 
                     }
                 },
-                KeyEvent{ code: KeyCode::Char('='), .. } if cursor.is_byte() || !cursor.is_visible() => {
+                KeyEvent{ code: KeyCode::Char('<'), .. } if cursor.is_byte() || !cursor.is_visible() => {
                     if let Some((o,_)) = file_buffers[active_fb_index].location_list().current() {
                         command = Some(Command::Goto(o))
+                    }
+                },
+                KeyEvent{ code: KeyCode::Char('>'), .. } if cursor.is_byte() || !cursor.is_visible() => {
+                    let offset = if cursor.is_visible() { cursor.position() } else { file_buffers[active_fb_index].position() };
+                    let hl = &file_buffers[active_fb_index].highlight_list();
+
+                    if let Some((ho,_)) = hl.range(offset) {
+                        let ll = &mut file_buffers[active_fb_index].location_list_mut();
+                        if let Some(idx) = ll.iter().enumerate().find_map(|(i, &(lo,_))| (lo == ho).then_some(i)) {
+                            ll.set_current_index(idx);
+                            screens.iter_mut().for_each(|s| s.show_location_bar(true));
+                        } else {
+                            MessageBox::new(0, rows-2, cols).show(&mut stdout, format!("Offset {:08X} not found in location_bar.", ho).as_str(), MessageBoxType::Error, &color_scheme);
+                        }
                     }
                 },
                 KeyEvent{ code: KeyCode::Char('r'), .. } if cursor.is_byte() || !cursor.is_visible() => {
