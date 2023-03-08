@@ -40,6 +40,10 @@ impl LocationList {
     pub fn get(&self, index: usize) -> Option<(usize, String)> {
         self.loc_list.get(index).map(|(o,s)| (*o, s.to_owned()))
     }
+
+    pub fn get_mut(&mut self, index: usize) -> Option<&mut (usize, String)> {
+        self.loc_list.get_mut(index)
+    }
     
     pub fn current_index(&self) -> usize {
         self.current_index

@@ -314,11 +314,20 @@ fn main() {
                         }
                     }
                 },
-                KeyEvent{ code: KeyCode::Char('r'), .. } if cursor.is_byte() || !cursor.is_visible() => {
+                KeyEvent{ code: KeyCode::Char('R'), .. } if cursor.is_byte() || !cursor.is_visible() => {
                     //remove currently selected locattion and jump to new current
                     file_buffers[active_fb_index].location_list_mut().remove_current_location();
                     if let Some((o,_)) = file_buffers[active_fb_index].location_list().current() {
                         command = Some(Command::Goto(o))
+                    }
+                },
+                KeyEvent{ code: KeyCode::Char('r'), .. } if cursor.is_byte() || !cursor.is_visible() => {
+                    let ll = &mut file_buffers[active_fb_index].location_list_mut();
+                    if let Some((_, s)) = &mut ll.get_mut(ll.current_index()) {
+                        let user_string = UserInput::new(0, rows-2, cols).input(&mut stdout, format!("rename '{s}' to:").as_str(), &mut cmd_history, &color_scheme);
+                        if !user_string.is_empty() && *s != user_string {
+                            *s = user_string;
+                        }
                     }
                 },
                 KeyEvent{ code: KeyCode::Char('-'), .. } if cursor.is_byte() || !cursor.is_visible() => screens[active_screen_index].dec_row_size(),
