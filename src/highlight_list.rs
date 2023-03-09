@@ -15,7 +15,7 @@ impl HighlightList {
         self.highlights.iter()
     }
 
-    fn highlight_idx(&self, offset: usize) -> Option<usize> {
+    pub fn find_idx(&self, offset: usize) -> Option<usize> {
         let mut low_idx = 0;
         let mut high_idx = self.highlights.len();
         let mut mid_idx = high_idx / 2;
@@ -53,10 +53,10 @@ impl HighlightList {
     pub fn add(&mut self, start_offset: usize, end_offset: usize, color: Option<Color>) {
 
         //find index where new range should be
-        if let Some(idx1) = self.highlight_idx(start_offset) {
+        if let Some(idx1) = self.find_idx(start_offset) {
             let mut to_remove = 0;
 
-            if let Some(idx2) = self.highlight_idx(end_offset + 1) {
+            if let Some(idx2) = self.find_idx(end_offset + 1) {
                 let c = self.highlights[idx2].1;
 
                 if color.is_some() || c.is_some() {
@@ -87,8 +87,33 @@ impl HighlightList {
         }
     }
 
+    pub fn remove(&mut self, offset: usize) {
+
+        if let Some(idx) = self.find_idx(offset) {
+
+            //first check if the next element has the color None. If has, is no needed any more
+            if let Some((_,c)) = self.highlights.get(idx + 1) {
+                if c.is_none() {
+                    self.highlights.remove(idx + 1);
+                }
+            }
+
+            //if idx is the first element, just change its color
+            if idx == 0 {
+                self.highlights[idx].1 = None;
+
+            //if previous element has the color None, just delete idx to merge them
+            } else if self.highlights[idx - 1].1.is_none() {
+                self.highlights.remove(idx);
+
+            } else {
+                self.highlights[idx].1 = None;
+            }
+        }
+    }
+
     pub fn color(&self, offset: usize) -> Option<Color> {
-        match self.highlight_idx(offset) {
+        match self.find_idx(offset) {
             Some(idx) => self.highlights[idx].1,
             None => None,
         }
@@ -97,7 +122,7 @@ impl HighlightList {
     //returns highlighted interval for offset. If offset is not highlighted (color is None) return None,
     //if the range is the last one. The end offset is set to usize::MAX
     pub fn range(&self, offset: usize) -> Option<(usize, usize)> {
-        if let Some(idx) = self.highlight_idx(offset) {
+        if let Some(idx) = self.find_idx(offset) {
             let &(start_offset, c) = self.highlights.get(idx).unwrap();
 
             if c.is_some() {

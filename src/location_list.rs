@@ -44,7 +44,7 @@ impl LocationList {
     pub fn get_mut(&mut self, index: usize) -> Option<&mut (usize, String)> {
         self.loc_list.get_mut(index)
     }
-    
+
     pub fn current_index(&self) -> usize {
         self.current_index
     }
@@ -55,9 +55,20 @@ impl LocationList {
         }
     }
 
+    pub fn find_idx(&self, offset: usize) -> Option<usize> {
+        self.loc_list.iter().enumerate().find_map(|(i, &(lo,_))| (lo == offset).then_some(i))
+    }
+
     pub fn remove_current_location(&mut self) {
         if self.current_index < self.loc_list.len() {
             self.loc_list.remove(self.current_index);
+            self.current_index = std::cmp::min(self.current_index, self.loc_list.len().saturating_sub(1));
+        }
+    }
+
+    pub fn remove_location(&mut self, idx: usize) {
+        if idx < self.loc_list.len() {
+            self.loc_list.remove(idx);
             self.current_index = std::cmp::min(self.current_index, self.loc_list.len().saturating_sub(1));
         }
     }

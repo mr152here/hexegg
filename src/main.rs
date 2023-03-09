@@ -306,7 +306,7 @@ fn main() {
 
                     if let Some((ho,_)) = hl.range(offset) {
                         let ll = &mut file_buffers[active_fb_index].location_list_mut();
-                        if let Some(idx) = ll.iter().enumerate().find_map(|(i, &(lo,_))| (lo == ho).then_some(i)) {
+                        if let Some(idx) = ll.find_idx(ho) {
                             ll.set_current_index(idx);
                             screens.iter_mut().for_each(|s| s.show_location_bar(true));
                         } else {
@@ -315,11 +315,15 @@ fn main() {
                     }
                 },
                 KeyEvent{ code: KeyCode::Char('R'), .. } if cursor.is_byte() || !cursor.is_visible() => {
-                    //remove currently selected locattion and jump to new current
-                    file_buffers[active_fb_index].location_list_mut().remove_current_location();
-                    if let Some((o,_)) = file_buffers[active_fb_index].location_list().current() {
-                        command = Some(Command::Goto(o))
+                    let ll = &mut file_buffers[active_fb_index].location_list_mut();
+
+                    if let Some((o,_)) = ll.current() {
+                        ll.remove_current_location();
+                        file_buffers[active_fb_index].highlight_list_mut().remove(o);
                     }
+                    //if let Some((o,_)) = file_buffers[active_fb_index].location_list().current() {
+                    //    command = Some(Command::Goto(o))
+                    //}
                 },
                 KeyEvent{ code: KeyCode::Char('r'), .. } if cursor.is_byte() || !cursor.is_visible() => {
                     let ll = &mut file_buffers[active_fb_index].location_list_mut();
@@ -386,9 +390,21 @@ fn main() {
                     }
                 },
                 KeyEvent{ code: KeyCode::Char('M'), .. } if !cursor.is_text() => {
-                    if let Some((s,e)) = file_buffers[active_fb_index].selection() {
-                        file_buffers[active_fb_index].highlight_list_mut().add(s, e, None);
-                        file_buffers[active_fb_index].set_selection(None);
+                    let fb = &mut file_buffers[active_fb_index];
+
+                    if let Some((s,e)) = fb.selection() {
+                        fb.highlight_list_mut().add(s, e, None);
+                        fb.set_selection(None);
+                    } else {
+                        let offset = if cursor.is_visible() { cursor.position() } else { fb.position() };
+                        if let Some((ho,_)) = fb.highlight_list().range(offset) {
+                            fb.highlight_list_mut().remove(offset);
+
+                            let ll = &mut fb.location_list_mut();
+                            if let Some(idx) = ll.find_idx(ho) {
+                                ll.remove_location(idx);
+                            }
+                        }
                     }
                 },
                 //all other keys
