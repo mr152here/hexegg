@@ -314,6 +314,18 @@ pub fn calculate_entropy(fb: &FileBuffer, block_size: usize, margin: f32) -> Loc
         .collect::<LocationList>()
 }
 
+//calculate histogram and return sorted LocationList
+pub fn calculate_histogram(data: &[u8]) -> LocationList {
+    let mut histogram = [(0,0); 256];
+    data.iter().for_each(|&b| histogram[b as usize].1 += 1);
+    histogram.iter_mut().enumerate().for_each(|(i,(b,_))| *b = i);
+    histogram.sort_by_key(|&(_,v)| usize::MAX - v);
+
+    histogram.iter()
+        .map(|(b,v)| (0, format!("{:02X}_{}", b, v)))
+        .collect::<LocationList>()
+}
+
 //save selected block into the file
 pub fn save_block(file_buffers: &[FileBuffer], active_fb_index: usize, file_name: &str) -> Result<String, String> {
     if let Some((start,end)) = file_buffers[active_fb_index].selection() {

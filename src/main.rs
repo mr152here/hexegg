@@ -822,6 +822,11 @@ fn main() {
                     file_buffers[active_fb_index].set_location_list(ll);
                     screens.iter_mut().for_each(|s| s.show_location_bar(true));
                 },
+                Some(Command::Histogram) => {
+                    let ll = command_functions::calculate_histogram(&file_buffers[active_fb_index].as_slice());
+                    file_buffers[active_fb_index].set_location_list(ll);
+                    screens.iter_mut().for_each(|s| s.show_location_bar(true));
+                },
                 Some(Command::OpenFile(file_name)) => {
                     match command_functions::read_file(&file_name) {
                         Ok(file_data) => {

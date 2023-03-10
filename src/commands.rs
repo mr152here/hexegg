@@ -31,6 +31,7 @@ pub enum Command {
     AppendFile(String),
     ClearLocationBar,
     Entropy(usize, f32),
+    Histogram,
     Set(String, String)
 }
 
@@ -110,6 +111,7 @@ impl Command {
             Some(&"clearlocationbar") => Ok(Command::ClearLocationBar),
             Some(&"entropy") => Command::parse_entropy(&cmd_vec),
             Some(&"ent") => Command::parse_entropy(&cmd_vec),
+            Some(&"histogram") => Ok(Command::Histogram),
             Some(&"set") => Command::parse_set(&cmd_vec),
             
             //all unknown commands
