@@ -250,11 +250,7 @@ fn main() {
                     command = Some(Command::Goto(0));
                 },
                 KeyEvent{ code: KeyCode::End, .. } => {
-                    let new_pos = if cursor.is_visible() {
-                        if file_size > 0 { file_size - 1 } else { 0 }
-                    } else {
-                        if file_size < page_size { 0 } else { file_size - page_size }
-                    };
+                    let new_pos = file_size.saturating_sub(if cursor.is_visible() { 1 } else { page_size });
                     command = Some(Command::Goto(new_pos));
                 },
                 KeyEvent{ code: KeyCode::Enter, .. } => {
@@ -603,7 +599,7 @@ fn main() {
 
                     //calculate new offset for cursor or file_buffer
                     let new_pos = if delta_offset.is_negative() {
-                        if do_abs >= pos { 0 } else { pos - do_abs }
+                        pos.saturating_sub(do_abs)
                     } else {
                         pos + do_abs
                     };
@@ -621,7 +617,7 @@ fn main() {
                         //cursor / screen paging "upward"
                         if new_pos < file_view_offset { 
                             let count = (file_view_offset - new_pos + size - 1) / size;
-                            let new_file_offset = if file_view_offset <= count * size { 0 } else { file_view_offset - count * size };
+                            let new_file_offset = file_view_offset.saturating_sub(count * size);
                             command_functions::set_position(&mut file_buffers, active_fb_index, new_file_offset, config.lock_file_buffers);
                         }
                         
