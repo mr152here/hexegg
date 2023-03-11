@@ -89,8 +89,14 @@ When you enable highlighting different bytes ('h' key), program shows those byte
 Whenever you perform an operation that returns multiple results, the results are displayed on the right side of the screen in a panel called the "location bar". You can quickly jump through the results and their associated offsets using:
 - ']' - navigate to the next location
 - '[' - navigate to the previous location
-- '=' - navigate to the currently selected location
-- 'r' - remove selected result from location bar
+- '}' - page down in location bar
+- '{' - page up in location bar
+- '<' - navigate to the currently selected location
+- '>' - find highlighted block in location bar from the current position
+- 'r' - rename item in the location bar
+- 'R' - remove item from the location bar
+- 'm' - highlight selected block
+- 'M' - remove highlighted block or its selected part
 - 'l' - toggles location bar visibility (shortcuts still works)
 
 Location bar also support mouse events. By clicking on the item in the list, you will jump to the associated offset. Or you can quickly travers results by mouse wheel.
@@ -155,6 +161,10 @@ Next is a list of available commands, their parameters, and their descriptions. 
 *findalldiffs*  
 *fad*
 > find all diffs (different bytes among all opened files) and show their offsets in the location bar.
+
+*findallhighlights*  
+*fah*
+> find all highlighted blocks and show their offsets in the location bar.
 
 *findallsignatures \[sig_name\]* ...  
 *fasi \[sig_name\]* ...  
@@ -261,6 +271,9 @@ Next is a list of available commands, their parameters, and their descriptions. 
 *entropy \{block_size = 1024\} \{margin = 1.1\}*  
 *ent \{block_size = 1024\} \{margin = 1.1\}*
 > split file into blocks of *block_size* size, calculate the entropy of each one, and if the difference between two following blocks is less then the *margin*, join them together. Entropy values of resulting blocks are in the location bar. The associated offset is starting offset of the block. For the wisely chosen parameters, command can be used to navigate quickly through the interesting areas.
+
+*histogram*
+> calculate file histogram and display result in the location bar. Format is "\<byte_value\>_\<amount\>" and is sorted by amount with the highest on the top.
 
 *clearlocationbar*
 > clear all results from the location bar, including all highlights.  
