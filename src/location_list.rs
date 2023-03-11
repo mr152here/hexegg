@@ -50,9 +50,7 @@ impl LocationList {
     }
 
     pub fn set_current_index(&mut self, index: usize) {
-        if index < self.loc_list.len() {
-            self.current_index = index;
-        }
+        self.current_index = std::cmp::min(index, self.loc_list.len().saturating_sub(1));
     }
 
     pub fn find_idx(&self, offset: usize) -> Option<usize> {

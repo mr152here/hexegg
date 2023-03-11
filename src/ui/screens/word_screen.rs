@@ -88,6 +88,10 @@ impl Screen for WordScreen {
         self.word_area.row_size()
     }
 
+    fn num_of_rows(&self) -> u16 {
+        self.word_area.height()
+    }
+
     fn page_size(&self) -> usize {
         self.word_area.page_size()
     }

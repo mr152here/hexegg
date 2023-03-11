@@ -88,6 +88,10 @@ impl Screen for ByteScreen {
         self.byte_area.row_size()
     }
 
+    fn num_of_rows(&self) -> u16 {
+        self.byte_area.height()
+    }
+
     fn page_size(&self) -> usize {
         self.byte_area.page_size()
     }

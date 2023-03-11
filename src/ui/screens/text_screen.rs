@@ -77,6 +77,10 @@ impl Screen for TextScreen {
         self.text_area.width()
     }
 
+    fn num_of_rows(&self) -> u16 {
+        self.text_area.height()
+    }
+
     fn page_size(&self) -> usize {
         self.text_area.page_size()
     }

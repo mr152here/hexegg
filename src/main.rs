@@ -292,7 +292,25 @@ fn main() {
                 },
                 KeyEvent{ code: KeyCode::Char(']'), .. } if cursor.is_byte() || !cursor.is_visible() => {
                     if let Some((o,_)) = file_buffers[active_fb_index].location_list_mut().next() {
-                        command = Some(Command::Goto(o)) 
+                        command = Some(Command::Goto(o))
+                    }
+                },
+                KeyEvent{ code: KeyCode::Char('{'), .. } if cursor.is_byte() || !cursor.is_visible() => {
+                    let lines = screens[active_screen_index].num_of_rows() as usize;
+                    let ll = &mut file_buffers[active_fb_index].location_list_mut();
+                    ll.set_current_index(ll.current_index().saturating_sub(lines));
+
+                    if let Some((o,_)) = ll.current() {
+                        command = Some(Command::Goto(o))
+                    }
+                },
+                KeyEvent{ code: KeyCode::Char('}'), .. } if cursor.is_byte() || !cursor.is_visible() => {
+                    let lines = screens[active_screen_index].num_of_rows() as usize;
+                    let ll = &mut file_buffers[active_fb_index].location_list_mut();
+                    ll.set_current_index(ll.current_index() + lines);
+
+                    if let Some((o,_)) = ll.current() {
+                        command = Some(Command::Goto(o))
                     }
                 },
                 KeyEvent{ code: KeyCode::Char('<'), .. } if cursor.is_byte() || !cursor.is_visible() => {

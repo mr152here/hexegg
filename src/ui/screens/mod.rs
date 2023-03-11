@@ -12,6 +12,7 @@ pub trait Screen {
     fn screen_name(&self) -> &'static str;
 
     fn row_size(&self) -> u16;
+    fn num_of_rows(&self) -> u16;
     fn page_size(&self) -> usize;
 
     fn inc_row_size(&mut self);
