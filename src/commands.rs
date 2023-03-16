@@ -32,6 +32,7 @@ pub enum Command {
     ClearLocationBar,
     Entropy(usize, f32),
     Histogram,
+    ParseHeader(Option<String>),
     Set(String, String)
 }
 
@@ -112,6 +113,7 @@ impl Command {
             Some(&"entropy") => Command::parse_entropy(&cmd_vec),
             Some(&"ent") => Command::parse_entropy(&cmd_vec),
             Some(&"histogram") => Ok(Command::Histogram),
+            Some(&"parseheader") => Command::parse_parse_header(&cmd_vec),
             Some(&"set") => Command::parse_set(&cmd_vec),
             
             //all unknown commands
@@ -474,5 +476,10 @@ impl Command {
             Some(s) => Ok(Command::Set(var_name, s.to_string())),
             None => Err("Missing 'variable_value' parameter!"),
         }
+    }
+
+    fn parse_parse_header(v: &[&str])-> Result<Command, &'static str> {
+        let sig_name = v.get(1).map(|s| s.to_string());
+        Ok(Command::ParseHeader(sig_name))
     }
 }
