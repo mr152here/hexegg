@@ -288,6 +288,13 @@ pub fn get_signature(data: &[u8]) -> Option<&'static str> {
     None
 }
 
+pub fn is_signature(data: &[u8], name: &str) -> bool {
+    match get_signature(data) {
+        Some(sig_name) => sig_name.eq(name),
+        None => false,
+    }
+}
+
 //try to recognize DIB header. 
 fn is_signature_dib(data: &[u8]) -> bool {
     
