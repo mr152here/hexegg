@@ -35,6 +35,7 @@ mod highlight_list;
 use highlight_list::HighlightList;
 
 mod signatures;
+mod struct_parsers;
 
 fn create_screens(cols: u16, rows: u16, config: &Config) -> Vec<Box<dyn Screen>> {
     let mut screens = Vec::<Box<dyn Screen>>::new();
@@ -995,6 +996,25 @@ fn main() {
                         file_buffers[active_fb_index].insert_block(cursor.position()+1, bytes);
                     } else {
                         MessageBox::new(0, rows-2, cols).show(&mut stdout, "Move cursor to the position where block should be appended.", MessageBoxType::Error, &color_scheme);
+                    }
+                },
+                Some(Command::ParseHeader(name)) => {
+                    let fb = &mut file_buffers[active_fb_index];
+                    let o = if cursor.is_visible() { cursor.position() } else { fb.position() };
+
+                    match command_functions::parse_struct(&fb.as_slice()[o..], name) {
+                        Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
+                        Ok(vfd) => {
+                            let ll = vfd.iter().map(|fd| (fd.offset + o, fd.name.clone())).collect::<LocationList>();
+                            let hl = vfd.iter().map(|fd| {
+                                let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
+                                (fd.offset + o, fd.offset + o + fd.size, Some(color))
+                            }).collect::<HighlightList>();
+
+                            fb.set_location_list(ll);
+                            fb.set_highlight_list(hl);
+                            screens.iter_mut().for_each(|s| s.show_location_bar(true));
+                        },
                     }
                 },
                 Some(Command::ClearLocationBar) => {

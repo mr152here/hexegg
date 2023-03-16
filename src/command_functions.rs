@@ -6,6 +6,7 @@ use crate::file_buffer::FileBuffer;
 use crate::ColorScheme;
 use crate::config::{Config, HighlightStyle, ScreenPagingSize};
 use crate::signatures::*;
+use crate::struct_parsers::{FieldDescription, parse_struct_by_name};
 
 //set file offset to one/all filebuffers
 pub fn set_position(file_buffers: &mut [FileBuffer], active_fb: usize, position: usize, lock_buffers: bool) {
@@ -324,6 +325,22 @@ pub fn calculate_histogram(data: &[u8]) -> LocationList {
     histogram.iter()
         .map(|(b,v)| (0, format!("{:02X}_{}", b, v)))
         .collect::<LocationList>()
+}
+
+//parse binary structure at the given offset.
+pub fn parse_struct(data: &[u8], name: Option<String>) -> Result<Vec<FieldDescription>, String> {
+
+    let sig_name = match name {
+        Some(s) => s,
+        None => {
+            match get_signature(data) {
+                Some(s) => s.to_string(),
+                None => return Err("Unknown header signature!".to_string()),
+            }
+        },
+    };
+
+    parse_struct_by_name(data, &sig_name)
 }
 
 //save selected block into the file
