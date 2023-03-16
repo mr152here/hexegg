@@ -1,0 +1,14 @@
+pub mod struct_ico;
+
+pub struct FieldDescription {
+    pub name: String,
+    pub offset: usize,
+    pub size: usize
+}
+
+pub fn parse_struct_by_name(data: &[u8], name: &str) -> Result<Vec<FieldDescription>, String> {
+    match name {
+        "ico" => struct_ico::parse_ico_struct(data),
+        _ => Err("Unsupported header!".to_string()),
+    }
+}
