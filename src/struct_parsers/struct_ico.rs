@@ -9,6 +9,7 @@ pub fn parse_ico_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
 
     let mut vec_image_data = Vec::<FieldDescription>::new();
     let mut vec_headers = Vec::<FieldDescription>::new();
+    vec_headers.push(FieldDescription {name: "-- ico --".to_owned(), offset: 0, size: 0});
     vec_headers.push(FieldDescription {name: "reserved".to_owned(), offset: 0, size: 2});
     vec_headers.push(FieldDescription {name: "type".to_owned(), offset: 2, size: 2});
     vec_headers.push(FieldDescription {name: "image_count".to_owned(), offset: 4, size: 2});
@@ -39,7 +40,6 @@ pub fn parse_ico_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
             size: u32::from_le_bytes([data[icon_dir_entry_offset+8], data[icon_dir_entry_offset+9], data[icon_dir_entry_offset+10], data[icon_dir_entry_offset+11]]) as usize
         });
     }
-
     vec_headers.append(&mut vec_image_data);
     Ok(vec_headers)
 }
