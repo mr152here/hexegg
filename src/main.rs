@@ -1006,9 +1006,12 @@ fn main() {
                         Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
                         Ok(vfd) => {
                             let ll = vfd.iter().map(|fd| (fd.offset + o, fd.name.clone())).collect::<LocationList>();
-                            let hl = vfd.iter().map(|fd| {
-                                let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
-                                (fd.offset + o, fd.offset + o + fd.size, Some(color))
+                            let hl = vfd.iter().filter_map(|fd| {
+                                if fd.size > 0 {
+                                    let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
+                                    return Some((fd.offset + o, fd.offset + o + fd.size -1 , Some(color)));
+                                }
+                                None
                             }).collect::<HighlightList>();
 
                             fb.set_location_list(ll);

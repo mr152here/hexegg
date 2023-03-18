@@ -52,37 +52,39 @@ impl HighlightList {
     //add highlighted interval to the list
     pub fn add(&mut self, start_offset: usize, end_offset: usize, color: Option<Color>) {
 
-        //find index where new range should be
-        if let Some(idx1) = self.find_idx(start_offset) {
-            let mut to_remove = 0;
+        if end_offset >= start_offset {
+            //find index where new range should be
+            if let Some(idx1) = self.find_idx(start_offset) {
+                let mut to_remove = 0;
 
-            if let Some(idx2) = self.find_idx(end_offset + 1) {
-                let c = self.highlights[idx2].1;
+                if let Some(idx2) = self.find_idx(end_offset + 1) {
+                    let c = self.highlights[idx2].1;
 
-                if color.is_some() || c.is_some() {
-                    self.highlights.insert(idx2 + 1, (end_offset + 1, c));
+                    if color.is_some() || c.is_some() {
+                        self.highlights.insert(idx2 + 1, (end_offset + 1, c));
+                    }
+                    to_remove = idx2 - idx1;
                 }
-                to_remove = idx2 - idx1;
-            }
 
-            //if it is the same offset as original one, update the color
-            let didx = if self.highlights[idx1].0 == start_offset {
-                self.highlights[idx1].1 = color;
-                1
+                //if it is the same offset as original one, update the color
+                let didx = if self.highlights[idx1].0 == start_offset {
+                    self.highlights[idx1].1 = color;
+                    1
 
-            //if the new interval's color is None and IDX1 is None. Just do nothing.
-            } else if color.is_none() && self.highlights[idx1].1.is_none() {
-                1
+                //if the new interval's color is None and IDX1 is None. Just do nothing.
+                } else if color.is_none() && self.highlights[idx1].1.is_none() {
+                    1
 
-            //otherwise insert a new element
-            } else {
-                self.highlights.insert(idx1 + 1, (start_offset, color));
-                0
-            };
+                //otherwise insert a new element
+                } else {
+                    self.highlights.insert(idx1 + 1, (start_offset, color));
+                    0
+                };
 
-            //remove all ranges that are overlaped by the new one
-            for _ in 0..to_remove {
-                self.highlights.remove(idx1 + 2 - didx);
+                //remove all ranges that are overlaped by the new one
+                for _ in 0..to_remove {
+                    self.highlights.remove(idx1 + 2 - didx);
+                }
             }
         }
     }
