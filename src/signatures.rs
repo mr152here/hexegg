@@ -298,7 +298,7 @@ pub fn is_signature(data: &[u8], name: &str) -> bool {
 //try to recognize DIB header. 
 fn is_signature_dib(data: &[u8]) -> bool {
     
-    if data.len() > 15 && data.starts_with(&[40, 0, 0, 0]) {
+    if data.len() > 15 && (data[0] == 12 || data[0] == 40 || data[0] == 108 || data[0] == 124) {
         return data[12] == 1 && data[13] == 0 && (data[14] == 1 || data[14] == 4 || data[14] == 8 || data[14] == 24 || data[14] == 32) && data[15] == 0;
     }
     false
