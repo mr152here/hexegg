@@ -1,8 +1,6 @@
 use crate::signatures::is_signature;
 use crate::struct_parsers::FieldDescription;
 
-//https://learn.microsoft.com/en-us/windows/win32/gdi/bitmap-header-types
-//https://stackoverflow.com/questions/20864752/how-is-defined-the-data-type-fxpt2dot30-in-the-bmp-file-structure
 pub fn parse_bmp_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
 
     if !is_signature(data, "bmp") {
@@ -12,9 +10,8 @@ pub fn parse_bmp_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         return Err("Too small for 'bmp' header!".to_owned());
     }
 
-    let mut header = Vec::<FieldDescription>::new();
-
     //BITMAPFILEHEADER
+    let mut header = Vec::<FieldDescription>::new();
     header.push(FieldDescription {name: "-- bmp --".to_owned(), offset: 0, size: 0});
     header.push(FieldDescription {name: "magic".to_owned(), offset: 0, size: 2});
     header.push(FieldDescription {name: "file_size".to_owned(), offset: 2, size: 4});
@@ -22,31 +19,28 @@ pub fn parse_bmp_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     header.push(FieldDescription {name: "reserved".to_owned(), offset: 8, size: 2});
     header.push(FieldDescription {name: "image_offset".to_owned(), offset: 10, size: 4});
 
-    let image_offset = u32::from_le_bytes(data[10..14].try_into().unwrap()) as usize;
-    let mut image_size = (u32::from_le_bytes(data[2..6].try_into().unwrap()) as usize) - image_offset;
-
     match parse_dib_struct(&data[14..]) {
-        Ok((mut vec_dib, is)) => {
+        Ok(mut vec_dib) => {
             vec_dib.iter_mut().for_each(|fd| fd.offset += 14 );
-            image_size = is.unwrap_or(image_size);
             header.append(&mut vec_dib);
         },
         Err(s) => return Err(s),
     }
 
+    let image_offset = u32::from_le_bytes(data[10..14].try_into().unwrap()) as usize;
+    let image_size = dib_image_size(&data[14..]).unwrap_or((u32::from_le_bytes(data[2..6].try_into().unwrap()) as usize) - image_offset);
+
     header.push(FieldDescription {name: "image_data".to_owned(), offset: image_offset, size: image_size});
     Ok(header)
 }
 
-
-pub fn parse_dib_struct(data: &[u8]) -> Result<(Vec<FieldDescription>, Option<usize>), String> {
+pub fn parse_dib_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
 
     if data.len() < 12 {
         return Err("Too small for DIB header!".to_owned());
     }
 
     let mut header = Vec::<FieldDescription>::new();
-    let mut image_size = None;
     let dib_size = u32::from_le_bytes(data[0..4].try_into().unwrap()) as usize;
 
     if dib_size == 12 {
@@ -72,8 +66,6 @@ pub fn parse_dib_struct(data: &[u8]) -> Result<(Vec<FieldDescription>, Option<us
         header.push(FieldDescription {name: "ypix_pm".to_owned(), offset: 28, size: 4});
         header.push(FieldDescription {name: "colors".to_owned(), offset: 32, size: 4});
         header.push(FieldDescription {name: "imp_colors".to_owned(), offset: 36, size: 4});
-
-        image_size = Some(u32::from_le_bytes(data[20..24].try_into().unwrap()) as usize);
 
         if data.len() >= 108 && (dib_size == 108 || dib_size == 124) {
             //BITMAPV4HEADER
@@ -111,6 +103,18 @@ pub fn parse_dib_struct(data: &[u8]) -> Result<(Vec<FieldDescription>, Option<us
 
     match header.is_empty() {
         true => Err("unknown DIB header format!".to_string()),
-        false => Ok((header, image_size)),
+        false => Ok(header),
     }
+}
+
+//returns image size from DIB header.
+pub fn dib_image_size(data: &[u8]) -> Option<usize> {
+    if data.len() >= 40 {
+        let dib_size = u32::from_le_bytes(data[0..4].try_into().unwrap());
+
+        if dib_size >= 40 {
+            return Some(u32::from_le_bytes(data[20..24].try_into().unwrap()) as usize);
+        }
+    }
+    None
 }
