@@ -25,10 +25,13 @@ pub fn parse_bmp_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     let image_offset = u32::from_le_bytes(data[10..14].try_into().unwrap()) as usize;
     let mut image_size = (u32::from_le_bytes(data[2..6].try_into().unwrap()) as usize) - image_offset;
 
-    if let Ok((mut vec_dib, is)) = parse_dib_struct(&data[14..]) {
-        vec_dib.iter_mut().for_each(|fd| fd.offset += 14 );
-        image_size = is.unwrap_or(image_size);
-        header.append(&mut vec_dib);
+    match parse_dib_struct(&data[14..]) {
+        Ok((mut vec_dib, is)) => {
+            vec_dib.iter_mut().for_each(|fd| fd.offset += 14 );
+            image_size = is.unwrap_or(image_size);
+            header.append(&mut vec_dib);
+        },
+        Err(s) => return Err(s),
     }
 
     header.push(FieldDescription {name: "image_data".to_owned(), offset: image_offset, size: image_size});
@@ -101,14 +104,13 @@ pub fn parse_dib_struct(data: &[u8]) -> Result<(Vec<FieldDescription>, Option<us
 
                 let prof_offset = u32::from_le_bytes(data[112..116].try_into().unwrap()) as usize;
                 let prof_size = u32::from_le_bytes(data[116..120].try_into().unwrap()) as usize;
-                header.push(FieldDescription {name: "profile".to_owned(), offset: prof_offset, size: prof_size});
+                header.push(FieldDescription {name: "profile_data".to_owned(), offset: prof_offset, size: prof_size});
             }
         }
     }
 
-    if header.is_empty() {
-        Err("unknown DIB header format!".to_string())
-    } else {
-        Ok((header, image_size))
+    match header.is_empty() {
+        true => Err("unknown DIB header format!".to_string()),
+        false => Ok((header, image_size)),
     }
 }

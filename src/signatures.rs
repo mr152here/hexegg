@@ -307,7 +307,7 @@ fn is_signature_dib(data: &[u8]) -> bool {
 //try to recognize BMP header
 fn is_signature_bmp(data: &[u8]) -> Option<&'static str> {
 
-    if data.len() > 54 && data[0] == 0x42 && data[1] == 0x4D && data[6..10].starts_with(&[0, 0, 0, 0]) {
+    if data.len() > 36 && data[0] == 0x42 && data[1] == 0x4D && data[6..10].starts_with(&[0, 0, 0, 0]) {
 
         //following 4 bytes are address of picture data. Should not be less then 0x36 and also not too much
         let pic_offset = u32::from_le_bytes(data[10..14].try_into().unwrap()) as usize;
