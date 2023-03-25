@@ -79,8 +79,11 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     header.push(FieldDescription {name: "opt_header_size".to_owned(), offset: pe_offset+20, size: 2});
     header.push(FieldDescription {name: "attributes".to_owned(), offset: pe_offset+22, size: 2});
 
+    if data.len() < pe_offset + 136 {
+        return Err("PE header seems to be truncated".to_owned());
+    }
+
     //read IMAGE_OPTIONAL_HEADER
-    //TODO: check for data size!
     let pe32 = u16::from_le_bytes(data[(pe_offset+24)..(pe_offset+26)].try_into().unwrap()) == 0x010B;
     header.push(FieldDescription {name: (if pe32 {"-- OPT_32 --"} else { "-- OPT_64 --" }).to_owned(), offset: pe_offset+24, size: 0});
     header.push(FieldDescription {name: "magic".to_owned(), offset: pe_offset+24, size: 2});
@@ -144,7 +147,7 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     //TODO: check for data size!
     let data_dir_count = u32::from_le_bytes(data[(last_offset-4)..last_offset].try_into().unwrap()) as usize;
     if data_dir_count > 16 {
-        return Err("Too large DataDirectory size!".to_owned());
+        return Err("Too large value in IMAGE_DATA_DIRECTORY.size!".to_owned());
     }
 
     let data_dir_names = ["export_table", "import_table", "resource_table", "exception_table", "certificate_table",
@@ -160,7 +163,6 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     }
 
     //section table
-    //TODO: check for data size!
     let opt_header_size = u16::from_le_bytes(data[(pe_offset+20)..(pe_offset+22)].try_into().unwrap()) as usize;
     let section_count = u16::from_le_bytes(data[(pe_offset+6)..(pe_offset+8)].try_into().unwrap()) as usize;
     last_offset = pe_offset + opt_header_size + 24;
@@ -179,6 +181,9 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         header.push(FieldDescription {name: "line_num_num".to_owned(), offset: last_offset+34, size: 2});
         header.push(FieldDescription {name: "characteristics".to_owned(), offset: last_offset+36, size: 4});
 
+        if data.len() < last_offset + 24 {
+            return Err("Section Table seems to be truncated!".to_owned());
+        }
         let data_size = u32::from_le_bytes(data[(last_offset+16)..(last_offset+20)].try_into().unwrap()) as usize;
         if data_size > 0 {
             //TODO: use section name if is OK
@@ -189,6 +194,8 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     }
 
     //TODO: read and parse data dir
-    //TODO: read and parse resource from resource_table + its size
+    //TODO: import / export table
+    //TODO: entry_point
+    //TODO: resources and other fields from data dir
     Ok(header)
 }
