@@ -151,6 +151,8 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         return Err("Too large value in IMAGE_DATA_DIRECTORY.size!".to_owned());
     }
 
+    let mut cert_table = 0;
+    let mut cert_table_size = 0;
     let data_dir_names = ["export_table", "import_table", "resource_table", "exception_table", "certificate_table",
                         "base_reloc_table", "debug", "architecture", "global_ptr", "tls_table", "load_config",
                         "bount_import", "import_adr_table", "delay_import", "clr_rutine", "reserved"];
@@ -160,6 +162,12 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     for i in 0..data_dir_size {
         header.push(FieldDescription {name: data_dir_names[i].to_owned(), offset: last_offset, size: 4});
         header.push(FieldDescription {name: "size".to_owned(), offset: last_offset+4, size: 4});
+
+        if i == 4 {
+            cert_table = u32::from_le_bytes(data[(last_offset)..(last_offset+4)].try_into().unwrap()) as usize;
+            cert_table_size = u32::from_le_bytes(data[(last_offset+4)..(last_offset+8)].try_into().unwrap()) as usize;
+        }
+
         last_offset += 8;
     }
 
@@ -194,6 +202,7 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
             header.push(FieldDescription {name: "section_data".to_owned(), offset: data_offset, size: data_size});
         }
 
+        //find entrypoint
         let section_vs = u32::from_le_bytes(data[(last_offset+8)..(last_offset+12)].try_into().unwrap()) as usize;
         let section_rva = u32::from_le_bytes(data[(last_offset+12)..(last_offset+16)].try_into().unwrap()) as usize;
 
@@ -202,6 +211,23 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         }
         last_offset += 40;
     }
+
+    //certificates
+    if cert_table > 0 && cert_table_size > 0 {
+        last_offset = cert_table;
+        header.push(FieldDescription {name: "-- CERTIFICATES --".to_owned(), offset: last_offset, size: 0});
+
+        while last_offset < (cert_table + cert_table_size) && data.len() > (last_offset + 4) {
+            let cert_len = u32::from_le_bytes(data[(last_offset)..(last_offset+4)].try_into().unwrap()) as usize;
+            header.push(FieldDescription {name: "length".to_owned(), offset: last_offset, size: 4});
+            header.push(FieldDescription {name: "revision".to_owned(), offset: last_offset+4, size: 2});
+            header.push(FieldDescription {name: "type".to_owned(), offset: last_offset+6, size: 2});
+            header.push(FieldDescription {name: "certificate".to_owned(), offset: last_offset+8, size: cert_len - 8});
+            //next cert table is at rounded up to 8 offset
+            last_offset += cert_len + 7 & !7;
+        }
+    }
+
 
     //TODO: read and parse data dir
     //TODO: import / export table
