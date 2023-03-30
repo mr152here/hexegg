@@ -57,8 +57,7 @@ pub fn parse_mz_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     Ok(header)
 }
 
-//https://0xrick.github.io/win-internals/pe4/
-//https://learn.microsoft.com/en-us/windows/win32/debug/pe-format#section-data
+//https://learn.microsoft.com/en-us/windows/win32/debug/pe-format
 pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
 
     if !is_signature(data, "mzpe") {
@@ -85,14 +84,16 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
 
     //read IMAGE_OPTIONAL_HEADER
     let pe32 = u16::from_le_bytes(data[(pe_offset+24)..(pe_offset+26)].try_into().unwrap()) == 0x010B;
-    header.push(FieldDescription {name: (if pe32 {"-- OPT_32 --"} else { "-- OPT_64 --" }).to_owned(), offset: pe_offset+24, size: 0});
+    header.push(FieldDescription {name: (if pe32 {"-- OPT_32 --"} else { "-- OPT_32+ --" }).to_owned(), offset: pe_offset+24, size: 0});
     header.push(FieldDescription {name: "magic".to_owned(), offset: pe_offset+24, size: 2});
     header.push(FieldDescription {name: "linker_major".to_owned(), offset: pe_offset+26, size: 1});
     header.push(FieldDescription {name: "linker_minor".to_owned(), offset: pe_offset+27, size: 1});
     header.push(FieldDescription {name: "code_size".to_owned(), offset: pe_offset+28, size: 4});
     header.push(FieldDescription {name: "init_data_size".to_owned(), offset: pe_offset+32, size: 4});
     header.push(FieldDescription {name: "uninit_data_size".to_owned(), offset: pe_offset+36, size: 4});
-    header.push(FieldDescription {name: "entry_point".to_owned(), offset: pe_offset+40, size: 4});
+    header.push(FieldDescription {name: "entry_point_rva".to_owned(), offset: pe_offset+40, size: 4});
+    let entry_point_idx = header.len();
+    header.push(FieldDescription {name: "entry_point".to_owned(), offset: 0, size: 0});
     header.push(FieldDescription {name: "code_base".to_owned(), offset: pe_offset+44, size: 4});
 
     let mut last_offset: usize = if pe32 {
@@ -117,7 +118,7 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         header.push(FieldDescription {name: "heap_reserve_size".to_owned(), offset: pe_offset+104, size: 4});
         header.push(FieldDescription {name: "heap_commit_size".to_owned(), offset: pe_offset+108, size: 4});
         header.push(FieldDescription {name: "loader_flags".to_owned(), offset: pe_offset+112, size: 4});
-        header.push(FieldDescription {name: "data_dir_count".to_owned(), offset: pe_offset+116, size: 4});
+        header.push(FieldDescription {name: "data_dir_size".to_owned(), offset: pe_offset+116, size: 4});
         pe_offset + 120
     } else {
         header.push(FieldDescription {name: "image_base".to_owned(), offset: pe_offset+48, size: 8});
@@ -140,13 +141,13 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         header.push(FieldDescription {name: "heap_reserve_size".to_owned(), offset: pe_offset+112, size: 8});
         header.push(FieldDescription {name: "heap_commit_size".to_owned(), offset: pe_offset+120, size: 8});
         header.push(FieldDescription {name: "loader_flags".to_owned(), offset: pe_offset+128, size: 4});
-        header.push(FieldDescription {name: "data_dir_count".to_owned(), offset: pe_offset+132, size: 4});
+        header.push(FieldDescription {name: "data_dir_size".to_owned(), offset: pe_offset+132, size: 4});
         pe_offset + 136
     };
 
     //TODO: check for data size!
-    let data_dir_count = u32::from_le_bytes(data[(last_offset-4)..last_offset].try_into().unwrap()) as usize;
-    if data_dir_count > 16 {
+    let data_dir_size = u32::from_le_bytes(data[(last_offset-4)..last_offset].try_into().unwrap()) as usize;
+    if data_dir_size > 16 {
         return Err("Too large value in IMAGE_DATA_DIRECTORY.size!".to_owned());
     }
 
@@ -156,13 +157,14 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
 
     //IMAGE_DATA_DIRECTORY
     header.push(FieldDescription {name: "-- DATA_DIR --".to_owned(), offset: last_offset, size: 0});
-    for i in 0..data_dir_count {
+    for i in 0..data_dir_size {
         header.push(FieldDescription {name: data_dir_names[i].to_owned(), offset: last_offset, size: 4});
         header.push(FieldDescription {name: "size".to_owned(), offset: last_offset+4, size: 4});
         last_offset += 8;
     }
 
     //section table
+    let entry_point_rva = u32::from_le_bytes(data[(pe_offset+40)..(pe_offset+44)].try_into().unwrap()) as usize;
     let opt_header_size = u16::from_le_bytes(data[(pe_offset+20)..(pe_offset+22)].try_into().unwrap()) as usize;
     let section_count = u16::from_le_bytes(data[(pe_offset+6)..(pe_offset+8)].try_into().unwrap()) as usize;
     last_offset = pe_offset + opt_header_size + 24;
@@ -184,18 +186,25 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         if data.len() < last_offset + 24 {
             return Err("Section Table seems to be truncated!".to_owned());
         }
+
         let data_size = u32::from_le_bytes(data[(last_offset+16)..(last_offset+20)].try_into().unwrap()) as usize;
         if data_size > 0 {
             //TODO: use section name if is OK
             let data_offset = u32::from_le_bytes(data[(last_offset+20)..(last_offset+24)].try_into().unwrap()) as usize;
             header.push(FieldDescription {name: "section_data".to_owned(), offset: data_offset, size: data_size});
         }
+
+        let section_vs = u32::from_le_bytes(data[(last_offset+8)..(last_offset+12)].try_into().unwrap()) as usize;
+        let section_rva = u32::from_le_bytes(data[(last_offset+12)..(last_offset+16)].try_into().unwrap()) as usize;
+
+        if section_rva <= entry_point_rva && (section_rva + section_vs) > entry_point_rva {
+            header[entry_point_idx].offset = entry_point_rva - section_rva + u32::from_le_bytes(data[(last_offset+20)..(last_offset+24)].try_into().unwrap()) as usize;
+        }
         last_offset += 40;
     }
 
     //TODO: read and parse data dir
     //TODO: import / export table
-    //TODO: entry_point
     //TODO: resources and other fields from data dir
     Ok(header)
 }
