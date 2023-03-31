@@ -1,6 +1,14 @@
 use crate::signatures::is_signature;
 use crate::struct_parsers::FieldDescription;
 
+
+struct SectionInfo {
+    rva: usize,
+    virtual_size: usize,
+    raw_offset: usize,
+    raw_size: usize
+}
+
 pub fn parse_mzpe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
 
     let mut mz_header = match parse_mz_struct(data) {
@@ -172,13 +180,18 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     }
 
     //section table
-    let entry_point_rva = u32::from_le_bytes(data[(pe_offset+40)..(pe_offset+44)].try_into().unwrap()) as usize;
     let opt_header_size = u16::from_le_bytes(data[(pe_offset+20)..(pe_offset+22)].try_into().unwrap()) as usize;
     let section_count = u16::from_le_bytes(data[(pe_offset+6)..(pe_offset+8)].try_into().unwrap()) as usize;
+    let mut sections = Vec::<SectionInfo>::with_capacity(section_count);
+
     last_offset = pe_offset + opt_header_size + 24;
 
     header.push(FieldDescription {name: "-- SECTIONS --".to_owned(), offset: last_offset, size: 0});
     for _ in 0..section_count {
+
+        if data.len() < last_offset + 40 {
+            return Err("Section Table seems to be truncated!".to_owned());
+        }
         //TODO: read and use section name if is good enough
         header.push(FieldDescription {name: "name".to_owned(), offset: last_offset, size: 8});
         header.push(FieldDescription {name: "virtual_size".to_owned(), offset: last_offset+8, size: 4});
@@ -191,25 +204,31 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         header.push(FieldDescription {name: "line_num_num".to_owned(), offset: last_offset+34, size: 2});
         header.push(FieldDescription {name: "characteristics".to_owned(), offset: last_offset+36, size: 4});
 
-        if data.len() < last_offset + 24 {
-            return Err("Section Table seems to be truncated!".to_owned());
-        }
+        //fill section table
+        let si = SectionInfo {
+            rva: u32::from_le_bytes(data[(last_offset+12)..(last_offset+16)].try_into().unwrap()) as usize,
+            virtual_size: u32::from_le_bytes(data[(last_offset+8)..(last_offset+12)].try_into().unwrap()) as usize,
+            raw_offset: u32::from_le_bytes(data[(last_offset+20)..(last_offset+24)].try_into().unwrap()) as usize,
+            raw_size: u32::from_le_bytes(data[(last_offset+16)..(last_offset+20)].try_into().unwrap()) as usize,
+        };
 
-        let data_size = u32::from_le_bytes(data[(last_offset+16)..(last_offset+20)].try_into().unwrap()) as usize;
-        if data_size > 0 {
+        //add section data
+        if si.raw_size > 0 {
             //TODO: use section name if is OK
-            let data_offset = u32::from_le_bytes(data[(last_offset+20)..(last_offset+24)].try_into().unwrap()) as usize;
-            header.push(FieldDescription {name: "section_data".to_owned(), offset: data_offset, size: data_size});
+            header.push(FieldDescription {name: "section_data".to_owned(), offset: si.raw_offset, size: si.raw_size});
         }
 
-        //find entrypoint
-        let section_vs = u32::from_le_bytes(data[(last_offset+8)..(last_offset+12)].try_into().unwrap()) as usize;
-        let section_rva = u32::from_le_bytes(data[(last_offset+12)..(last_offset+16)].try_into().unwrap()) as usize;
-
-        if section_rva <= entry_point_rva && (section_rva + section_vs) > entry_point_rva {
-            header[entry_point_idx].offset = entry_point_rva - section_rva + u32::from_le_bytes(data[(last_offset+20)..(last_offset+24)].try_into().unwrap()) as usize;
-        }
+        sections.push(si);
         last_offset += 40;
+    }
+
+    //fill entry point
+    let entry_point_rva = u32::from_le_bytes(data[(pe_offset+40)..(pe_offset+44)].try_into().unwrap()) as usize;
+    for section in sections {
+        if section.rva <= entry_point_rva && (section.rva + section.virtual_size) > entry_point_rva {
+            header[entry_point_idx].offset = entry_point_rva - section.rva + section.raw_offset;
+            break;
+        }
     }
 
     //certificates
