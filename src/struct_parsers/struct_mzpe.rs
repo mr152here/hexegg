@@ -161,6 +161,8 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
 
     let mut cert_table = 0;
     let mut cert_table_size = 0;
+    let mut export_table = 0;
+    let mut export_table_size = 0;
     let data_dir_names = ["export_table", "import_table", "resource_table", "exception_table", "certificate_table",
                         "base_reloc_table", "debug", "architecture", "global_ptr", "tls_table", "load_config",
                         "bount_import", "import_adr_table", "delay_import", "clr_rutine", "reserved"];
@@ -171,7 +173,11 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         header.push(FieldDescription {name: data_dir_names[i].to_owned(), offset: last_offset, size: 4});
         header.push(FieldDescription {name: "size".to_owned(), offset: last_offset+4, size: 4});
 
-        if i == 4 {
+        if i == 0 {
+            export_table = u32::from_le_bytes(data[(last_offset)..(last_offset+4)].try_into().unwrap()) as usize;
+            export_table_size = u32::from_le_bytes(data[(last_offset+4)..(last_offset+8)].try_into().unwrap()) as usize;
+
+        } else if i == 4 {
             cert_table = u32::from_le_bytes(data[(last_offset)..(last_offset+4)].try_into().unwrap()) as usize;
             cert_table_size = u32::from_le_bytes(data[(last_offset+4)..(last_offset+8)].try_into().unwrap()) as usize;
         }
@@ -212,7 +218,7 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
             raw_size: u32::from_le_bytes(data[(last_offset+16)..(last_offset+20)].try_into().unwrap()) as usize,
         };
 
-        //add section data
+        //add section data (if any)
         if si.raw_size > 0 {
             //TODO: use section name if is OK
             header.push(FieldDescription {name: "section_data".to_owned(), offset: si.raw_offset, size: si.raw_size});
@@ -222,12 +228,94 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         last_offset += 40;
     }
 
-    //fill entry point
+    //closure that find and translate relative virtual address to file offset
+    let rva_to_file_offset = |rva| {
+        for section in &sections {
+            if section.rva <= rva && (section.rva + section.virtual_size) > rva {
+                return rva - section.rva + section.raw_offset;
+            }
+        }
+        0
+    };
+
+    //find and fill entry point
     let entry_point_rva = u32::from_le_bytes(data[(pe_offset+40)..(pe_offset+44)].try_into().unwrap()) as usize;
-    for section in sections {
-        if section.rva <= entry_point_rva && (section.rva + section.virtual_size) > entry_point_rva {
-            header[entry_point_idx].offset = entry_point_rva - section.rva + section.raw_offset;
-            break;
+    header[entry_point_idx].offset = rva_to_file_offset(entry_point_rva);
+
+    //export table
+    if export_table > 0 && export_table_size > 0 {
+        last_offset = rva_to_file_offset(export_table);
+        if last_offset == 0 {
+            return Err("Export table not found in any section!".to_owned());
+        }
+
+        header.push(FieldDescription {name: "-- EXPORTS --".to_owned(), offset: last_offset, size: 0});
+        header.push(FieldDescription {name: "flags".to_owned(), offset: last_offset, size: 4});
+        header.push(FieldDescription {name: "time_stamp".to_owned(), offset: last_offset+4, size: 4});
+        header.push(FieldDescription {name: "major".to_owned(), offset: last_offset+8, size: 2});
+        header.push(FieldDescription {name: "minor".to_owned(), offset: last_offset+10, size: 2});
+        header.push(FieldDescription {name: "name_rva".to_owned(), offset: last_offset+12, size: 4});
+        header.push(FieldDescription {name: "ordinal_base".to_owned(), offset: last_offset+16, size: 4});
+        header.push(FieldDescription {name: "address_table_entries".to_owned(), offset: last_offset+20, size: 4});
+        header.push(FieldDescription {name: "name_pointer_count".to_owned(), offset: last_offset+24, size: 4});
+        header.push(FieldDescription {name: "export_table_rva".to_owned(), offset: last_offset+28, size: 4});
+        header.push(FieldDescription {name: "name_pointer_rva".to_owned(), offset: last_offset+32, size: 4});
+        header.push(FieldDescription {name: "ordinal_table_rva".to_owned(), offset: last_offset+36, size: 4});
+
+
+        let address_table_entries = u32::from_le_bytes(data[(last_offset+20)..(last_offset+24)].try_into().unwrap()) as usize;
+        let address_table_rva = u32::from_le_bytes(data[(last_offset+28)..(last_offset+32)].try_into().unwrap()) as usize;
+        let address_table_offset = rva_to_file_offset(address_table_rva);
+        header.push(FieldDescription {name: "address_table".to_owned(), offset: address_table_offset, size: address_table_entries*4});
+
+        let name_ptr_table_rva = u32::from_le_bytes(data[(last_offset+32)..(last_offset+36)].try_into().unwrap()) as usize;
+        let name_ptr_table_offset = rva_to_file_offset(name_ptr_table_rva);
+        header.push(FieldDescription {name: "name_ptr_table".to_owned(), offset: name_ptr_table_offset, size: 0});
+
+        let ordinal_table_entries = u32::from_le_bytes(data[(last_offset+24)..(last_offset+28)].try_into().unwrap()) as usize;
+        let ordinal_table_rva = u32::from_le_bytes(data[(last_offset+36)..(last_offset+40)].try_into().unwrap()) as usize;
+        let ordinal_table_offset = rva_to_file_offset(ordinal_table_rva);
+        header.push(FieldDescription {name: "ordinal_table".to_owned(), offset: ordinal_table_offset, size: ordinal_table_entries*2});
+
+        let ordinal_base = u32::from_le_bytes(data[(last_offset+16)..(last_offset+20)].try_into().unwrap()) as usize;
+
+        //iterate over address_table and get every export file offset + its name
+        for ordinal in 0..address_table_entries {
+            last_offset = address_table_offset + 4*ordinal;
+            let export_rva = u32::from_le_bytes(data[last_offset..(last_offset+4)].try_into().unwrap()) as usize;
+
+            if export_rva != 0 {
+                let export_offset = rva_to_file_offset(export_rva);
+
+                //find it in ordinal table
+                let mut name_idx = None;
+                for idx in 0..ordinal_table_entries {
+                    let ordinal_num = u16::from_le_bytes(data[(ordinal_table_offset + 2*idx)..(ordinal_table_offset + 2*(idx+1))].try_into().unwrap()) as usize;
+                    if ordinal_num == ordinal {
+                        name_idx = Some(idx);
+                        break;
+                    }
+                }
+
+                //if it is named export
+                if let Some(nidx) = name_idx {
+                    let export_name_rva = u32::from_le_bytes(data[(name_ptr_table_offset + 4*nidx)..(name_ptr_table_offset + 4*(nidx+1))].try_into().unwrap()) as usize;
+                    let export_name_offset = rva_to_file_offset(export_name_rva);
+
+                    let mut name_len = 30;
+                    for i in 0..30 {
+                        if u8::from_le_bytes(data[(export_name_offset + i)..(export_name_offset + i+1)].try_into().unwrap()).is_ascii_control() {
+                            name_len = i;
+                            break;
+                        }
+                    }
+
+                    let export_name = String::from_utf8_lossy(&data[export_name_offset..export_name_offset+name_len]).to_string();
+                    header.push(FieldDescription {name: format!("{}_{}", ordinal_base+ordinal, export_name), offset: export_offset, size: 0});
+                } else {
+                    header.push(FieldDescription {name: format!("{}_<no_name>", ordinal_base+ordinal), offset: export_offset, size: 0});
+                }
+            }
         }
     }
 
