@@ -12,11 +12,11 @@ pub fn parse_bmp_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
 
     //BITMAPFILEHEADER
     let mut header = Vec::<FieldDescription>::new();
-    header.push(FieldDescription {name: "-- bmp --".to_owned(), offset: 0, size: 0});
+    header.push(FieldDescription {name: "-- BMP --".to_owned(), offset: 0, size: 0});
     header.push(FieldDescription {name: "magic".to_owned(), offset: 0, size: 2});
     header.push(FieldDescription {name: "file_size".to_owned(), offset: 2, size: 4});
-    header.push(FieldDescription {name: "reserved".to_owned(), offset: 6, size: 2});
-    header.push(FieldDescription {name: "reserved".to_owned(), offset: 8, size: 2});
+    header.push(FieldDescription {name: "reserved".to_owned(), offset: 6, size: 4});
+    //header.push(FieldDescription {name: "reserved".to_owned(), offset: 8, size: 2});
     header.push(FieldDescription {name: "image_offset".to_owned(), offset: 10, size: 4});
 
     match parse_dib_struct(&data[14..]) {
@@ -45,7 +45,7 @@ pub fn parse_dib_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
 
     if dib_size == 12 {
         //BITMAPCOREHEADER
-        header.push(FieldDescription {name: "-- dib --".to_owned(), offset: 0, size: 0});
+        header.push(FieldDescription {name: "-- DIB --".to_owned(), offset: 0, size: 0});
         header.push(FieldDescription {name: "size".to_owned(), offset: 0, size: 4});
         header.push(FieldDescription {name: "width".to_owned(), offset: 4, size: 2});
         header.push(FieldDescription {name: "height".to_owned(), offset: 6, size: 2});

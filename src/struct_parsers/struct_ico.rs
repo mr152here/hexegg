@@ -9,7 +9,7 @@ pub fn parse_ico_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
 
     let mut vec_image_data = Vec::<FieldDescription>::new();
     let mut vec_headers = Vec::<FieldDescription>::new();
-    vec_headers.push(FieldDescription {name: "-- ico --".to_owned(), offset: 0, size: 0});
+    vec_headers.push(FieldDescription {name: "-- ICO --".to_owned(), offset: 0, size: 0});
     vec_headers.push(FieldDescription {name: "reserved".to_owned(), offset: 0, size: 2});
     vec_headers.push(FieldDescription {name: "type".to_owned(), offset: 2, size: 2});
     vec_headers.push(FieldDescription {name: "image_count".to_owned(), offset: 4, size: 2});
@@ -25,7 +25,7 @@ pub fn parse_ico_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
             break;
         }
 
-        vec_headers.push(FieldDescription {name: format!("-- entry{i} --"), offset: icon_dir_entry_offset, size: 0});
+        vec_headers.push(FieldDescription {name: format!("-- ENTRY_{i} --"), offset: icon_dir_entry_offset, size: 0});
         vec_headers.push(FieldDescription {name: "width".to_owned(), offset: icon_dir_entry_offset, size: 1});
         vec_headers.push(FieldDescription {name: "height".to_owned(), offset: icon_dir_entry_offset + 1, size: 1});
         vec_headers.push(FieldDescription {name: "color_count".to_owned(), offset: icon_dir_entry_offset + 2, size: 1});

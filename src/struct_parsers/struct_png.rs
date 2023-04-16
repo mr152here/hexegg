@@ -11,7 +11,7 @@ pub fn parse_png_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     let mut offset = 8;
     let mut iend_chunk = false;
 
-    vec_headers.push(FieldDescription {name: "-- png --".to_owned(), offset: 0, size: 0});
+    vec_headers.push(FieldDescription {name: "-- PNG --".to_owned(), offset: 0, size: 0});
     vec_headers.push(FieldDescription {name: "magic".to_owned(), offset: 0, size: 8});
 
     //iterate over all chunks
