@@ -77,7 +77,7 @@ impl LocationList {
     }
 
     //returns iterator
-    pub fn iter(&self) -> std::slice::Iter<'_, (usize, String)> {
+    pub fn iter(&self) -> impl Iterator<Item = &'_ (usize, String)> {
         self.loc_list.iter()
     }
 
