@@ -1020,6 +1020,20 @@ fn main() {
                         },
                     }
                 },
+                Some(Command::Filter(filter_string)) => {
+                    let fb = &mut file_buffers[active_fb_index];
+                    fb.set_filtered_location_list(None);
+
+                    if let Some(fs) = filter_string {
+                        let fs_str = fs.as_str();
+                        fb.set_filtered_location_list(
+                            Some(fb.location_list()
+                                    .iter()
+                                    .filter_map(|(u,s)| s.contains(fs_str).then_some((*u, s.to_owned())))
+                                    .collect())
+                        );
+                    }
+                },
                 Some(Command::ClearLocationBar) => {
                     file_buffers[active_fb_index].set_location_list(location_list::LocationList::new());
                     file_buffers[active_fb_index].highlight_list_mut().clear();

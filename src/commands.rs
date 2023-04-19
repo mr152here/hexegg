@@ -30,6 +30,7 @@ pub enum Command {
     InsertFile(String),
     AppendFile(String),
     ClearLocationBar,
+    Filter(Option<String>),
     Entropy(usize, f32),
     Histogram,
     ParseHeader(Option<String>),
@@ -110,6 +111,7 @@ impl Command {
             Some(&"appendfile") => Command::parse_append_file(&cmd_vec),
 
             Some(&"clearlocationbar") => Ok(Command::ClearLocationBar),
+            Some(&"filter") => Command::parse_filter(&cmd_vec),
             Some(&"entropy") => Command::parse_entropy(&cmd_vec),
             Some(&"ent") => Command::parse_entropy(&cmd_vec),
             Some(&"histogram") => Ok(Command::Histogram),
@@ -344,6 +346,10 @@ impl Command {
             return Ok(Command::FindAllSignatures(Some(sig_names), ignored));
         }
         Ok(Command::FindAllSignatures(None, ignored))
+    }
+
+    fn parse_filter(v: &[&str]) -> Result<Command, &'static str> {
+        Ok(Command::Filter(v.get(1).map(|&s| s.to_owned())))
     }
 
     fn parse_entropy(v: &[&str]) -> Result<Command, &'static str> {

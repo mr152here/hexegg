@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::collections::hash_map::DefaultHasher;
 use std::hash::Hasher;
 use std::cmp::min;
-//use crossterm::style::Color;
 use crate::location_list::LocationList;
 use crate::highlight_list::HighlightList;
 
@@ -15,6 +14,7 @@ pub struct FileBuffer {
     highlight_list: HighlightList,
     bookmarks: [Option<usize>; 10],
     location_list: LocationList,
+    location_list_filtered: Option<LocationList>,
     original_hash: u64,
     modified: bool
 }
@@ -35,6 +35,7 @@ impl FileBuffer {
             highlight_list: HighlightList::new(),
             bookmarks: [None; 10],
             location_list: LocationList::new(),
+            location_list_filtered: None,
             original_hash: hasher.finish(),
             modified: false
         }
@@ -244,17 +245,28 @@ impl FileBuffer {
 
     //returns actual location list
     pub fn location_list(&self) -> &LocationList {
-        &self.location_list
+        match &self.location_list_filtered {
+            Some(ll) => &ll,
+            None => &self.location_list,
+        }
     }
 
     //returns mutable reference to location list
     pub fn location_list_mut(&mut self) -> &mut LocationList {
-        &mut self.location_list
+        match &mut self.location_list_filtered {
+            Some(ref mut ll) => ll,
+            None => &mut self.location_list,
+        }
     }
 
     //set location list
     pub fn set_location_list(&mut self, location_list: LocationList) {
+        self.location_list_filtered = None;
         self.location_list = location_list;
+    }
+
+    pub fn set_filtered_location_list(&mut self, location_list: Option<LocationList>) {
+        self.location_list_filtered = location_list;
     }
 }
 
