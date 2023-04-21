@@ -45,7 +45,7 @@ fn create_screens(cols: u16, rows: u16, config: &Config) -> Vec<Box<dyn Screen>>
             screens.push(Box::new(TextScreen::new(cols, rows, s)));
         }
     } else {
-        println!("Can't found setting for '{}' in 'config.toml' file.", "text_screen");
+        println!("Can't found setting for 'text_screen' in 'config.toml' file.");
     }
 
     if let Some(s) = config.screen_settings("byte_screen") {
@@ -53,7 +53,7 @@ fn create_screens(cols: u16, rows: u16, config: &Config) -> Vec<Box<dyn Screen>>
             screens.push(Box::new( ByteScreen::new(cols, rows, s)));
         }
     } else {
-        println!("Can't found setting for '{}' in 'config.toml' file.", "byte_screen");
+        println!("Can't found setting for 'byte_screen' in 'config.toml' file.");
     }
 
     if let Some(s) = config.screen_settings("word_screen") {
@@ -61,7 +61,7 @@ fn create_screens(cols: u16, rows: u16, config: &Config) -> Vec<Box<dyn Screen>>
             screens.push(Box::new(WordScreen::new(cols, rows, s)));
         }
     } else {
-        println!("Can't found setting for '{}' in 'config.toml' file.", "word_screen");
+        println!("Can't found setting for 'word_screen' in 'config.toml' file.");
     }
 
     screens
@@ -426,7 +426,7 @@ fn main() {
                 KeyEvent{ code, .. } => {
                     match code {
                         //jump to bookmark
-                        KeyCode::Char(ch) if !cursor.is_visible() && ('0'..='9').contains(&ch) => {
+                        KeyCode::Char(ch) if !cursor.is_visible() && ch.is_ascii_digit() => {
                             let ch = ch.to_digit(10).unwrap() as usize;
                             command = Some(Command::GotoBookmark(ch));
                         },
@@ -438,7 +438,7 @@ fn main() {
                         },
                         
                         //edit in byte mode
-                        KeyCode::Char(ch) if cursor.is_byte() && (ch >= '0' && ch <= '9' || ch >= 'a' && ch <= 'f'|| ch >= 'A' && ch <= 'F') => {
+                        KeyCode::Char(ch) if cursor.is_byte() && ch.is_ascii_hexdigit() => {
 
                             let ch = ch.to_digit(16).unwrap() as u8;
                             let b = file_buffers[active_fb_index].get(cursor.position()).unwrap_or(0);
@@ -838,7 +838,7 @@ fn main() {
                     screens.iter_mut().for_each(|s| s.show_location_bar(true));
                 },
                 Some(Command::Histogram) => {
-                    let ll = command_functions::calculate_histogram(&file_buffers[active_fb_index].as_slice());
+                    let ll = command_functions::calculate_histogram(file_buffers[active_fb_index].as_slice());
                     file_buffers[active_fb_index].set_location_list(ll);
                     screens.iter_mut().for_each(|s| s.show_location_bar(true));
                 },

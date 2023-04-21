@@ -246,7 +246,7 @@ impl FileBuffer {
     //returns actual location list
     pub fn location_list(&self) -> &LocationList {
         match &self.location_list_filtered {
-            Some(ll) => &ll,
+            Some(ll) => ll,
             None => &self.location_list,
         }
     }

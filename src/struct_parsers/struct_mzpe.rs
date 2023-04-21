@@ -34,27 +34,29 @@ pub fn parse_mz_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         return Err("Invalid 'MZ' signature!".to_owned());
     }
 
-    let mut header = Vec::<FieldDescription>::new();
-    header.push(FieldDescription {name: "-- MZ --".to_owned(), offset: 0, size: 0});
-    header.push(FieldDescription {name: "magic".to_owned(), offset: 0, size: 2});
-    header.push(FieldDescription {name: "bytes_lpage".to_owned(), offset: 2, size: 2});
-    header.push(FieldDescription {name: "pages".to_owned(), offset: 4, size: 2});
-    header.push(FieldDescription {name: "relocations".to_owned(), offset: 6, size: 2});
-    header.push(FieldDescription {name: "header_size".to_owned(), offset: 8, size: 2});
-    header.push(FieldDescription {name: "min_alloc".to_owned(), offset: 10, size: 2});
-    header.push(FieldDescription {name: "max_alloc".to_owned(), offset: 12, size: 2});
-    header.push(FieldDescription {name: "init_ss".to_owned(), offset: 14, size: 2});
-    header.push(FieldDescription {name: "init_sp".to_owned(), offset: 16, size: 2});
-    header.push(FieldDescription {name: "checksum".to_owned(), offset: 18, size: 2});
-    header.push(FieldDescription {name: "init_ip".to_owned(), offset: 20, size: 2});
-    header.push(FieldDescription {name: "init_cs".to_owned(), offset: 22, size: 2});
-    header.push(FieldDescription {name: "reloc_table".to_owned(), offset: 24, size: 2});
-    header.push(FieldDescription {name: "overlay_num".to_owned(), offset: 26, size: 2});
-    header.push(FieldDescription {name: "reserved".to_owned(), offset: 28, size: 8});
-    header.push(FieldDescription {name: "oem_id".to_owned(), offset: 36, size: 2});
-    header.push(FieldDescription {name: "oem_info".to_owned(), offset: 38, size: 2});
-    header.push(FieldDescription {name: "reserved".to_owned(), offset: 40, size: 20});
-    header.push(FieldDescription {name: "PE_offset".to_owned(), offset: 60, size: 4});
+    let mut header = vec![
+        FieldDescription {name: "-- MZ --".to_owned(), offset: 0, size: 0},
+        FieldDescription {name: "magic".to_owned(), offset: 0, size: 2},
+        FieldDescription {name: "bytes_lpage".to_owned(), offset: 2, size: 2},
+        FieldDescription {name: "pages".to_owned(), offset: 4, size: 2},
+        FieldDescription {name: "relocations".to_owned(), offset: 6, size: 2},
+        FieldDescription {name: "header_size".to_owned(), offset: 8, size: 2},
+        FieldDescription {name: "min_alloc".to_owned(), offset: 10, size: 2},
+        FieldDescription {name: "max_alloc".to_owned(), offset: 12, size: 2},
+        FieldDescription {name: "init_ss".to_owned(), offset: 14, size: 2},
+        FieldDescription {name: "init_sp".to_owned(), offset: 16, size: 2},
+        FieldDescription {name: "checksum".to_owned(), offset: 18, size: 2},
+        FieldDescription {name: "init_ip".to_owned(), offset: 20, size: 2},
+        FieldDescription {name: "init_cs".to_owned(), offset: 22, size: 2},
+        FieldDescription {name: "reloc_table".to_owned(), offset: 24, size: 2},
+        FieldDescription {name: "overlay_num".to_owned(), offset: 26, size: 2},
+        FieldDescription {name: "reserved".to_owned(), offset: 28, size: 8},
+        FieldDescription {name: "oem_id".to_owned(), offset: 36, size: 2},
+        FieldDescription {name: "oem_info".to_owned(), offset: 38, size: 2},
+        FieldDescription {name: "reserved".to_owned(), offset: 40, size: 20},
+        FieldDescription {name: "PE_offset".to_owned(), offset: 60, size: 4}
+    ];
+
     //TODO: find and parse rich header
 
     let pe_offset = u32::from_le_bytes(data[60..64].try_into().unwrap()) as usize;
@@ -74,16 +76,17 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     //this data access is checked in "mzpe" signature
     let pe_offset = u32::from_le_bytes(data[60..64].try_into().unwrap()) as usize;
 
-    let mut header = Vec::<FieldDescription>::new();
-    header.push(FieldDescription {name: "-- PE --".to_owned(), offset: pe_offset , size: 0});
-    header.push(FieldDescription {name: "magic".to_owned(), offset: pe_offset , size: 4});
-    header.push(FieldDescription {name: "machine".to_owned(), offset: pe_offset+4, size: 2});
-    header.push(FieldDescription {name: "sections".to_owned(), offset: pe_offset+6, size: 2});
-    header.push(FieldDescription {name: "time_stamp".to_owned(), offset: pe_offset+8, size: 4});
-    header.push(FieldDescription {name: "symbol_table_offset".to_owned(), offset: pe_offset+12, size: 4});
-    header.push(FieldDescription {name: "symbols".to_owned(), offset: pe_offset+16, size: 4});
-    header.push(FieldDescription {name: "opt_header_size".to_owned(), offset: pe_offset+20, size: 2});
-    header.push(FieldDescription {name: "attributes".to_owned(), offset: pe_offset+22, size: 2});
+    let mut header = vec![
+        FieldDescription {name: "-- PE --".to_owned(), offset: pe_offset , size: 0},
+        FieldDescription {name: "magic".to_owned(), offset: pe_offset , size: 4},
+        FieldDescription {name: "machine".to_owned(), offset: pe_offset+4, size: 2},
+        FieldDescription {name: "sections".to_owned(), offset: pe_offset+6, size: 2},
+        FieldDescription {name: "time_stamp".to_owned(), offset: pe_offset+8, size: 4},
+        FieldDescription {name: "symbol_table_offset".to_owned(), offset: pe_offset+12, size: 4},
+        FieldDescription {name: "symbols".to_owned(), offset: pe_offset+16, size: 4},
+        FieldDescription {name: "opt_header_size".to_owned(), offset: pe_offset+20, size: 2},
+        FieldDescription {name: "attributes".to_owned(), offset: pe_offset+22, size: 2}
+    ];
 
     if data.len() < pe_offset + 136 {
         return Err("PE header seems to be truncated!".to_owned());
@@ -158,18 +161,19 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         return Err(format!("IMAGE_DATA_DIRECTORY size is more than 16 at 0x{:08X}!", last_offset-4));
 
     } else if data.len() < (last_offset + data_dir_size*8) {
-        return Err(format!("IMAGE_DATA_DIRECTORY table is truncated!"));
+        return Err("IMAGE_DATA_DIRECTORY table is truncated!".to_owned());
     }
 
     //IMAGE_DATA_DIRECTORY
+    header.push(FieldDescription {name: "-- DATA_DIR --".to_owned(), offset: last_offset, size: 0});
+
     let mut data_dir = Vec::<(usize, usize)>::with_capacity(data_dir_size);
     let data_dir_names = ["export_table", "import_table", "resource_table", "exception_table", "certificate_table",
                         "base_reloc_table", "debug", "architecture", "global_ptr", "tls_table", "load_config",
                         "bount_import", "import_adr_table", "delay_import", "clr_rutine", "reserved"];
 
-    header.push(FieldDescription {name: "-- DATA_DIR --".to_owned(), offset: last_offset, size: 0});
-    for i in 0..data_dir_size {
-        header.push(FieldDescription {name: data_dir_names[i].to_owned(), offset: last_offset, size: 4});
+    for dir_name in data_dir_names.iter().take(data_dir_size) {
+        header.push(FieldDescription {name: dir_name.to_string(), offset: last_offset, size: 4});
         header.push(FieldDescription {name: "size".to_owned(), offset: last_offset+4, size: 4});
 
         let rva = u32::from_le_bytes(data[(last_offset)..(last_offset+4)].try_into().unwrap()) as usize;
@@ -248,7 +252,7 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     header[entry_point_idx].offset = rva_to_file_offset(entry_point_rva);
 
     //export table
-    if let Some(&(export_table_rva, export_table_size)) = data_dir.get(0) {
+    if let Some(&(export_table_rva, export_table_size)) = data_dir.first() {
 
         if export_table_rva > 0 && export_table_size > 0 {
             last_offset = rva_to_file_offset(export_table_rva);
@@ -359,7 +363,7 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
                 header.push(FieldDescription {name: "certificate".to_owned(), offset: last_offset+8, size: cert_len - 8});
 
                 //next cert table is at rounded up to 8 offset
-                last_offset += cert_len + 7 & !7;
+                last_offset += (cert_len + 7) & !7;
             }
         }
     }

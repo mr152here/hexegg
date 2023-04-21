@@ -8,15 +8,17 @@ pub fn parse_gif_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         return Err("Invalid 'gif' signature!".to_owned());
     }
 
-    let mut header = Vec::<FieldDescription>::new();
-    header.push(FieldDescription {name: "-- GIF --".to_owned(), offset: 0, size: 0});
-    header.push(FieldDescription {name: "magic".to_owned(), offset: 0, size: 6});
-    header.push(FieldDescription {name: "width".to_owned(), offset: 6, size: 2});
-    header.push(FieldDescription {name: "height".to_owned(), offset: 8, size: 2});
-    header.push(FieldDescription {name: "flags".to_owned(), offset: 10, size: 1});
-    header.push(FieldDescription {name: "bg_color_idx".to_owned(), offset: 11, size: 1});
-    header.push(FieldDescription {name: "pixel_aspect_ratio".to_owned(), offset: 12, size: 1});
-    let mut last_offset = 13 as usize;
+    let mut header = vec![
+        FieldDescription {name: "-- GIF --".to_owned(), offset: 0, size: 0},
+        FieldDescription {name: "magic".to_owned(), offset: 0, size: 6},
+        FieldDescription {name: "width".to_owned(), offset: 6, size: 2},
+        FieldDescription {name: "height".to_owned(), offset: 8, size: 2},
+        FieldDescription {name: "flags".to_owned(), offset: 10, size: 1},
+        FieldDescription {name: "bg_color_idx".to_owned(), offset: 11, size: 1},
+        FieldDescription {name: "pixel_aspect_ratio".to_owned(), offset: 12, size: 1}
+    ];
+
+    let mut last_offset = 13;
 
     // if global color table flag from flags is set then global color table follows with size 3 * 2 ^ (global color table size + 1)
     let flags = match data.get(10) {
@@ -30,11 +32,7 @@ pub fn parse_gif_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         last_offset += global_color_table_size;
     }
 
-    loop {
-        let block_label = match data.get(last_offset) {
-            Some(bl) => *bl,
-            None => break,
-        };
+    while let Some(&block_label) = data.get(last_offset) {
 
         //gif trialer / end
         if block_label == 0x3B {
@@ -97,7 +95,7 @@ pub fn parse_gif_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
                 },
                 0xF9 => {
                     header.push(FieldDescription {name: "-- GRAPHICS CONTROL EXTENSION --".to_owned(), offset: last_offset-2, size: 2});
-                    parse_graphic_control_extension(&data[last_offset..], &mut block_size)
+                    parse_graphic_control_extension(&mut block_size)
                 },
                 0xFE => {
                     header.push(FieldDescription {name: "-- COMMENT EXTENSION --".to_owned(), offset: last_offset-2, size: 2});
@@ -126,16 +124,17 @@ pub fn parse_gif_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
 
 fn parse_plain_text_extension(data: &[u8], size: &mut usize) -> Vec<FieldDescription> {
     let mut last_offset = 13;
-    let mut header = Vec::<FieldDescription>::new();
-    header.push(FieldDescription {name: "block_size".to_owned(), offset: 0, size: 1});
-    header.push(FieldDescription {name: "left".to_owned(), offset: 1, size: 2});
-    header.push(FieldDescription {name: "top".to_owned(), offset: 3, size: 2});
-    header.push(FieldDescription {name: "width".to_owned(), offset: 5, size: 2});
-    header.push(FieldDescription {name: "height".to_owned(), offset: 7, size: 2});
-    header.push(FieldDescription {name: "cell_width".to_owned(), offset: 9, size: 1});
-    header.push(FieldDescription {name: "cell_height".to_owned(), offset: 10, size: 1});
-    header.push(FieldDescription {name: "fg_color_idx".to_owned(), offset: 11, size: 1});
-    header.push(FieldDescription {name: "bg_color_idx".to_owned(), offset: 12, size: 1});
+    let mut header = vec![
+        FieldDescription {name: "block_size".to_owned(), offset: 0, size: 1},
+        FieldDescription {name: "left".to_owned(), offset: 1, size: 2},
+        FieldDescription {name: "top".to_owned(), offset: 3, size: 2},
+        FieldDescription {name: "width".to_owned(), offset: 5, size: 2},
+        FieldDescription {name: "height".to_owned(), offset: 7, size: 2},
+        FieldDescription {name: "cell_width".to_owned(), offset: 9, size: 1},
+        FieldDescription {name: "cell_height".to_owned(), offset: 10, size: 1},
+        FieldDescription {name: "fg_color_idx".to_owned(), offset: 11, size: 1},
+        FieldDescription {name: "bg_color_idx".to_owned(), offset: 12, size: 1}
+    ];
 
     //loop over all subblocks until 0 sized block (terminator) is found
     while let Some(&sub_block_size) = data.get(last_offset) {
@@ -153,14 +152,16 @@ fn parse_plain_text_extension(data: &[u8], size: &mut usize) -> Vec<FieldDescrip
     header
 }
 
-fn parse_graphic_control_extension(data: &[u8], size: &mut usize) -> Vec<FieldDescription> {
+fn parse_graphic_control_extension(size: &mut usize) -> Vec<FieldDescription> {
     let last_offset = 6;
-    let mut header = Vec::<FieldDescription>::new();
-    header.push(FieldDescription {name: "block_size".to_owned(), offset: 0, size: 1});
-    header.push(FieldDescription {name: "flags".to_owned(), offset: 1, size: 1});
-    header.push(FieldDescription {name: "delay_time".to_owned(), offset: 2, size: 2});
-    header.push(FieldDescription {name: "tr_color_idx".to_owned(), offset: 4, size: 1});
-    header.push(FieldDescription {name: "block_terminator".to_owned(), offset: 5, size: 1});
+    let header = vec![
+        FieldDescription {name: "block_size".to_owned(), offset: 0, size: 1},
+        FieldDescription {name: "flags".to_owned(), offset: 1, size: 1},
+        FieldDescription {name: "delay_time".to_owned(), offset: 2, size: 2},
+        FieldDescription {name: "tr_color_idx".to_owned(), offset: 4, size: 1},
+        FieldDescription {name: "block_terminator".to_owned(), offset: 5, size: 1}
+    ];
+
     // TODO: possible bug? transparency color index may be present only if coresponding flag is set
     *size = last_offset;
     header
@@ -169,8 +170,7 @@ fn parse_graphic_control_extension(data: &[u8], size: &mut usize) -> Vec<FieldDe
 
 fn parse_comment_extension(data: &[u8], size: &mut usize) -> Vec<FieldDescription> {
     let mut last_offset = 1;
-    let mut header = Vec::<FieldDescription>::new();
-    header.push(FieldDescription {name: "block_size".to_owned(), offset: 0, size: 1});
+    let mut header = vec![FieldDescription {name: "block_size".to_owned(), offset: 0, size: 1}];
 
     //loop over all subblocks until 0 sized block (terminator) is found
     while let Some(&sub_block_size) = data.get(last_offset) {
@@ -190,10 +190,11 @@ fn parse_comment_extension(data: &[u8], size: &mut usize) -> Vec<FieldDescriptio
 
 fn parse_application_extension(data: &[u8], size: &mut usize) -> Vec<FieldDescription> {
     let mut last_offset = 12;
-    let mut header = Vec::<FieldDescription>::new();
-    header.push(FieldDescription {name: "block_size".to_owned(), offset: 0, size: 1});
-    header.push(FieldDescription {name: "app_identifier".to_owned(), offset: 1, size: 8});
-    header.push(FieldDescription {name: "app_auth_code".to_owned(), offset: 9, size: 3});
+    let mut header = vec![
+        FieldDescription {name: "block_size".to_owned(), offset: 0, size: 1},
+        FieldDescription {name: "app_identifier".to_owned(), offset: 1, size: 8},
+        FieldDescription {name: "app_auth_code".to_owned(), offset: 9, size: 3}
+    ];
 
     //loop over all subblocks until 0 sized block (terminator) is found
     while let Some(&sub_block_size) = data.get(last_offset) {

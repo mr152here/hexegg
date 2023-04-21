@@ -15,10 +15,6 @@ impl InfoBar {
         InfoBar { w: width }
     }
 
-    pub fn height(&self) -> u16 {
-        1
-    }
-
     pub fn draw(&self, stdout: &mut std::io::Stdout, file_buffers: &[FileBuffer], active_fb_index: usize, cursor_state: &Cursor, offset: usize, color_scheme: &ColorScheme, config: &Config) {
 
         stdout.queue(SetForegroundColor(color_scheme.infobar_fg_color)).unwrap();

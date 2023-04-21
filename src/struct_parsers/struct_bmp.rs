@@ -11,13 +11,13 @@ pub fn parse_bmp_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     }
 
     //BITMAPFILEHEADER
-    let mut header = Vec::<FieldDescription>::new();
-    header.push(FieldDescription {name: "-- BMP --".to_owned(), offset: 0, size: 0});
-    header.push(FieldDescription {name: "magic".to_owned(), offset: 0, size: 2});
-    header.push(FieldDescription {name: "file_size".to_owned(), offset: 2, size: 4});
-    header.push(FieldDescription {name: "reserved".to_owned(), offset: 6, size: 4});
-    //header.push(FieldDescription {name: "reserved".to_owned(), offset: 8, size: 2});
-    header.push(FieldDescription {name: "image_offset".to_owned(), offset: 10, size: 4});
+    let mut header = vec![
+        FieldDescription {name: "-- BMP --".to_owned(), offset: 0, size: 0},
+        FieldDescription {name: "magic".to_owned(), offset: 0, size: 2},
+        FieldDescription {name: "file_size".to_owned(), offset: 2, size: 4},
+        FieldDescription {name: "reserved".to_owned(), offset: 6, size: 4},
+        FieldDescription {name: "image_offset".to_owned(), offset: 10, size: 4}
+    ];
 
     match parse_dib_struct(&data[14..]) {
         Ok(mut vec_dib) => {

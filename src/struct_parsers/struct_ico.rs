@@ -8,11 +8,12 @@ pub fn parse_ico_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     }
 
     let mut vec_image_data = Vec::<FieldDescription>::new();
-    let mut vec_headers = Vec::<FieldDescription>::new();
-    vec_headers.push(FieldDescription {name: "-- ICO --".to_owned(), offset: 0, size: 0});
-    vec_headers.push(FieldDescription {name: "reserved".to_owned(), offset: 0, size: 2});
-    vec_headers.push(FieldDescription {name: "type".to_owned(), offset: 2, size: 2});
-    vec_headers.push(FieldDescription {name: "image_count".to_owned(), offset: 4, size: 2});
+    let mut vec_headers = vec![
+        FieldDescription {name: "-- ICO --".to_owned(), offset: 0, size: 0},
+        FieldDescription {name: "reserved".to_owned(), offset: 0, size: 2},
+        FieldDescription {name: "type".to_owned(), offset: 2, size: 2},
+        FieldDescription {name: "image_count".to_owned(), offset: 4, size: 2}
+    ];
 
     //get number of images
     let icon_dir_entry_count = u16::from_le_bytes([data[4], data[5]]) as usize;
@@ -36,7 +37,7 @@ pub fn parse_ico_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         vec_headers.push(FieldDescription {name: "offset".to_owned(), offset: icon_dir_entry_offset + 12, size: 4});
 
         vec_image_data.push(FieldDescription {
-            name: format!("image_data"),
+            name: "image_data".to_owned(),
             offset: u32::from_le_bytes([data[icon_dir_entry_offset+12], data[icon_dir_entry_offset+13], data[icon_dir_entry_offset+14], data[icon_dir_entry_offset+15]]) as usize,
             size: u32::from_le_bytes([data[icon_dir_entry_offset+8], data[icon_dir_entry_offset+9], data[icon_dir_entry_offset+10], data[icon_dir_entry_offset+11]]) as usize
         });
