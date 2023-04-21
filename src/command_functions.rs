@@ -267,8 +267,8 @@ pub fn find_all_signatures(file_buffers: &[FileBuffer], active_fb_index: usize, 
 //find all boomarks
 pub fn find_all_bookmarks(file_buffers: &[FileBuffer], active_fb_index: usize) -> Result<LocationList, String> {
     let fb = &file_buffers[active_fb_index];
-    // let ll = (0..10).into_iter()
-    let ll = (0..10).filter_map(|idx| fb.bookmark(idx).map(|o| (o,format!("bm_{}",idx))))
+    let ll = (0..10).filter_map(|idx| fb.bookmark(idx)
+        .map(|o| (o,format!("bm_{}",idx))))
         .collect::<LocationList>();
 
     match ll.is_empty() {
