@@ -1020,18 +1020,17 @@ fn main() {
                         },
                     }
                 },
-                Some(Command::Filter(filter_string)) => {
+                Some(Command::Filter(filter_strings)) => {
                     let fb = &mut file_buffers[active_fb_index];
                     fb.set_filtered_location_list(None);
 
-                    if let Some(fs) = filter_string {
-                        let fs_str = fs.as_str();
-                        fb.set_filtered_location_list(
-                            Some(fb.location_list()
-                                    .iter()
-                                    .filter_map(|(u,s)| s.contains(fs_str).then_some((*u, s.to_owned())))
-                                    .collect())
-                        );
+                    if !filter_strings.is_empty() {
+                        let fll = fb.location_list()
+                                        .iter()
+                                        .filter_map(|(u,s)| filter_strings.iter().any(|fs| s.contains(fs)).then_some((*u, s.to_owned())))
+                                        .collect();
+
+                        fb.set_filtered_location_list(Some(fll));
                     }
                 },
                 Some(Command::ClearLocationBar) => {
