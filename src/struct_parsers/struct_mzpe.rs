@@ -1,5 +1,5 @@
 use crate::signatures::is_signature;
-use crate::struct_parsers::FieldDescription;
+use crate::struct_parsers::*;
 
 struct SectionInfo {
     rva: usize,
@@ -59,8 +59,15 @@ pub fn parse_mz_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
 
     //TODO: find and parse rich header
 
-    let pe_offset = u32::from_le_bytes(data[60..64].try_into().unwrap()) as usize;
-    let header_size = u16::from_le_bytes(data[8..10].try_into().unwrap()) as usize * 16;
+    let pe_offset = match read_le_u32(&data, 60) {
+        Some(v) => v as usize,
+        None => return Err("MZ header is truncated!".to_owned()),
+    };
+
+    let header_size = match read_le_u16(&data, 8) {
+        Some(v) => v as usize * 16,
+        None => return Err("MZ header is truncated!".to_owned()),
+    };
     header.push(FieldDescription {name: "dos_stub".to_owned(), offset: header_size, size: pe_offset.saturating_sub(header_size)});
 
     Ok(header)
@@ -74,7 +81,10 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     }
 
     //this data access is checked in "mzpe" signature
-    let pe_offset = u32::from_le_bytes(data[60..64].try_into().unwrap()) as usize;
+    let pe_offset = match read_le_u32(&data, 60) {
+    Some(v) => v as usize,
+        None => return Err("MZ header is truncated!".to_owned()),
+    };
 
     let mut header = vec![
         FieldDescription {name: "-- PE --".to_owned(), offset: pe_offset , size: 0},
@@ -88,12 +98,11 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         FieldDescription {name: "attributes".to_owned(), offset: pe_offset+22, size: 2}
     ];
 
-    if data.len() < pe_offset + 136 {
-        return Err("PE header seems to be truncated!".to_owned());
-    }
-
     //read IMAGE_OPTIONAL_HEADER
-    let pe32 = u16::from_le_bytes(data[(pe_offset+24)..(pe_offset+26)].try_into().unwrap()) == 0x010B;
+    let pe32 = match read_le_u16(&data, pe_offset+24) {
+        Some(v) => v == 0x010B,
+        None => return Err("PE header is truncated!".to_owned()),
+    };
 
     header.push(FieldDescription {name: (if pe32 {"-- OPT_32 --"} else { "-- OPT_32+ --" }).to_owned(), offset: pe_offset+24, size: 0});
     header.push(FieldDescription {name: "magic".to_owned(), offset: pe_offset+24, size: 2});
@@ -130,7 +139,14 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         header.push(FieldDescription {name: "heap_commit_size".to_owned(), offset: pe_offset+108, size: 4});
         header.push(FieldDescription {name: "loader_flags".to_owned(), offset: pe_offset+112, size: 4});
         header.push(FieldDescription {name: "data_dir_size".to_owned(), offset: pe_offset+116, size: 4});
-        (pe_offset + 120, u32::from_le_bytes(data[(pe_offset+52)..(pe_offset+56)].try_into().unwrap()) as usize)
+
+        let image_base = match read_le_u32(&data, pe_offset+52) {
+            Some(v) => v as usize,
+            None => return Err("PE header is truncated!".to_owned()),
+        };
+
+        (pe_offset + 120, image_base)
+
     } else {
         header.push(FieldDescription {name: "image_base".to_owned(), offset: pe_offset+48, size: 8});
         header.push(FieldDescription {name: "section_align".to_owned(), offset: pe_offset+56, size: 4});
@@ -153,16 +169,21 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         header.push(FieldDescription {name: "heap_commit_size".to_owned(), offset: pe_offset+120, size: 8});
         header.push(FieldDescription {name: "loader_flags".to_owned(), offset: pe_offset+128, size: 4});
         header.push(FieldDescription {name: "data_dir_size".to_owned(), offset: pe_offset+132, size: 4});
-        (pe_offset + 136, u64::from_le_bytes(data[(pe_offset+48)..(pe_offset+56)].try_into().unwrap()) as usize)
+
+        let image_base = match read_le_u64(&data, pe_offset+48) {
+            Some(v) => v as usize,
+            None => return Err("PE header is truncated!".to_owned()),
+        };
+
+        (pe_offset + 136, image_base)
     };
 
-    let data_dir_size = u32::from_le_bytes(data[(last_offset-4)..last_offset].try_into().unwrap()) as usize;
-    if data_dir_size > 16 {
-        return Err(format!("IMAGE_DATA_DIRECTORY size is more than 16 at 0x{:08X}!", last_offset-4));
-
-    } else if data.len() < (last_offset + data_dir_size*8) {
-        return Err("IMAGE_DATA_DIRECTORY table is truncated!".to_owned());
-    }
+    // let data_dir_size = u32::from_le_bytes(data[(last_offset-4)..last_offset].try_into().unwrap()) as usize;
+    let data_dir_size = match read_le_u32(&data, last_offset-4) {
+        Some(v) if v <= 16 => v as usize,
+        Some(v) => return Err(format!("Invalid IMAGE_DATA_DIRECTORY size: {v}!")),
+        None => return Err("PE header is truncated!".to_owned()),
+    };
 
     //IMAGE_DATA_DIRECTORY
     header.push(FieldDescription {name: "-- DATA_DIR --".to_owned(), offset: last_offset, size: 0});
@@ -176,28 +197,40 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         header.push(FieldDescription {name: dir_name.to_string(), offset: last_offset, size: 4});
         header.push(FieldDescription {name: "size".to_owned(), offset: last_offset+4, size: 4});
 
-        let rva = u32::from_le_bytes(data[(last_offset)..(last_offset+4)].try_into().unwrap()) as usize;
-        let size = u32::from_le_bytes(data[(last_offset+4)..(last_offset+8)].try_into().unwrap()) as usize;
+        let rva = match read_le_u32(&data, last_offset) {
+            Some(v) => v as usize,
+            None => return Err("IMAGE_DATA_DIRECTORY table is truncated!".to_owned()),
+        };
+
+        let size = match read_le_u32(&data, last_offset+4) {
+            Some(v) => v as usize,
+            None => return Err("IMAGE_DATA_DIRECTORY table is truncated!".to_owned()),
+        };
         data_dir.push((rva,size));
 
         last_offset += 8;
     }
 
     //section table
-    let opt_header_size = u16::from_le_bytes(data[(pe_offset+20)..(pe_offset+22)].try_into().unwrap()) as usize;
-    let section_count = u16::from_le_bytes(data[(pe_offset+6)..(pe_offset+8)].try_into().unwrap()) as usize;
+    let opt_header_size = match read_le_u16(&data, pe_offset+20) {
+        Some(v) => v as usize,
+        None => return Err("PE header is truncated!".to_owned()),
+    };
+
+    let section_count = match read_le_u16(&data, pe_offset+6) {
+        Some(v) => v as usize,
+        None => return Err("PE header is truncated!".to_owned()),
+    };
+
     let mut sections = Vec::<SectionInfo>::with_capacity(section_count);
 
     last_offset = pe_offset + opt_header_size + 24;
-
-    if data.len() < (last_offset + 40 * section_count) {
-        return Err("Section table is truncated!".to_owned());
-    }
 
     header.push(FieldDescription {name: "-- SECTIONS --".to_owned(), offset: last_offset, size: 0});
     for _ in 0..section_count {
 
         //try to get section name
+        //TODO: make this nicer
         let name_len = (0..8).find(|i| u8::from_le_bytes(data[(last_offset + i)..(last_offset + i + 1)].try_into().unwrap()).is_ascii_control()).unwrap_or(8);
         let section_name = if name_len > 0 {
             String::from_utf8_lossy(&data[last_offset..(last_offset+name_len)]).to_string()
@@ -217,10 +250,22 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
 
         //fill section table
         let si = SectionInfo {
-            rva: u32::from_le_bytes(data[(last_offset+12)..(last_offset+16)].try_into().unwrap()) as usize,
-            virtual_size: u32::from_le_bytes(data[(last_offset+8)..(last_offset+12)].try_into().unwrap()) as usize,
-            raw_offset: u32::from_le_bytes(data[(last_offset+20)..(last_offset+24)].try_into().unwrap()) as usize,
-            raw_size: u32::from_le_bytes(data[(last_offset+16)..(last_offset+20)].try_into().unwrap()) as usize,
+            rva: match read_le_u32(&data, last_offset+12) {
+                Some(v) => v as usize,
+                None => return Err("Section table is truncated!".to_owned()),
+            },
+            virtual_size: match read_le_u32(&data, last_offset+8) {
+                Some(v) => v as usize,
+                None => return Err("Section table is truncated!".to_owned()),
+            },
+            raw_offset: match read_le_u32(&data, last_offset+20) {
+                Some(v) => v as usize,
+                None => return Err("Section table is truncated!".to_owned()),
+            },
+            raw_size: match read_le_u32(&data, last_offset+16) {
+                Some(v) => v as usize,
+                None => return Err("Section table is truncated!".to_owned()),
+            },
         };
 
         //add section data (if any)
@@ -248,8 +293,10 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     };
 
     //find and fill entry point
-    let entry_point_rva = u32::from_le_bytes(data[(pe_offset+40)..(pe_offset+44)].try_into().unwrap()) as usize;
-    header[entry_point_idx].offset = rva_to_file_offset(entry_point_rva);
+    match read_le_u32(&data, pe_offset+40) {
+        Some(v) => header[entry_point_idx].offset = rva_to_file_offset(v as usize),
+        None => return Err("PE header is truncated!".to_owned()),
+    };
 
     //export table
     if let Some(&(export_table_rva, export_table_size)) = data_dir.first() {
@@ -259,9 +306,6 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
 
             if last_offset == 0 {
                 return Err("Export table set but not found in file!".to_owned());
-
-            } else if data.len() < (last_offset + 40) {
-                return Err("Export table is truncated!".to_owned());
             }
 
             header.push(FieldDescription {name: "-- EXPORTS --".to_owned(), offset: last_offset, size: 0});
@@ -277,33 +321,44 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
             header.push(FieldDescription {name: "name_pointer_rva".to_owned(), offset: last_offset+32, size: 4});
             header.push(FieldDescription {name: "ordinal_table_rva".to_owned(), offset: last_offset+36, size: 4});
 
-            let address_table_entries = u32::from_le_bytes(data[(last_offset+20)..(last_offset+24)].try_into().unwrap()) as usize;
-            let address_table_rva = u32::from_le_bytes(data[(last_offset+28)..(last_offset+32)].try_into().unwrap()) as usize;
-            let address_table_offset = rva_to_file_offset(address_table_rva);
+            let address_table_entries = match read_le_u32(&data, last_offset+20) {
+                Some(v) => v as usize,
+                None => return Err("Export table is truncated!".to_owned()),
+            };
+            let address_table_offset = match read_le_u32(&data, last_offset+28) {
+                Some(v) => rva_to_file_offset(v as usize),
+                None => return Err("Export table is truncated!".to_owned()),
+            };
             header.push(FieldDescription {name: "address_table".to_owned(), offset: address_table_offset, size: address_table_entries*4});
 
-            let name_ptr_table_rva = u32::from_le_bytes(data[(last_offset+32)..(last_offset+36)].try_into().unwrap()) as usize;
-            let name_ptr_table_fo = rva_to_file_offset(name_ptr_table_rva);
+            let name_ptr_table_fo = match read_le_u32(&data, last_offset+32) {
+                Some(v) => rva_to_file_offset(v as usize),
+                None => return Err("Export table is truncated!".to_owned()),
+            };
             header.push(FieldDescription {name: "name_ptr_table".to_owned(), offset: name_ptr_table_fo, size: 0});
 
-            let ordinal_table_entries = u32::from_le_bytes(data[(last_offset+24)..(last_offset+28)].try_into().unwrap()) as usize;
-            let ordinal_table_rva = u32::from_le_bytes(data[(last_offset+36)..(last_offset+40)].try_into().unwrap()) as usize;
-            let ordinal_table_fo = rva_to_file_offset(ordinal_table_rva);
+            let ordinal_table_entries = match read_le_u32(&data, last_offset+24) {
+                Some(v) => v as usize,
+                None => return Err("Export table is truncated!".to_owned()),
+            };
+            let ordinal_table_fo = match read_le_u32(&data, last_offset+36) {
+                Some(v) => rva_to_file_offset(v as usize),
+                None => return Err("Export table is truncated!".to_owned()),
+            };
             header.push(FieldDescription {name: "ordinal_table".to_owned(), offset: ordinal_table_fo, size: ordinal_table_entries*2});
 
-            let ordinal_base = u32::from_le_bytes(data[(last_offset+16)..(last_offset+20)].try_into().unwrap()) as usize;
-
-            if data.len() < (address_table_offset + 4*address_table_entries) {
-                return Err("Export address table is truncated!".to_owned());
-
-            } else if data.len() < (ordinal_table_fo + 2*ordinal_table_entries) {
-                return Err("Ordinal table is truncated!".to_owned());
-            }
+            let ordinal_base = match read_le_u32(&data, last_offset+16) {
+                Some(v) => v as usize,
+                None => return Err("Export table is truncated!".to_owned()),
+            };
 
             //iterate over address_table and get every export file offset + its name
             for ordinal in 0..address_table_entries {
                 last_offset = address_table_offset + 4*ordinal;
-                let export_rva = u32::from_le_bytes(data[last_offset..(last_offset+4)].try_into().unwrap()) as usize;
+                let export_rva = match read_le_u32(&data, last_offset) {
+                    Some(v) => v as usize,
+                    None => return Err("Export table is truncated!".to_owned()),
+                };
 
                 if export_rva != 0 {
                     let export_offset = rva_to_file_offset(export_rva);
@@ -311,34 +366,30 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
                     //find it in ordinal table
                     let mut name_idx = None;
                     for idx in 0..ordinal_table_entries {
-                        let ordinal_num = u16::from_le_bytes(data[(ordinal_table_fo + 2*idx)..(ordinal_table_fo + 2*(idx+1))].try_into().unwrap()) as usize;
-                        if ordinal_num == ordinal {
-                            name_idx = Some(idx);
-                            break;
-                        }
+
+                        match read_le_u16(&data, ordinal_table_fo + 2*idx) {
+                            Some(v) if ordinal == v as usize => {
+                                name_idx = Some(v as usize);
+                                break;
+                            },
+                            Some(_) => (),
+                            None => return Err("Ordinal table is truncated!".to_owned()),
+                        };
                     }
 
                     //if it is named export
                     if let Some(name_idx) = name_idx {
-                        if data.len() < (name_ptr_table_fo + 4*(name_idx+1)) {
-                            return Err("Pointer to export name is out of file range!".to_owned());
-                        }
+                        let export_name_fo = match read_le_u32(&data, name_ptr_table_fo + 4*name_idx) {
+                            Some(v) => rva_to_file_offset(v as usize),
+                            None => return Err("Export name table is truncated!".to_owned()),
+                        };
 
-                        let export_name_rva = u32::from_le_bytes(data[(name_ptr_table_fo + 4*name_idx)..(name_ptr_table_fo + 4*(name_idx+1))].try_into().unwrap()) as usize;
-                        let export_name_fo = rva_to_file_offset(export_name_rva);
-                        let mut export_name = String::new();
+                        // let mut export_name = String::new();
+                        let export_name = match string_from_u8(&data, export_name_fo) {
+                            Some(v) => v,
+                            None => return Err("Export name is truncated!".to_owned()),
+                        };
 
-                        for i in 0..30 {
-                            if data.len() < (export_name_fo + i) {
-                                return Err("Export name is out of file range!".to_owned());
-                            }
-
-                            if data[export_name_fo + i].is_ascii_control() {
-                                break;
-                            } else {
-                                export_name.push(char::try_from(data[export_name_fo+i]).unwrap_or(' '));
-                            }
-                        }
                         header.push(FieldDescription {name: format!("{}_{}", ordinal_base+ordinal, export_name), offset: export_offset, size: 0});
 
                     } else {
@@ -355,8 +406,11 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
             last_offset = cert_table_fo;
             header.push(FieldDescription {name: "-- CERTIFICATES --".to_owned(), offset: last_offset, size: 0});
 
-            while last_offset < (cert_table_fo + cert_table_size) && data.len() > (last_offset + 4) {
-                let cert_len = u32::from_le_bytes(data[(last_offset)..(last_offset+4)].try_into().unwrap()) as usize;
+            while last_offset < (cert_table_fo + cert_table_size) {
+                let cert_len = match read_le_u32(&data, last_offset) {
+                    Some(v) => v as usize,
+                    None => return Err("Certificate is truncated!".to_owned()),
+                };
                 header.push(FieldDescription {name: "length".to_owned(), offset: last_offset, size: 4});
                 header.push(FieldDescription {name: "revision".to_owned(), offset: last_offset+4, size: 2});
                 header.push(FieldDescription {name: "type".to_owned(), offset: last_offset+6, size: 2});
@@ -382,28 +436,32 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
             header.push(FieldDescription {name: "zero_fill_size".to_owned(), offset: tls_fo + 4*field_size, size: 4});
             header.push(FieldDescription {name: "characteristics".to_owned(), offset: tls_fo + 4*field_size + 4, size: 4});
 
-            if data.len() < (tls_fo + 4*field_size) {
-                return Err("TLS callback table is out of file range!".to_owned());
-            }
-
             let callbacks_va = if pe32 {
-                u32::from_le_bytes(data[(tls_fo + 3*field_size)..(tls_fo + 4*field_size)].try_into().unwrap()) as usize
+                match read_le_u32(&data, tls_fo + 3*field_size) {
+                    Some(v) => v as usize,
+                    None => return Err("TLS callback table is truncated!".to_owned()),
+                }
             } else {
-                u64::from_le_bytes(data[(tls_fo + 3*field_size)..(tls_fo + 4*field_size)].try_into().unwrap()) as usize
+                match read_le_u64(&data, tls_fo + 3*field_size) {
+                    Some(v) => v as usize,
+                    None => return Err("TLS callback table is truncated!".to_owned()),
+                }
             };
 
             let callbacks_table_fo = va_to_file_offset(callbacks_va);
             let mut i = 0;
             loop {
 
-                if data.len() < (callbacks_table_fo + (i+1)*field_size) {
-                    return Err("TLS callback function is out of file range!".to_owned());
-                }
-
                 let callbacks_fn_va = if pe32 {
-                    u32::from_le_bytes(data[(callbacks_table_fo + i*field_size)..(callbacks_table_fo + (i+1)*field_size)].try_into().unwrap()) as usize
+                    match read_le_u32(&data, callbacks_table_fo + i*field_size) {
+                        Some(v) => v as usize,
+                        None => return Err("TLS callback function is out of file range!".to_owned()),
+                    }
                 } else {
-                    u64::from_le_bytes(data[(callbacks_table_fo + i*field_size)..(callbacks_table_fo + (i+1)*field_size)].try_into().unwrap()) as usize
+                    match read_le_u64(&data, callbacks_table_fo + i*field_size) {
+                        Some(v) => v as usize,
+                        None => return Err("TLS callback function is out of file range!".to_owned()),
+                    }
                 };
 
                 if callbacks_fn_va == 0 {
