@@ -28,7 +28,7 @@ pub fn parse_struct_by_name(data: &[u8], name: &str) -> Result<Vec<FieldDescript
 }
 
 pub fn string_from_u8(data: &[u8], offset: usize) -> Option<String> {
-    if let Some((i,_)) = data.into_iter().skip(offset).enumerate().find(|(_,b)| b.is_ascii_control()) {
+    if let Some((i,_)) = data.iter().skip(offset).enumerate().find(|(_,b)| b.is_ascii_control()) {
         let s = String::from_utf8_lossy(&data[offset..offset+i]).to_string();
         return (!s.is_empty()).then_some(s);
     }

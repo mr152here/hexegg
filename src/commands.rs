@@ -349,7 +349,7 @@ impl Command {
     }
 
     fn parse_filter(v: &[&str]) -> Result<Command, &'static str> {
-        let ret_vec =  v.into_iter()
+        let ret_vec =  v.iter()
                 .skip(1)
                 .map(|&s| s.to_owned())
                 .collect::<Vec<String>>();

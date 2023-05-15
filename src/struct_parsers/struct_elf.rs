@@ -31,14 +31,14 @@ pub fn parse_elf_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         FieldDescription {name: "version".to_owned(), offset: 20, size: 4},
     ];
 
-    let elf32 = match read_u8(&data, 4) {
+    let elf32 = match read_u8(data, 4) {
         Some(b) if b == 1 => true,
         Some(b) if b == 2 => false,
         Some(b) => return Err(format!("Invalid EI_CLASS '{b}'. Is neither 32 nor 64 bit!")),
         None => return Err("ELF header is truncated!".to_owned()),
     };
 
-    let little_endian = match read_u8(&data, 5) {
+    let little_endian = match read_u8(data, 5) {
         Some(b) if b == 1 => true,
         Some(b) if b == 2 => false,
         Some(b) => return Err(format!("Invalid EI_DATA '{b}'. Is neither little nor big endian!")),
@@ -57,17 +57,17 @@ pub fn parse_elf_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         header.push(FieldDescription {name: "ph_offset".to_owned(), offset: 28, size: 4});
         header.push(FieldDescription {name: "sh_offset".to_owned(), offset: 32, size: 4});
 
-        let entry_point = match read_u32(&data, 24) {
+        let entry_point = match read_u32(data, 24) {
             Some(v) => v as usize,
             None => return Err("ELF header is truncated!".to_owned()),
         };
 
-        let ph_offset = match read_u32(&data, 28) {
+        let ph_offset = match read_u32(data, 28) {
             Some(v) => v as usize,
             None => return Err("ELF header is truncated!".to_owned()),
         };
 
-        let sh_offset = match read_u32(&data, 32) {
+        let sh_offset = match read_u32(data, 32) {
             Some(v) => v as usize,
             None => return Err("ELF header is truncated!".to_owned()),
         };
@@ -81,17 +81,17 @@ pub fn parse_elf_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         header.push(FieldDescription {name: "ph_offset".to_owned(), offset: 32, size: 8});
         header.push(FieldDescription {name: "sh_offset".to_owned(), offset: 40, size: 8});
 
-        let entry_point = match read_u64(&data, 24) {
+        let entry_point = match read_u64(data, 24) {
             Some(v) => v as usize,
             None => return Err("ELF header is truncated!".to_owned()),
         };
 
-        let ph_offset = match read_u64(&data, 32) {
+        let ph_offset = match read_u64(data, 32) {
             Some(v) => v as usize,
             None => return Err("ELF header is truncated!".to_owned()),
         };
 
-        let sh_offset = match read_u64(&data, 40) {
+        let sh_offset = match read_u64(data, 40) {
             Some(v) => v as usize,
             None => return Err("ELF header is truncated!".to_owned()),
         };
@@ -108,27 +108,27 @@ pub fn parse_elf_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     header.push(FieldDescription {name: "sh_num".to_owned(), offset: last_offset+12, size: 2});
     header.push(FieldDescription {name: "sh_str_index".to_owned(), offset: last_offset+14, size: 2});
 
-    let ph_entry_size = match read_u16(&data, last_offset+6) {
+    let ph_entry_size = match read_u16(data, last_offset+6) {
         Some(v) => v as usize,
         None => return Err("ELF header is truncated!".to_owned()),
     };
 
-    let ph_num = match read_u16(&data, last_offset+8) {
+    let ph_num = match read_u16(data, last_offset+8) {
         Some(v) => v as usize,
         None => return Err("ELF header is truncated!".to_owned()),
     };
 
-    let sh_entry_size = match read_u16(&data, last_offset+10) {
+    let sh_entry_size = match read_u16(data, last_offset+10) {
         Some(v) => v as usize,
         None => return Err("ELF header is truncated!".to_owned()),
     };
 
-    let sh_num= match read_u16(&data, last_offset+12) {
+    let sh_num= match read_u16(data, last_offset+12) {
         Some(v) => v as usize,
         None => return Err("ELF header is truncated!".to_owned()),
     };
 
-    let sh_str_index = match read_u16(&data, last_offset+14) {
+    let sh_str_index = match read_u16(data, last_offset+14) {
         Some(v) => v as usize,
         None => return Err("ELF header is truncated!".to_owned()),
     };
@@ -150,24 +150,24 @@ pub fn parse_elf_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
             header.push(FieldDescription {name: "flags".to_owned(), offset: last_offset+24, size: 4});
             header.push(FieldDescription {name: "align".to_owned(), offset: last_offset+28, size: 4});
 
-            let offset = match read_u32(&data, last_offset+4) {
+            let offset = match read_u32(data, last_offset+4) {
                 Some(v) => v as usize,
                 None => return Err("ELF program header is truncated!".to_owned()),
             };
             // let size = u32::from_le_bytes(data[last_offset+16..last_offset+20].try_into().unwrap()) as usize;
             header.push(FieldDescription {name: "data".to_owned(), offset, size: 0});
 
-            let v_offset = match read_u32(&data, last_offset+8) {
+            let v_offset = match read_u32(data, last_offset+8) {
                 Some(v) => v as usize,
                 None => return Err("ELF program header is truncated!".to_owned()),
             };
 
-            let p_offset = match read_u32(&data, last_offset+12) {
+            let p_offset = match read_u32(data, last_offset+12) {
                 Some(v) => v as usize,
                 None => return Err("ELF program header is truncated!".to_owned()),
             };
 
-            let v_size = match read_u32(&data, last_offset+20) {
+            let v_size = match read_u32(data, last_offset+20) {
                 Some(v) => v as usize,
                 None => return Err("ELF program header is truncated!".to_owned()),
             };
@@ -183,24 +183,24 @@ pub fn parse_elf_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
             header.push(FieldDescription {name: "mem_size".to_owned(), offset: last_offset+40, size: 8});
             header.push(FieldDescription {name: "align".to_owned(), offset: last_offset+48, size: 8});
 
-            let offset = match read_u64(&data, last_offset+8) {
+            let offset = match read_u64(data, last_offset+8) {
                 Some(v) => v as usize,
                 None => return Err("ELF program header is truncated!".to_owned()),
             };
             // let size = u64::from_le_bytes(data[last_offset+32..last_offset+40].try_into().unwrap()) as usize;
             header.push(FieldDescription {name: "data".to_owned(), offset, size: 0});
 
-            let v_offset = match read_u64(&data, last_offset+16) {
+            let v_offset = match read_u64(data, last_offset+16) {
                 Some(v) => v as usize,
                 None => return Err("ELF program header is truncated!".to_owned()),
             };
 
-            let p_offset = match read_u64(&data, last_offset+24) {
+            let p_offset = match read_u64(data, last_offset+24) {
                 Some(v) => v as usize,
                 None => return Err("ELF program header is truncated!".to_owned()),
             };
 
-            let v_size = match read_u64(&data, last_offset+40) {
+            let v_size = match read_u64(data, last_offset+40) {
                 Some(v) => v as usize,
                 None => return Err("ELF program header is truncated!".to_owned()),
             };
@@ -228,13 +228,13 @@ pub fn parse_elf_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     //find section with name table
     let str_section = sh_str_index * sh_entry_size + sh_offset;
     let section_names_table = if elf32 {
-        match read_u32(&data, str_section+16) {
+        match read_u32(data, str_section+16) {
         // match read_u32(&data[str_section+16..]) {
             Some(v) => v as usize,
             None => return Err("ELF section header is truncated!".to_owned()),
         }
     } else {
-        match read_u64(&data, str_section+24) {
+        match read_u64(data, str_section+24) {
             Some(v) => v as usize,
             None => return Err("ELF section header is truncated!".to_owned()),
         }
@@ -246,12 +246,12 @@ pub fn parse_elf_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     for section_index in 0..sh_num {
         header.push(FieldDescription {name: format!("-- SECTION_{section_index} --"), offset: last_offset, size: 0});
 
-        let name_offset = match read_u32(&data, last_offset) {
+        let name_offset = match read_u32(data, last_offset) {
             Some(v) => v as usize,
             None => return Err("ELF section header is truncated!".to_owned()),
         };
 
-        let sec_name = match string_from_u8(&data, section_names_table+name_offset) {
+        let sec_name = match string_from_u8(data, section_names_table+name_offset) {
             Some(s) => s,
             _ => "name".to_owned(),
         };
@@ -269,7 +269,7 @@ pub fn parse_elf_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
             header.push(FieldDescription {name: "align".to_owned(), offset: last_offset+32, size: 4});
             header.push(FieldDescription {name: "ent_size".to_owned(), offset: last_offset+36, size: 4});
 
-            let offset = match read_u32(&data, last_offset+16) {
+            let offset = match read_u32(data, last_offset+16) {
                 Some(v) => v as usize,
                 None => return Err("ELF section header is truncated!".to_owned()),
             };
@@ -285,7 +285,7 @@ pub fn parse_elf_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
             header.push(FieldDescription {name: "align".to_owned(), offset: last_offset+48, size: 8});
             header.push(FieldDescription {name: "ent_size".to_owned(), offset: last_offset+56, size: 8});
 
-            let offset = match read_u64(&data, last_offset+24) {
+            let offset = match read_u64(data, last_offset+24) {
                 Some(v) => v as usize,
                 None => return Err("ELF section header is truncated!".to_owned()),
             };

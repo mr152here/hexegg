@@ -16,7 +16,7 @@ pub fn parse_ico_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     ];
 
     //get number of images
-    let icon_dir_entry_count = match read_le_u16(&data, 4) {
+    let icon_dir_entry_count = match read_le_u16(data, 4) {
         Some(v) => v as usize,
         None => return Err("ICO header is truncated!".to_owned()),
     };
@@ -35,12 +35,12 @@ pub fn parse_ico_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         vec_headers.push(FieldDescription {name: "size".to_owned(), offset: icon_dir_entry_offset + 8, size: 4});
         vec_headers.push(FieldDescription {name: "offset".to_owned(), offset: icon_dir_entry_offset + 12, size: 4});
 
-        let offset = match read_le_u32(&data, icon_dir_entry_count + 12) {
+        let offset = match read_le_u32(data, icon_dir_entry_count + 12) {
             Some(v) => v as usize,
             None => return Err("ICON_DIR_ENTRY is truncated!".to_owned()),
         };
 
-        let size = match read_le_u32(&data, icon_dir_entry_count + 8) {
+        let size = match read_le_u32(data, icon_dir_entry_count + 8) {
             Some(v) => v as usize,
             None => return Err("ICON_DIR_ENTRY is truncated!".to_owned()),
         };

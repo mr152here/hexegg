@@ -17,14 +17,14 @@ pub fn parse_png_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
 
     while !iend_chunk && data.len() >= offset + 8 {
 
-        let chunk_size = match read_be_u32(&data, offset) {
+        let chunk_size = match read_be_u32(data, offset) {
             Some(v) => v as usize,
             None => return Err("PNG chunk is truncated!".to_owned()),
         };
 
         vec_headers.push(FieldDescription {name: "chunk_size".to_owned(), offset, size: 4});
 
-        iend_chunk = match read_be_u32(&data, offset + 4) {
+        iend_chunk = match read_be_u32(data, offset + 4) {
             Some(v) => v == 0x49454E44,
             None => return Err("PNG chunk is truncated!".to_owned()),
         };

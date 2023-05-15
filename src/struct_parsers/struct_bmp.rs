@@ -27,12 +27,12 @@ pub fn parse_bmp_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         Err(s) => return Err(s),
     }
 
-    let image_offset = match read_le_u32(&data, 10) {
+    let image_offset = match read_le_u32(data, 10) {
         Some(v) => v as usize,
         None => return Err("BMP header is truncated!".to_owned()),
     };
 
-    let file_size = match read_le_u32(&data, 2) {
+    let file_size = match read_le_u32(data, 2) {
         Some(v) => v as usize,
         None => return Err("BMP header is truncated!".to_owned()),
     };
@@ -45,7 +45,7 @@ pub fn parse_bmp_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
 
 pub fn parse_dib_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
 
-    let dib_size = match read_le_u32(&data, 0) {
+    let dib_size = match read_le_u32(data, 0) {
         Some(v) => v as usize,
         None => return Err("DIB header is truncated!".to_owned()),
     };
@@ -103,12 +103,12 @@ pub fn parse_dib_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
                 header.push(FieldDescription {name: "profile_size".to_owned(), offset: 116, size: 4});
                 header.push(FieldDescription {name: "reserved".to_owned(), offset: 120, size: 4});
 
-                let prof_offset = match read_le_u32(&data, 112) {
+                let prof_offset = match read_le_u32(data, 112) {
                     Some(v) => v as usize,
                     None => return Err("DIB header is truncated!".to_owned()),
                 };
 
-                let prof_size = match read_le_u32(&data, 116) {
+                let prof_size = match read_le_u32(data, 116) {
                     Some(v) => v as usize,
                     None => return Err("DIB header is truncated!".to_owned()),
                 };
@@ -126,7 +126,7 @@ pub fn parse_dib_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
 
 //returns image size from DIB header.
 pub fn dib_image_size(data: &[u8]) -> Option<usize> {
-    if let Some(dib_size) = read_le_u32(&data, 0) {
+    if let Some(dib_size) = read_le_u32(data, 0) {
         if dib_size >= 40 {
             return read_le_u32(data, 20).map(|v| v as usize);
         }

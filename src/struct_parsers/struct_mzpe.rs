@@ -59,12 +59,12 @@ pub fn parse_mz_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
 
     //TODO: find and parse rich header
 
-    let pe_offset = match read_le_u32(&data, 60) {
+    let pe_offset = match read_le_u32(data, 60) {
         Some(v) => v as usize,
         None => return Err("MZ header is truncated!".to_owned()),
     };
 
-    let header_size = match read_le_u16(&data, 8) {
+    let header_size = match read_le_u16(data, 8) {
         Some(v) => v as usize * 16,
         None => return Err("MZ header is truncated!".to_owned()),
     };
@@ -81,8 +81,8 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     }
 
     //this data access is checked in "mzpe" signature
-    let pe_offset = match read_le_u32(&data, 60) {
-    Some(v) => v as usize,
+    let pe_offset = match read_le_u32(data, 60) {
+        Some(v) => v as usize,
         None => return Err("MZ header is truncated!".to_owned()),
     };
 
@@ -99,7 +99,7 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     ];
 
     //read IMAGE_OPTIONAL_HEADER
-    let pe32 = match read_le_u16(&data, pe_offset+24) {
+    let pe32 = match read_le_u16(data, pe_offset+24) {
         Some(v) => v == 0x010B,
         None => return Err("PE header is truncated!".to_owned()),
     };
@@ -140,7 +140,7 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         header.push(FieldDescription {name: "loader_flags".to_owned(), offset: pe_offset+112, size: 4});
         header.push(FieldDescription {name: "data_dir_size".to_owned(), offset: pe_offset+116, size: 4});
 
-        let image_base = match read_le_u32(&data, pe_offset+52) {
+        let image_base = match read_le_u32(data, pe_offset+52) {
             Some(v) => v as usize,
             None => return Err("PE header is truncated!".to_owned()),
         };
@@ -170,7 +170,7 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         header.push(FieldDescription {name: "loader_flags".to_owned(), offset: pe_offset+128, size: 4});
         header.push(FieldDescription {name: "data_dir_size".to_owned(), offset: pe_offset+132, size: 4});
 
-        let image_base = match read_le_u64(&data, pe_offset+48) {
+        let image_base = match read_le_u64(data, pe_offset+48) {
             Some(v) => v as usize,
             None => return Err("PE header is truncated!".to_owned()),
         };
@@ -179,7 +179,7 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     };
 
     // let data_dir_size = u32::from_le_bytes(data[(last_offset-4)..last_offset].try_into().unwrap()) as usize;
-    let data_dir_size = match read_le_u32(&data, last_offset-4) {
+    let data_dir_size = match read_le_u32(data, last_offset-4) {
         Some(v) if v <= 16 => v as usize,
         Some(v) => return Err(format!("Invalid IMAGE_DATA_DIRECTORY size: {v}!")),
         None => return Err("PE header is truncated!".to_owned()),
@@ -197,12 +197,12 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         header.push(FieldDescription {name: dir_name.to_string(), offset: last_offset, size: 4});
         header.push(FieldDescription {name: "size".to_owned(), offset: last_offset+4, size: 4});
 
-        let rva = match read_le_u32(&data, last_offset) {
+        let rva = match read_le_u32(data, last_offset) {
             Some(v) => v as usize,
             None => return Err("IMAGE_DATA_DIRECTORY table is truncated!".to_owned()),
         };
 
-        let size = match read_le_u32(&data, last_offset+4) {
+        let size = match read_le_u32(data, last_offset+4) {
             Some(v) => v as usize,
             None => return Err("IMAGE_DATA_DIRECTORY table is truncated!".to_owned()),
         };
@@ -212,12 +212,12 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     }
 
     //section table
-    let opt_header_size = match read_le_u16(&data, pe_offset+20) {
+    let opt_header_size = match read_le_u16(data, pe_offset+20) {
         Some(v) => v as usize,
         None => return Err("PE header is truncated!".to_owned()),
     };
 
-    let section_count = match read_le_u16(&data, pe_offset+6) {
+    let section_count = match read_le_u16(data, pe_offset+6) {
         Some(v) => v as usize,
         None => return Err("PE header is truncated!".to_owned()),
     };
@@ -250,19 +250,19 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
 
         //fill section table
         let si = SectionInfo {
-            rva: match read_le_u32(&data, last_offset+12) {
+            rva: match read_le_u32(data, last_offset+12) {
                 Some(v) => v as usize,
                 None => return Err("Section table is truncated!".to_owned()),
             },
-            virtual_size: match read_le_u32(&data, last_offset+8) {
+            virtual_size: match read_le_u32(data, last_offset+8) {
                 Some(v) => v as usize,
                 None => return Err("Section table is truncated!".to_owned()),
             },
-            raw_offset: match read_le_u32(&data, last_offset+20) {
+            raw_offset: match read_le_u32(data, last_offset+20) {
                 Some(v) => v as usize,
                 None => return Err("Section table is truncated!".to_owned()),
             },
-            raw_size: match read_le_u32(&data, last_offset+16) {
+            raw_size: match read_le_u32(data, last_offset+16) {
                 Some(v) => v as usize,
                 None => return Err("Section table is truncated!".to_owned()),
             },
@@ -293,7 +293,7 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     };
 
     //find and fill entry point
-    match read_le_u32(&data, pe_offset+40) {
+    match read_le_u32(data, pe_offset+40) {
         Some(v) => header[entry_point_idx].offset = rva_to_file_offset(v as usize),
         None => return Err("PE header is truncated!".to_owned()),
     };
@@ -321,33 +321,33 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
             header.push(FieldDescription {name: "name_pointer_rva".to_owned(), offset: last_offset+32, size: 4});
             header.push(FieldDescription {name: "ordinal_table_rva".to_owned(), offset: last_offset+36, size: 4});
 
-            let address_table_entries = match read_le_u32(&data, last_offset+20) {
+            let address_table_entries = match read_le_u32(data, last_offset+20) {
                 Some(v) => v as usize,
                 None => return Err("Export table is truncated!".to_owned()),
             };
-            let address_table_offset = match read_le_u32(&data, last_offset+28) {
+            let address_table_offset = match read_le_u32(data, last_offset+28) {
                 Some(v) => rva_to_file_offset(v as usize),
                 None => return Err("Export table is truncated!".to_owned()),
             };
             header.push(FieldDescription {name: "address_table".to_owned(), offset: address_table_offset, size: address_table_entries*4});
 
-            let name_ptr_table_fo = match read_le_u32(&data, last_offset+32) {
+            let name_ptr_table_fo = match read_le_u32(data, last_offset+32) {
                 Some(v) => rva_to_file_offset(v as usize),
                 None => return Err("Export table is truncated!".to_owned()),
             };
             header.push(FieldDescription {name: "name_ptr_table".to_owned(), offset: name_ptr_table_fo, size: 0});
 
-            let ordinal_table_entries = match read_le_u32(&data, last_offset+24) {
+            let ordinal_table_entries = match read_le_u32(data, last_offset+24) {
                 Some(v) => v as usize,
                 None => return Err("Export table is truncated!".to_owned()),
             };
-            let ordinal_table_fo = match read_le_u32(&data, last_offset+36) {
+            let ordinal_table_fo = match read_le_u32(data, last_offset+36) {
                 Some(v) => rva_to_file_offset(v as usize),
                 None => return Err("Export table is truncated!".to_owned()),
             };
             header.push(FieldDescription {name: "ordinal_table".to_owned(), offset: ordinal_table_fo, size: ordinal_table_entries*2});
 
-            let ordinal_base = match read_le_u32(&data, last_offset+16) {
+            let ordinal_base = match read_le_u32(data, last_offset+16) {
                 Some(v) => v as usize,
                 None => return Err("Export table is truncated!".to_owned()),
             };
@@ -355,7 +355,7 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
             //iterate over address_table and get every export file offset + its name
             for ordinal in 0..address_table_entries {
                 last_offset = address_table_offset + 4*ordinal;
-                let export_rva = match read_le_u32(&data, last_offset) {
+                let export_rva = match read_le_u32(data, last_offset) {
                     Some(v) => v as usize,
                     None => return Err("Export table is truncated!".to_owned()),
                 };
@@ -367,7 +367,7 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
                     let mut name_idx = None;
                     for idx in 0..ordinal_table_entries {
 
-                        match read_le_u16(&data, ordinal_table_fo + 2*idx) {
+                        match read_le_u16(data, ordinal_table_fo + 2*idx) {
                             Some(v) if ordinal == v as usize => {
                                 name_idx = Some(v as usize);
                                 break;
@@ -379,13 +379,13 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
 
                     //if it is named export
                     if let Some(name_idx) = name_idx {
-                        let export_name_fo = match read_le_u32(&data, name_ptr_table_fo + 4*name_idx) {
+                        let export_name_fo = match read_le_u32(data, name_ptr_table_fo + 4*name_idx) {
                             Some(v) => rva_to_file_offset(v as usize),
                             None => return Err("Export name table is truncated!".to_owned()),
                         };
 
                         // let mut export_name = String::new();
-                        let export_name = match string_from_u8(&data, export_name_fo) {
+                        let export_name = match string_from_u8(data, export_name_fo) {
                             Some(v) => v,
                             None => return Err("Export name is truncated!".to_owned()),
                         };
@@ -407,7 +407,7 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
             header.push(FieldDescription {name: "-- CERTIFICATES --".to_owned(), offset: last_offset, size: 0});
 
             while last_offset < (cert_table_fo + cert_table_size) {
-                let cert_len = match read_le_u32(&data, last_offset) {
+                let cert_len = match read_le_u32(data, last_offset) {
                     Some(v) => v as usize,
                     None => return Err("Certificate is truncated!".to_owned()),
                 };
@@ -437,12 +437,12 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
             header.push(FieldDescription {name: "characteristics".to_owned(), offset: tls_fo + 4*field_size + 4, size: 4});
 
             let callbacks_va = if pe32 {
-                match read_le_u32(&data, tls_fo + 3*field_size) {
+                match read_le_u32(data, tls_fo + 3*field_size) {
                     Some(v) => v as usize,
                     None => return Err("TLS callback table is truncated!".to_owned()),
                 }
             } else {
-                match read_le_u64(&data, tls_fo + 3*field_size) {
+                match read_le_u64(data, tls_fo + 3*field_size) {
                     Some(v) => v as usize,
                     None => return Err("TLS callback table is truncated!".to_owned()),
                 }
@@ -453,12 +453,12 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
             loop {
 
                 let callbacks_fn_va = if pe32 {
-                    match read_le_u32(&data, callbacks_table_fo + i*field_size) {
+                    match read_le_u32(data, callbacks_table_fo + i*field_size) {
                         Some(v) => v as usize,
                         None => return Err("TLS callback function is out of file range!".to_owned()),
                     }
                 } else {
-                    match read_le_u64(&data, callbacks_table_fo + i*field_size) {
+                    match read_le_u64(data, callbacks_table_fo + i*field_size) {
                         Some(v) => v as usize,
                         None => return Err("TLS callback function is out of file range!".to_owned()),
                     }
