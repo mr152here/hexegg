@@ -1002,22 +1002,26 @@ fn main() {
                     let fb = &mut file_buffers[active_fb_index];
                     let o = if cursor.is_visible() { cursor.position() } else { fb.position() };
 
-                    match command_functions::parse_struct(&fb.as_slice()[o..], name) {
-                        Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
-                        Ok(vfd) => {
-                            let ll = vfd.iter().map(|fd| (fd.offset + o, fd.name.clone())).collect::<LocationList>();
-                            let hl = vfd.iter().filter_map(|fd| {
-                                if fd.size > 0 {
-                                    let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
-                                    return Some((fd.offset + o, fd.offset + o + fd.size -1 , Some(color)));
-                                }
-                                None
-                            }).collect::<HighlightList>();
+                    if o < fb.len() {
+                        match command_functions::parse_struct(&fb.as_slice()[o..], name) {
+                            Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
+                            Ok(vfd) => {
+                                let ll = vfd.iter().map(|fd| (fd.offset + o, fd.name.clone())).collect::<LocationList>();
+                                let hl = vfd.iter().filter_map(|fd| {
+                                    if fd.size > 0 {
+                                        let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
+                                        return Some((fd.offset + o, fd.offset + o + fd.size -1 , Some(color)));
+                                    }
+                                    None
+                                }).collect::<HighlightList>();
 
-                            fb.set_location_list(ll);
-                            fb.set_highlight_list(hl);
-                            screens.iter_mut().for_each(|s| s.show_location_bar(true));
-                        },
+                                fb.set_location_list(ll);
+                                fb.set_highlight_list(hl);
+                                screens.iter_mut().for_each(|s| s.show_location_bar(true));
+                            },
+                        }
+                    } else {
+                        MessageBox::new(0, rows-2, cols).show(&mut stdout, "Current position is out of the file range.", MessageBoxType::Error, &color_scheme);
                     }
                 },
                 Some(Command::Filter(filter_strings)) => {
