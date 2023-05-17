@@ -256,10 +256,7 @@ fn main() {
                 },
                 KeyEvent{ code: KeyCode::Enter, .. } => {
                     active_screen_index = (active_screen_index + 1) % screens.len();
-
-                    if cursor.is_visible() {
-                        command = Some(Command::Goto(cursor.position()));
-                    }
+                    command = cursor.is_visible().then_some(Command::Goto(cursor.position()));
                 },
                 KeyEvent{ code: KeyCode::Tab, .. } => { 
                     active_fb_index = (active_fb_index + 1) % file_buffers.len();
@@ -273,26 +270,26 @@ fn main() {
                     file_buffers[active_fb_index].unpatch_offset(cursor.position());
                     command = Some(Command::GotoRelative(0));
                 },
-                KeyEvent{ code: KeyCode::Char('q'), .. } if !cursor.is_visible() => command = Some(Command::Quit(true)), 
-                KeyEvent{ code: KeyCode::Char('h'), .. } if cursor.is_byte() || !cursor.is_visible() => config.highlight_diff = !config.highlight_diff,  
-                KeyEvent{ code: KeyCode::Char('i'), .. } if cursor.is_byte() || !cursor.is_visible() => screens[active_screen_index].toggle_info_bar(),
-                KeyEvent{ code: KeyCode::Char('l'), .. } if cursor.is_byte() || !cursor.is_visible() => screens[active_screen_index].toggle_location_bar(),
-                KeyEvent{ code: KeyCode::Char('o'), .. } if cursor.is_byte() || !cursor.is_visible() => screens[active_screen_index].toggle_offset_bar(),
-                KeyEvent{ code: KeyCode::Char('k'), .. } if cursor.is_byte() || !cursor.is_visible() => config.lock_file_buffers = !config.lock_file_buffers,
-                KeyEvent{ code: KeyCode::Char('p'), .. } if cursor.is_byte() || !cursor.is_visible() => config.only_printable = ! config.only_printable,
-                KeyEvent{ code: KeyCode::Char('.'), .. } if cursor.is_byte() || !cursor.is_visible() => command = Some(Command::FindDiff),
-                KeyEvent{ code: KeyCode::Char(','), .. } if cursor.is_byte() || !cursor.is_visible() => command = Some(Command::FindPatch),
-                KeyEvent{ code: KeyCode::Char('['), .. } if cursor.is_byte() || !cursor.is_visible() => {
+                KeyEvent{ code: KeyCode::Char('q'), .. } if !cursor.is_edit() => command = Some(Command::Quit(true)),
+                KeyEvent{ code: KeyCode::Char('h'), .. } if !cursor.is_edit() => config.highlight_diff = !config.highlight_diff,
+                KeyEvent{ code: KeyCode::Char('i'), .. } if !cursor.is_edit() => screens[active_screen_index].toggle_info_bar(),
+                KeyEvent{ code: KeyCode::Char('l'), .. } if !cursor.is_edit() => screens[active_screen_index].toggle_location_bar(),
+                KeyEvent{ code: KeyCode::Char('o'), .. } if !cursor.is_edit() => screens[active_screen_index].toggle_offset_bar(),
+                KeyEvent{ code: KeyCode::Char('k'), .. } if !cursor.is_edit() => config.lock_file_buffers = !config.lock_file_buffers,
+                KeyEvent{ code: KeyCode::Char('p'), .. } if !cursor.is_edit() => config.only_printable = ! config.only_printable,
+                KeyEvent{ code: KeyCode::Char('.'), .. } if !cursor.is_edit() => command = Some(Command::FindDiff),
+                KeyEvent{ code: KeyCode::Char(','), .. } if !cursor.is_edit() => command = Some(Command::FindPatch),
+                KeyEvent{ code: KeyCode::Char('['), .. } if !cursor.is_edit() => {
                     if let Some((o,_)) = file_buffers[active_fb_index].location_list_mut().previous() {
                         command = Some(Command::Goto(o)) 
                     } 
                 },
-                KeyEvent{ code: KeyCode::Char(']'), .. } if cursor.is_byte() || !cursor.is_visible() => {
+                KeyEvent{ code: KeyCode::Char(']'), .. } if !cursor.is_edit() => {
                     if let Some((o,_)) = file_buffers[active_fb_index].location_list_mut().next() {
                         command = Some(Command::Goto(o))
                     }
                 },
-                KeyEvent{ code: KeyCode::Char('{'), .. } if cursor.is_byte() || !cursor.is_visible() => {
+                KeyEvent{ code: KeyCode::Char('{'), .. } if !cursor.is_edit() => {
                     let lines = screens[active_screen_index].num_of_rows() as usize;
                     let ll = &mut file_buffers[active_fb_index].location_list_mut();
                     ll.set_current_index(ll.current_index().saturating_sub(lines));
@@ -301,7 +298,7 @@ fn main() {
                         command = Some(Command::Goto(o))
                     }
                 },
-                KeyEvent{ code: KeyCode::Char('}'), .. } if cursor.is_byte() || !cursor.is_visible() => {
+                KeyEvent{ code: KeyCode::Char('}'), .. } if !cursor.is_edit() => {
                     let lines = screens[active_screen_index].num_of_rows() as usize;
                     let ll = &mut file_buffers[active_fb_index].location_list_mut();
                     ll.set_current_index(ll.current_index() + lines);
@@ -310,12 +307,12 @@ fn main() {
                         command = Some(Command::Goto(o))
                     }
                 },
-                KeyEvent{ code: KeyCode::Char('<'), .. } if cursor.is_byte() || !cursor.is_visible() => {
+                KeyEvent{ code: KeyCode::Char('<'), .. } if !cursor.is_edit() => {
                     if let Some((o,_)) = file_buffers[active_fb_index].location_list().current() {
                         command = Some(Command::Goto(o))
                     }
                 },
-                KeyEvent{ code: KeyCode::Char('>'), .. } if cursor.is_byte() || !cursor.is_visible() => {
+                KeyEvent{ code: KeyCode::Char('>'), .. } if !cursor.is_edit() => {
                     let offset = if cursor.is_visible() { cursor.position() } else { file_buffers[active_fb_index].position() };
                     let hl = &file_buffers[active_fb_index].highlight_list();
 
@@ -329,18 +326,15 @@ fn main() {
                         }
                     }
                 },
-                KeyEvent{ code: KeyCode::Char('R'), .. } if cursor.is_byte() || !cursor.is_visible() => {
+                KeyEvent{ code: KeyCode::Char('R'), .. } if !cursor.is_edit() => {
                     let ll = &mut file_buffers[active_fb_index].location_list_mut();
 
                     if let Some((o,_)) = ll.current() {
                         ll.remove_current_location();
                         file_buffers[active_fb_index].highlight_list_mut().remove(o);
                     }
-                    //if let Some((o,_)) = file_buffers[active_fb_index].location_list().current() {
-                    //    command = Some(Command::Goto(o))
-                    //}
                 },
-                KeyEvent{ code: KeyCode::Char('r'), .. } if cursor.is_byte() || !cursor.is_visible() => {
+                KeyEvent{ code: KeyCode::Char('r'), .. } if !cursor.is_edit() => {
                     let ll = &mut file_buffers[active_fb_index].location_list_mut();
                     if let Some((_, s)) = &mut ll.get_mut(ll.current_index()) {
                         let user_string = UserInput::new(0, rows-2, cols).input(&mut stdout, format!("rename '{s}' to:").as_str(), &mut cmd_history, &color_scheme);
@@ -349,9 +343,9 @@ fn main() {
                         }
                     }
                 },
-                KeyEvent{ code: KeyCode::Char('-'), .. } if cursor.is_byte() || !cursor.is_visible() => screens[active_screen_index].dec_row_size(),
-                KeyEvent{ code: KeyCode::Char('+'), .. } if cursor.is_byte() || !cursor.is_visible() => screens[active_screen_index].inc_row_size(),
-                KeyEvent{ code: KeyCode::Char('/'), .. } if cursor.is_byte() || !cursor.is_visible() => {
+                KeyEvent{ code: KeyCode::Char('-'), .. } if !cursor.is_edit() => screens[active_screen_index].dec_row_size(),
+                KeyEvent{ code: KeyCode::Char('+'), .. } if !cursor.is_edit() => screens[active_screen_index].inc_row_size(),
+                KeyEvent{ code: KeyCode::Char('/'), .. } if !cursor.is_edit() => {
                     let user_string = UserInput::new(0, rows-2, cols).input(&mut stdout, ">", &mut cmd_history, &color_scheme);
                     if !user_string.is_empty() {
                         match Command::from_str(&user_string) {
@@ -360,7 +354,15 @@ fn main() {
                         }
                     }
                 },
-                KeyEvent{ code: KeyCode::Char('t'), .. } if cursor.is_byte() || !cursor.is_visible() => {
+                KeyEvent{ code: KeyCode::Char('n'), .. } if !cursor.is_visible() => {
+                    cursor.set_state(CursorState::Normal);
+
+                    //move cursor to the screen range if needed
+                    if cursor.position() < file_view_offset || cursor.position() >= file_view_offset + page_size {
+                        cursor.set_position(file_view_offset);
+                    }
+                },
+                KeyEvent{ code: KeyCode::Char('t'), .. } if !cursor.is_edit() => {
                     cursor.set_state(CursorState::Text);
 
                     //move cursor to the screen range if needed
@@ -368,7 +370,7 @@ fn main() {
                         cursor.set_position(file_view_offset);
                     }
                 },
-                KeyEvent{ code: KeyCode::Char('b'), .. } if !cursor.is_visible() => {
+                KeyEvent{ code: KeyCode::Char('b'), .. } if !cursor.is_edit() => {
                     cursor.set_state(CursorState::Byte);
 
                     //move cursor to the screen range if needed
@@ -376,7 +378,7 @@ fn main() {
                         cursor.set_position(file_view_offset);
                     }
                 },
-                KeyEvent{ code: KeyCode::Char('S'), .. } if cursor.is_byte() => {
+                KeyEvent{ code: KeyCode::Char('S'), .. } if cursor.is_normal() => {
                     let fb = &mut file_buffers[active_fb_index];
 
                     //select highlighted block and if not possible, select string under the cursor
@@ -386,7 +388,7 @@ fn main() {
                             command_functions::find_string_at_position(fb, cursor.position())
                         });
                 },
-                KeyEvent{ code: KeyCode::Char('s'), .. } if cursor.is_byte() => {
+                KeyEvent{ code: KeyCode::Char('s'), .. } if cursor.is_normal() => {
                     if !in_selection_mode && cursor.position() < file_buffers[active_fb_index].len() {
                         selection_start = cursor.position();
                         in_selection_mode = true;
@@ -394,17 +396,17 @@ fn main() {
                         in_selection_mode = false;
                     }
                 },
-                KeyEvent{ code: KeyCode::Char('y'), .. } if !cursor.is_text() => {
+                KeyEvent{ code: KeyCode::Char('y'), .. } if !cursor.is_edit() => {
                     command = Some(Command::YankBlock);
                 },
-                KeyEvent{ code: KeyCode::Char('m'), .. } if !cursor.is_text() => {
+                KeyEvent{ code: KeyCode::Char('m'), .. } if !cursor.is_edit() => {
                     if let Some((s,e)) = file_buffers[active_fb_index].selection() {
                         let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
                         file_buffers[active_fb_index].highlight_list_mut().add(s, e, Some(color));
                         file_buffers[active_fb_index].set_selection(None);
                     }
                 },
-                KeyEvent{ code: KeyCode::Char('M'), .. } if !cursor.is_text() => {
+                KeyEvent{ code: KeyCode::Char('M'), .. } if !cursor.is_edit() => {
                     let fb = &mut file_buffers[active_fb_index];
 
                     if let Some((s,e)) = fb.selection() {
@@ -422,11 +424,12 @@ fn main() {
                         }
                     }
                 },
+
                 //all other keys
                 KeyEvent{ code, .. } => {
                     match code {
                         //jump to bookmark
-                        KeyCode::Char(ch) if !cursor.is_visible() && ch.is_ascii_digit() => {
+                        KeyCode::Char(ch) if !cursor.is_edit() && ch.is_ascii_digit() => {
                             let ch = ch.to_digit(10).unwrap() as usize;
                             command = Some(Command::GotoBookmark(ch));
                         },

@@ -3,6 +3,7 @@ use std::ops::{Add, AddAssign, Sub, SubAssign};
 #[derive(Copy, Clone)]
 pub enum CursorState {
     Hidden,
+    Normal,
     Text,
     Byte,
 }
@@ -53,6 +54,14 @@ impl Cursor {
         !matches!(self.state, CursorState::Hidden)
     }
 
+    pub fn is_normal(&self) -> bool {
+        matches!(self.state, CursorState::Normal)
+    }
+
+    pub fn is_edit(&self) -> bool {
+        matches!(self.state, CursorState::Byte | CursorState::Text)
+    }
+
     pub fn is_text(&self) -> bool {
         matches!(self.state, CursorState::Text)
     }
@@ -61,7 +70,6 @@ impl Cursor {
         matches!(self.state, CursorState::Byte)
     }
 }
-
 
 impl Add<usize> for Cursor {
     type Output = Self;

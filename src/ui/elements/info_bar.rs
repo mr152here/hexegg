@@ -23,7 +23,8 @@ impl InfoBar {
 
         //generate strings
         let mode = match cursor_state.state() {
-            CursorState::Hidden => "V",
+            CursorState::Hidden => "-",
+            CursorState::Normal => "N",
             CursorState::Text => "T",
             CursorState::Byte => "B",
         };
