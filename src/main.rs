@@ -841,7 +841,12 @@ fn main() {
                     screens.iter_mut().for_each(|s| s.show_location_bar(true));
                 },
                 Some(Command::Histogram) => {
-                    let ll = command_functions::calculate_histogram(file_buffers[active_fb_index].as_slice());
+                    let mut data = file_buffers[active_fb_index].as_slice();
+                    if let Some((s,e)) = file_buffers[active_fb_index].selection() {
+                        data = &data[s..e];
+                    };
+
+                    let ll = command_functions::calculate_histogram(data);
                     file_buffers[active_fb_index].set_location_list(ll);
                     screens.iter_mut().for_each(|s| s.show_location_bar(true));
                 },
