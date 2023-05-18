@@ -13,7 +13,8 @@ Interactive hex editor for linux terminal (and other platforms) with some advanc
 - advanced block manipulation such as insert, delete, fill from generator, from other files, etc ...
 - advanced search options
 - results highlighting
-- command interface
+- parse some binary structures
+- simple command interface
 - minimal external dependencies
 - mouse support
 

@@ -1,4 +1,4 @@
-# hexegg
+# hexegg (0.7)
 
 Hexegg open and read all input files specified by their names as command-line arguments.
 
@@ -41,24 +41,28 @@ Display data as hexadecimal values in the pairs and their "text" values.
 
 #### Program modes
 
-The program can be in one of three modes. The default mode is "view mode". In this mode, it is not possible to directly modify file content. And is intended to be used for preview, inspection, search, ...
-The second mode is "byte mode". The cursor is shown, and every 0-9, a-f, A-F key modifies the byte at the cursor position, and this modification is stored as a patch (which you can save to the file later). All other keys work the same as in view mode. The third mode is "text mode". In this mode, every pressed (printable) key creates a patch under the cursor location. Intended for string modification. Because many of the keyboard shortcuts are letters, most of them are not available in this mode.
+The program is always in one of the four modes. The default mode is "view mode". In this mode, it is not possible to directly modify file content. And is intended to be used for preview, inspection, search, ...
+The second mode is "normal mode". Is same as the "view mode" but with active cursor. Is intended to by used for command execution, selecting blocks, highlighting... All keyboard shortcuts works only in view or normal mode. The third mode is the "byte mode". The cursor is shown, and every 0-9, a-f, A-F key modifies the byte at the cursor position, and this modification is stored as a patch (which you can save to the file later). The last mode is the "text mode". In this mode, every pressed (printable) key creates that patch under the cursor location. Intended for string modification. Because many of the keyboard shortcuts are letters, most of them are not available in byte or text this mode.
 
 Switching program modes:
-- 'b' - toggles the view mode to byte mode
-- 't' - toggles the view or byte mode to text mode
-- ESC - return to view mode from byte or text mode
+- 'n' - switch the view mode to normal mode
+- 'b' - switch the view mode to byte mode
+- 't' - switch the view mode to text mode
+- 'ESC' - return to the view mode from any other mode. In view mode cancel selection (if exists).
 - 's' - start or finish selection
-- 'S' - select highlighted block or string at the cursor position
+- 'S' - select whole highlighted block or string at the cursor position
 - 'y' - yank selected block
 
-If the program is in byte mode, you may select a block of bytes. Start by pressing the 's' key. Selection starts from the current cursor position, adjust it to the required size with standard movement keys, and press the 's' again to finish the selection (or you can cancel it anytime by 'ESC'). You can also select whole block of highlighted bytes or entire (ASCII) string at the cursor position by pressing 'S' key.
+If the program is in the "normal mode", you may select a block of bytes. Start by pressing the 's' key. Selection starts from the current cursor position, adjust it to the required size with standard movement keys, and press the 's' again to finish the selection (or you can cancel it anytime by 'ESC'). You can also select whole block of highlighted bytes or entire (ASCII) string at the cursor position by pressing 'S' key.
 
-You can yank (copy) selected block with 'y' key. This makes easy to move blocks from one file to another. To put yanked block to the file use *insertblock* or *appendblock* commands. Note: System clipboard is not implemented yet.
+You can yank (copy) selected block with 'y' key. This makes easy to copy blocks from one file to another or new file. To put yanked block to the file use *insertblock* or *appendblock* commands. To open block in a new file buffer use *openblock* command. Note: System clipboard is not implemented yet.
+
+#### File buffers
+Every file is read into separate file buffer. Content of the file buffers is no longer synchronized with the later changes in associated file. Every file buffer has separate content, patches, view offset, selections, highlights, etc..  Only current cursor or view offset can by synchronized if 'file buffer offset lock' is enabled. You can cycle through all file buffers using 'TAB' key.
 
 #### Mouse
 
-You may enable/disable mouse by setting *mouse_enabled* in the configuration *config.toml* file. Is enabled by default. If your terminal doesn't support mouse, is recommended to disable it. You can move cursor anywhere to the file by left click (even if is not visible). To select a block, press and hold down left button and drag the mouse (if crossterm library support mouse drag event for your terminal). If not, you can always right click and block between cursor and current mouse position will be selected. You may adjust behavior of mouse wheel by setting *mouse_scroll_type* and *mouse_scroll_size* variables. Double click somewhere at highlighted block or ASCII string will select it. Same as 'S' key.
+You may enable/disable mouse by setting *mouse_enabled* in the configuration *config.toml* file. Is enabled by default. If your terminal doesn't support mouse, is recommended to disable it. You can move cursor anywhere to the file by left click (even if is not visible). To select a block, press and hold down left button and drag the mouse (if crossterm library support mouse drag event for your terminal). If not, you can always right click and block between cursor and current mouse position will be selected. Using mouse wheel, you can scroll through the file. To adjust its behavior see check cofiguration file for *mouse_scroll_type* and *mouse_scroll_size* variables. Double click somewhere at highlighted block or ASCII string will select it. Same as 'S' key.
 
 #### Bookmarks
 
@@ -73,9 +77,9 @@ Almost every file modification is stored in the "patch map", which contains the 
 - 'q' - in the view mode will quit the program. If the file is modified, you will be asked whether to save it
 - 'h' - toggles highlighting different bytes
 - 'p' - show / hide non-printable characters (nice when looking for strings in binary blobs)
-- 'k' - toggle the file buffer offset lock. When you change the offset in one file, it will be set in all other files (if lock is enabled)
-- '.' - locate the next diff.
-- ',' - locate the next patch.
+- 'k' - toggle the file buffer offset lock. When lock is enabled, it will move cursor or file offset in all opened files. Not only in current one.
+- '.' - locate the next diff
+- ',' - locate the next patch
 - '+' - increase row size (nice when looking for some symetry or tables)
 - '-' - decrease row size (nice when looking for some symetry or tables)
 - 'i' - toggles the visibility of the info bar
@@ -105,13 +109,13 @@ Location bar also support mouse events. By clicking on the item in the list, you
 
 ![info_bar](assets/info_bar.png)  
 
-The info bar is at the top of the screen. There is information about the current file and program state. On the left is the current file index and the number of opened files. The current file name, where '+' indicates if the file has been modified. Next is the current position in the file in decimal, hexadecimal, and percentage representation. The following four (VPLD) letters indict:
-> [V|B|T] - view, binary or text mode  
+The info bar is at the top of the screen. There is information about the current file and program state. On the left is the current file index and the number of opened files. The current file name, where '+' indicates if the file has been modified. Next is the current position in the file in decimal, hexadecimal, and percentage representation. The following four (NPLD) letters indict:
+> [-|N|B|T] - view, normal, binary or text mode  
 > [P|-] - only printable characters  
 > [L|-] - file buffer offset lock  
 > [D|-] - diff highlighting
 
-Follows number of results in location bar. With the 'i' key, you can toggle the visibility of the info bar.
+Following by number of results in location bar. With the 'i' key, you can toggle the visibility of the info bar.
 
 ## Commands
 
@@ -218,6 +222,9 @@ Next is a list of available commands, their parameters, and their descriptions. 
 *fas \<min_size or substring\> \[substring\]*
 > find all strings and show their first 8 bytes as a preview in the location bar. Works the same as *findstring* but locates all strings, not just the next one.
 
+*filter \[substring\] \[substring\] ...*
+> filter results in Location Bar and display only that containing at least one of *substrings*. To reset filter, use empty *filter* command.
+
 *deleteblock*
 > delete the selected block from the file
 
@@ -267,6 +274,13 @@ Next is a list of available commands, their parameters, and their descriptions. 
 
 *savefile \[filename\]*
 > save the current file buffer with all its modifications as a *filename*. If no *filename* is specified, the file is saved under its own name.
+
+*parseheader \[header_name\]*
+> parse, show and highlight binary structure at the current position. If *header_name* is not given, it will first try to find correct signature at the position and than parse it. Currently recognized structures are: BMP, ELF, GIF, ICO, MZ, MZPE, PE, PNG.
+> 
+> parseheader bmp - parse file from current position as a BMP structure
+> parseheader mz - parse file from current position as a (only) MZ structure
+> parseheader mzpe - parse file from current position as a MZPE structure
 
 *entropy \{block_size = 1024\} \{margin = 1.1\}*  
 *ent \{block_size = 1024\} \{margin = 1.1\}*
