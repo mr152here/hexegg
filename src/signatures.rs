@@ -11,7 +11,7 @@ static SIGS_06: [SignatureFn; 1] = [|_| None];
 static SIGS_07: [SignatureFn; 1] = [|_| None];
 static SIGS_08: [SignatureFn; 1] = [|_| None];
 static SIGS_09: [SignatureFn; 1] = [|_| None];
-static SIGS_0A: [SignatureFn; 1] = [|_| None];
+static SIGS_0A: [SignatureFn; 1] = [is_signature_pcapng];
 static SIGS_0B: [SignatureFn; 1] = [|_| None];
 static SIGS_0C: [SignatureFn; 1] = [|_| None];
 static SIGS_0D: [SignatureFn; 1] = [|_| None];
@@ -561,6 +561,19 @@ fn is_signature_riff(data: &[u8]) -> Option<&'static str> {
         } else {
             None
         };
+    }
+    None
+}
+
+//try to recognize PCAP NG section. 
+fn is_signature_pcapng(data: &[u8]) -> Option<&'static str> {
+
+    if data.len() > 44 && (data[0] == 0x0A && data[1] == 0x0D && data[2] == 0x0D && data[3] == 0x0A) {
+        if data[8] == 0x4D && data[9] == 0x3C && data[10] == 0x2B && data[11] == 0x1A {
+            return Some("pcapng_le");
+        } else if data[8] == 0x1A && data[9] == 0x2B && data[10] == 0x3C && data[11] == 0x4D {
+            return Some("pcapng_be");
+        }
     }
     None
 }
