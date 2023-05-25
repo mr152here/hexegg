@@ -229,7 +229,6 @@ pub fn parse_elf_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     let str_section = sh_str_index * sh_entry_size + sh_offset;
     let section_names_table = if elf32 {
         match read_u32(data, str_section+16) {
-        // match read_u32(&data[str_section+16..]) {
             Some(v) => v as usize,
             None => return Err("ELF section header is truncated!".to_owned()),
         }

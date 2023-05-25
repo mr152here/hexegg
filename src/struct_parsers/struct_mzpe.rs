@@ -384,7 +384,6 @@ pub fn parse_pe_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
                             None => return Err("Export name table is truncated!".to_owned()),
                         };
 
-                        // let mut export_name = String::new();
                         let export_name = match string_from_u8(data, export_name_fo) {
                             Some(v) => v,
                             None => return Err("Export name is truncated!".to_owned()),
