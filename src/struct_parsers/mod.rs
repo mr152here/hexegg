@@ -40,25 +40,25 @@ pub fn read_u8(data: &[u8], offset: usize) -> Option<u8> {
 }
 
 pub fn read_le_u16(data: &[u8], offset: usize) -> Option<u16> {
-    (data.len() >= (offset + size_of::<u16>())).then_some(u16::from_le_bytes(data[offset..offset + size_of::<u16>()].try_into().unwrap()))
+    (data.len() >= (offset + size_of::<u16>())).then(|| {u16::from_le_bytes(data[offset..offset + size_of::<u16>()].try_into().unwrap())})
 }
 
 pub fn read_le_u32(data: &[u8], offset: usize) -> Option<u32> {
-    (data.len() >= (offset + size_of::<u32>())).then_some(u32::from_le_bytes(data[offset..offset + size_of::<u32>()].try_into().unwrap()))
+    (data.len() >= (offset + size_of::<u32>())).then(|| {u32::from_le_bytes(data[offset..offset + size_of::<u32>()].try_into().unwrap())})
 }
 
 pub fn read_le_u64(data: &[u8], offset: usize) -> Option<u64> {
-    (data.len() >= (offset + size_of::<u64>())).then_some(u64::from_le_bytes(data[offset..offset + size_of::<u64>()].try_into().unwrap()))
+    (data.len() >= (offset + size_of::<u64>())).then(|| {u64::from_le_bytes(data[offset..offset + size_of::<u64>()].try_into().unwrap())})
 }
 
 pub fn read_be_u16(data: &[u8], offset: usize) -> Option<u16> {
-    (data.len() >= (offset + size_of::<u16>())).then_some(u16::from_be_bytes(data[offset..offset + size_of::<u16>()].try_into().unwrap()))
+    (data.len() >= (offset + size_of::<u16>())).then(|| {u16::from_be_bytes(data[offset..offset + size_of::<u16>()].try_into().unwrap())})
 }
 
 pub fn read_be_u32(data: &[u8], offset: usize) -> Option<u32> {
-    (data.len() >= (offset + size_of::<u32>())).then_some(u32::from_be_bytes(data[offset..offset + size_of::<u32>()].try_into().unwrap()))
+    (data.len() >= (offset + size_of::<u32>())).then(|| {u32::from_be_bytes(data[offset..offset + size_of::<u32>()].try_into().unwrap())})
 }
 
 pub fn read_be_u64(data: &[u8], offset: usize) -> Option<u64> {
-    (data.len() >= (offset + size_of::<u64>())).then_some(u64::from_be_bytes(data[offset..offset + size_of::<u64>()].try_into().unwrap()))
+    (data.len() >= (offset + size_of::<u64>())).then(|| {u64::from_be_bytes(data[offset..offset + size_of::<u64>()].try_into().unwrap())})
 }
