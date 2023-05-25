@@ -565,15 +565,12 @@ fn is_signature_riff(data: &[u8]) -> Option<&'static str> {
     None
 }
 
-//try to recognize PCAP NG section. 
+//try to recognize PCAP NG header
 fn is_signature_pcapng(data: &[u8]) -> Option<&'static str> {
 
     if data.len() > 44 && (data[0] == 0x0A && data[1] == 0x0D && data[2] == 0x0D && data[3] == 0x0A) {
-        if data[8] == 0x4D && data[9] == 0x3C && data[10] == 0x2B && data[11] == 0x1A {
-            return Some("pcapng_le");
-        } else if data[8] == 0x1A && data[9] == 0x2B && data[10] == 0x3C && data[11] == 0x4D {
-            return Some("pcapng_be");
-        }
+        return ((data[8] == 0x4D && data[9] == 0x3C && data[10] == 0x2B && data[11] == 0x1A) ||
+                (data[8] == 0x1A && data[9] == 0x2B && data[10] == 0x3C && data[11] == 0x4D)).then_some("pcapng");
     }
     None
 }
