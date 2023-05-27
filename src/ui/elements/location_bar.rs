@@ -76,13 +76,14 @@ impl LocationBar {
             //print strings from location list. Limit it size to self width
             let mut print_string: String;
             if let Some((_, s)) = loc_iter.next() {
-                print_string = s.bytes()
+                print_string = s.chars()
                     .enumerate()
-                    .map_while(|(i, b)| (i < width).then_some(b as char) )
+                    .map_while(|(i, c)| (i < width).then_some(c as char))
                     .collect();
 
-                //fill the rest with empty line if string is too short
-                print_string.push_str(&EMPTY_LINE[0..width-print_string.len()]);
+                //fill the rest with empty line if string is not long enought
+                let char_len = print_string.chars().count();
+                print_string.push_str(&EMPTY_LINE[0..width-char_len]);
 
             } else {
                 print_string = EMPTY_LINE[0..width].to_owned();
