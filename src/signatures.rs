@@ -78,7 +78,7 @@ static SIGS_49: [SignatureFn; 1] = [|_| None];
 static SIGS_4A: [SignatureFn; 1] = [|_| None];
 static SIGS_4B: [SignatureFn; 1] = [|_| None];
 static SIGS_4C: [SignatureFn; 1] = [is_signature_lzip];
-static SIGS_4D: [SignatureFn; 3] = [is_signature_cab, is_signature_mzpe, is_signature_midi];
+static SIGS_4D: [SignatureFn; 4] = [is_signature_cab, is_signature_mzpe, is_signature_midi, is_signature_pcap];
 static SIGS_4E: [SignatureFn; 1] = [|_| None];
 static SIGS_4F: [SignatureFn; 1] = [|_| None];
 static SIGS_50: [SignatureFn; 1] = [is_signature_zip];
@@ -162,7 +162,7 @@ static SIGS_9D: [SignatureFn; 1] = [|_| None];
 static SIGS_9E: [SignatureFn; 1] = [|_| None];
 static SIGS_9F: [SignatureFn; 1] = [|_| None];
 static SIGS_A0: [SignatureFn; 1] = [|_| None];
-static SIGS_A1: [SignatureFn; 1] = [|_| None];
+static SIGS_A1: [SignatureFn; 1] = [is_signature_pcap];
 static SIGS_A2: [SignatureFn; 1] = [|_| None];
 static SIGS_A3: [SignatureFn; 1] = [|_| None];
 static SIGS_A4: [SignatureFn; 1] = [|_| None];
@@ -213,7 +213,7 @@ static SIGS_D0: [SignatureFn; 1] = [|_| None];
 static SIGS_D1: [SignatureFn; 1] = [|_| None];
 static SIGS_D2: [SignatureFn; 1] = [|_| None];
 static SIGS_D3: [SignatureFn; 1] = [|_| None];
-static SIGS_D4: [SignatureFn; 1] = [|_| None];
+static SIGS_D4: [SignatureFn; 1] = [is_signature_pcap];
 static SIGS_D5: [SignatureFn; 1] = [|_| None];
 static SIGS_D6: [SignatureFn; 1] = [|_| None];
 static SIGS_D7: [SignatureFn; 1] = [|_| None];
@@ -561,6 +561,22 @@ fn is_signature_riff(data: &[u8]) -> Option<&'static str> {
         } else {
             None
         };
+    }
+    None
+}
+
+//try to recognize PCAP header
+fn is_signature_pcap(data: &[u8]) -> Option<&'static str> {
+
+    if data.len() > 23 {
+        //little endian
+        if ((data[0] == 0xD4 && data[1] == 0xC3) || (data[0] == 0x4D && data[1] == 0x3C)) && (data[2] == 0xB2 && data[3] == 0xA1) {
+            return (data[4] <= 2 && data[5] == 0 && data[6] <= 4 && data[7] == 0).then_some("pcap");
+
+        //big endian
+        } else if (data[0] == 0xA1 && data[1] == 0xB2 ) && ((data[2] == 0xC3 && data[3] == 0xD4) || (data[2] == 0x3C && data[3] == 0x4D)) {
+            return (data[4] == 0 && data[5] <= 2 && data[6] == 0 && data[7] <= 4).then_some("pcap");
+        }
     }
     None
 }
