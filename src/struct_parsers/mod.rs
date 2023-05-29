@@ -4,6 +4,7 @@ pub mod struct_elf;
 pub mod struct_gif;
 pub mod struct_ico;
 pub mod struct_mzpe;
+pub mod struct_pcap;
 pub mod struct_pcapng;
 pub mod struct_png;
 
@@ -23,6 +24,7 @@ pub fn parse_struct_by_name(data: &[u8], name: &str) -> Result<Vec<FieldDescript
         "mz" => struct_mzpe::parse_mz_struct(data),
         "mzpe" => struct_mzpe::parse_mzpe_struct(data),
         "pe" => struct_mzpe::parse_pe_struct(data),
+        "pcap" => struct_pcap::parse_pcap_struct(data),
         "pcapng" => struct_pcapng::parse_pcapng_struct(data),
         "png" => struct_png::parse_png_struct(data),
         _ => Err("Unsupported header!".to_string()),
