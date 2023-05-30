@@ -10,10 +10,10 @@ struct ProgramHeader {
 pub fn parse_elf_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
 
     if !is_signature(data, "elf") {
-        return Err("Invalid 'elf' signature!".to_owned());
+        return Err("Invalid 'ELF' signature!".to_owned());
 
     } else if data.len() < 52 {
-        return Err("Too small for 'elf' header!".to_owned());
+        return Err("Too small for 'ELF' header!".to_owned());
     }
 
     // ELF header
@@ -138,17 +138,17 @@ pub fn parse_elf_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     let mut prog_headers = Vec::<ProgramHeader>::with_capacity(ph_num);
 
     for segment_index in 0..ph_num {
-        header.push(FieldDescription {name: format!("-- SEGMENT_{segment_index} --"), offset: last_offset, size: 0});
-        header.push(FieldDescription {name: "p_type".to_owned(), offset: last_offset, size: 4});
+        header.push(FieldDescription {name: format!("segment_{segment_index}"), offset: last_offset, size: 0});
+        header.push(FieldDescription {name: ".p_type".to_owned(), offset: last_offset, size: 4});
 
         let (p_offset, v_offset, v_size) = if elf32 {
-            header.push(FieldDescription {name: "offset".to_owned(), offset: last_offset+4, size: 4});
-            header.push(FieldDescription {name: "v_address".to_owned(), offset: last_offset+8, size: 4});
-            header.push(FieldDescription {name: "p_address".to_owned(), offset: last_offset+12, size: 4});
-            header.push(FieldDescription {name: "file_size".to_owned(), offset: last_offset+16, size: 4});
-            header.push(FieldDescription {name: "mem_size".to_owned(), offset: last_offset+20, size: 4});
-            header.push(FieldDescription {name: "flags".to_owned(), offset: last_offset+24, size: 4});
-            header.push(FieldDescription {name: "align".to_owned(), offset: last_offset+28, size: 4});
+            header.push(FieldDescription {name: ".offset".to_owned(), offset: last_offset+4, size: 4});
+            header.push(FieldDescription {name: ".v_address".to_owned(), offset: last_offset+8, size: 4});
+            header.push(FieldDescription {name: ".p_address".to_owned(), offset: last_offset+12, size: 4});
+            header.push(FieldDescription {name: ".file_size".to_owned(), offset: last_offset+16, size: 4});
+            header.push(FieldDescription {name: ".mem_size".to_owned(), offset: last_offset+20, size: 4});
+            header.push(FieldDescription {name: ".flags".to_owned(), offset: last_offset+24, size: 4});
+            header.push(FieldDescription {name: ".align".to_owned(), offset: last_offset+28, size: 4});
 
             let offset = match read_u32(data, last_offset+4) {
                 Some(v) => v as usize,
@@ -175,20 +175,20 @@ pub fn parse_elf_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
             (p_offset, v_offset, v_size)
 
         } else {
-            header.push(FieldDescription {name: "flags".to_owned(), offset: last_offset+4, size: 4});
-            header.push(FieldDescription {name: "offset".to_owned(), offset: last_offset+8, size: 8});
-            header.push(FieldDescription {name: "v_address".to_owned(), offset: last_offset+16, size: 8});
-            header.push(FieldDescription {name: "p_address".to_owned(), offset: last_offset+24, size: 8});
-            header.push(FieldDescription {name: "file_size".to_owned(), offset: last_offset+32, size: 8});
-            header.push(FieldDescription {name: "mem_size".to_owned(), offset: last_offset+40, size: 8});
-            header.push(FieldDescription {name: "align".to_owned(), offset: last_offset+48, size: 8});
+            header.push(FieldDescription {name: ".flags".to_owned(), offset: last_offset+4, size: 4});
+            header.push(FieldDescription {name: ".offset".to_owned(), offset: last_offset+8, size: 8});
+            header.push(FieldDescription {name: ".v_address".to_owned(), offset: last_offset+16, size: 8});
+            header.push(FieldDescription {name: ".p_address".to_owned(), offset: last_offset+24, size: 8});
+            header.push(FieldDescription {name: ".file_size".to_owned(), offset: last_offset+32, size: 8});
+            header.push(FieldDescription {name: ".mem_size".to_owned(), offset: last_offset+40, size: 8});
+            header.push(FieldDescription {name: ".align".to_owned(), offset: last_offset+48, size: 8});
 
             let offset = match read_u64(data, last_offset+8) {
                 Some(v) => v as usize,
                 None => return Err("ELF program header is truncated!".to_owned()),
             };
             // let size = u64::from_le_bytes(data[last_offset+32..last_offset+40].try_into().unwrap()) as usize;
-            header.push(FieldDescription {name: "data".to_owned(), offset, size: 0});
+            header.push(FieldDescription {name: ".data".to_owned(), offset, size: 0});
 
             let v_offset = match read_u64(data, last_offset+16) {
                 Some(v) => v as usize,
@@ -243,7 +243,7 @@ pub fn parse_elf_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
     last_offset = sh_offset;
 
     for section_index in 0..sh_num {
-        header.push(FieldDescription {name: format!("-- SECTION_{section_index} --"), offset: last_offset, size: 0});
+        header.push(FieldDescription {name: format!("section_{section_index}"), offset: last_offset, size: 0});
 
         let name_offset = match read_u32(data, last_offset) {
             Some(v) => v as usize,
@@ -256,39 +256,39 @@ pub fn parse_elf_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
         };
 
         header.push(FieldDescription {name: sec_name, offset: last_offset, size: 4});
-        header.push(FieldDescription {name: "type".to_owned(), offset: last_offset+4, size: 4});
+        header.push(FieldDescription {name: ".type".to_owned(), offset: last_offset+4, size: 4});
 
         if elf32 {
-            header.push(FieldDescription {name: "flags".to_owned(), offset: last_offset+8, size: 4});
-            header.push(FieldDescription {name: "address".to_owned(), offset: last_offset+12, size: 4});
-            header.push(FieldDescription {name: "offset".to_owned(), offset: last_offset+16, size: 4});
-            header.push(FieldDescription {name: "size".to_owned(), offset: last_offset+20, size: 4});
-            header.push(FieldDescription {name: "link".to_owned(), offset: last_offset+24, size: 4});
-            header.push(FieldDescription {name: "info".to_owned(), offset: last_offset+28, size: 4});
-            header.push(FieldDescription {name: "align".to_owned(), offset: last_offset+32, size: 4});
-            header.push(FieldDescription {name: "ent_size".to_owned(), offset: last_offset+36, size: 4});
+            header.push(FieldDescription {name: ".flags".to_owned(), offset: last_offset+8, size: 4});
+            header.push(FieldDescription {name: ".address".to_owned(), offset: last_offset+12, size: 4});
+            header.push(FieldDescription {name: ".offset".to_owned(), offset: last_offset+16, size: 4});
+            header.push(FieldDescription {name: ".size".to_owned(), offset: last_offset+20, size: 4});
+            header.push(FieldDescription {name: ".link".to_owned(), offset: last_offset+24, size: 4});
+            header.push(FieldDescription {name: ".info".to_owned(), offset: last_offset+28, size: 4});
+            header.push(FieldDescription {name: ".align".to_owned(), offset: last_offset+32, size: 4});
+            header.push(FieldDescription {name: ".ent_size".to_owned(), offset: last_offset+36, size: 4});
 
             let offset = match read_u32(data, last_offset+16) {
                 Some(v) => v as usize,
                 None => return Err("ELF section header is truncated!".to_owned()),
             };
-            header.push(FieldDescription {name: "data".to_owned(), offset, size: 0});
+            header.push(FieldDescription {name: ".data".to_owned(), offset, size: 0});
 
         } else {
-            header.push(FieldDescription {name: "flags".to_owned(), offset: last_offset+8, size: 8});
-            header.push(FieldDescription {name: "address".to_owned(), offset: last_offset+16, size: 8});
-            header.push(FieldDescription {name: "offset".to_owned(), offset: last_offset+24, size: 8});
-            header.push(FieldDescription {name: "size".to_owned(), offset: last_offset+32, size: 8});
-            header.push(FieldDescription {name: "link".to_owned(), offset: last_offset+36, size: 4});
-            header.push(FieldDescription {name: "info".to_owned(), offset: last_offset+40, size: 4});
-            header.push(FieldDescription {name: "align".to_owned(), offset: last_offset+48, size: 8});
-            header.push(FieldDescription {name: "ent_size".to_owned(), offset: last_offset+56, size: 8});
+            header.push(FieldDescription {name: ".flags".to_owned(), offset: last_offset+8, size: 8});
+            header.push(FieldDescription {name: ".address".to_owned(), offset: last_offset+16, size: 8});
+            header.push(FieldDescription {name: ".offset".to_owned(), offset: last_offset+24, size: 8});
+            header.push(FieldDescription {name: ".size".to_owned(), offset: last_offset+32, size: 8});
+            header.push(FieldDescription {name: ".link".to_owned(), offset: last_offset+36, size: 4});
+            header.push(FieldDescription {name: ".info".to_owned(), offset: last_offset+40, size: 4});
+            header.push(FieldDescription {name: ".align".to_owned(), offset: last_offset+48, size: 8});
+            header.push(FieldDescription {name: ".ent_size".to_owned(), offset: last_offset+56, size: 8});
 
             let offset = match read_u64(data, last_offset+24) {
                 Some(v) => v as usize,
                 None => return Err("ELF section header is truncated!".to_owned()),
             };
-            header.push(FieldDescription {name: "data".to_owned(), offset, size: 0});
+            header.push(FieldDescription {name: ".data".to_owned(), offset, size: 0});
         };
         last_offset += sh_entry_size;
     }

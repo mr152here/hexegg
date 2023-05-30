@@ -63,7 +63,7 @@ pub fn parse_dib_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
 
     } else if dib_size == 40 || dib_size == 108 || dib_size == 124 {
         //BITMAPINFOHEADER
-        header.push(FieldDescription {name: "-- dib --".to_owned(), offset: 0, size: 0});
+        header.push(FieldDescription {name: "-- DIB --".to_owned(), offset: 0, size: 0});
         header.push(FieldDescription {name: "size".to_owned(), offset: 0, size: 4});
         header.push(FieldDescription {name: "width".to_owned(), offset: 4, size: 4});
         header.push(FieldDescription {name: "height".to_owned(), offset: 8, size: 4});
