@@ -517,7 +517,7 @@ fn main() {
                         }
 
                     } else if screen.is_over_location_bar(column, row) {
-                        let fb = &mut file_buffers[active_screen_index];
+                        let fb = &mut file_buffers[active_fb_index];
 
                         if let Some(loc_list_idx) = screen.location_list_index(column, row, fb.location_list()) {
                             if let Some((o,_)) = fb.location_list().get(loc_list_idx) {
