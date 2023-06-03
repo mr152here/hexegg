@@ -29,5 +29,5 @@ pub trait Screen {
     fn is_over_data_area(&self, col: u16, row: u16) -> bool;
     fn screen_coord_to_file_offset(&self, init_offset: usize, column: u16, row: u16) -> Option<usize>;
 
-    fn draw(&self, stdout: &mut std::io::Stdout, file_buffers: &[FileBuffer], active_fb_index: usize, cursor_state: &Cursor, color_scheme: &ColorScheme, config: &Config); 
+    fn draw(&mut self, stdout: &mut std::io::Stdout, file_buffers: &[FileBuffer], active_fb_index: usize, cursor_state: &Cursor, color_scheme: &ColorScheme, config: &Config); 
 }

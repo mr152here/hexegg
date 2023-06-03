@@ -156,7 +156,7 @@ impl Screen for WordScreen {
         None
     }
 
-    fn draw(&self, stdout: &mut std::io::Stdout, file_buffers: &[FileBuffer], active_fb_index: usize, cursor_state: &Cursor, color_scheme: &ColorScheme, config: &Config) {
+    fn draw(&mut self, stdout: &mut std::io::Stdout, file_buffers: &[FileBuffer], active_fb_index: usize, cursor_state: &Cursor, color_scheme: &ColorScheme, config: &Config) {
         let offset = file_buffers[active_fb_index].position();
 
         if self.show_info_bar {
