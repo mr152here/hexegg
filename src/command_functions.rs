@@ -1,6 +1,7 @@
 use std::{fs,str};
 use std::fs::File;
-use std::io::Write;
+use std::io::Write as _;
+use std::fmt::Write as _;
 use crate::location_list::LocationList;
 use crate::file_buffer::FileBuffer;
 use crate::ColorScheme;
@@ -371,6 +372,32 @@ pub fn open_block(file_buffers: &mut Vec<FileBuffer>, active_fb_index: usize, ya
         return Err("Please select or yank the block first.".to_owned());
     }
     Ok(())
+}
+
+//export selected block into the txt file
+pub fn export_block(file_buffers: &[FileBuffer], active_fb_index: usize) -> Result<String, String> {
+
+    if let Some((start,end)) = file_buffers[active_fb_index].selection() {
+        let block_chunks = file_buffers[active_fb_index].as_slice()[start..=end].chunks(16);
+        let mut out_string = String::with_capacity(5*(end - start + 1));
+
+        for chunk in block_chunks {
+            for byte in chunk {
+                if let Err(s) = write!(&mut out_string, "0x{:02X}, ", byte) {
+                    return Err(s.to_string());
+                }
+            }
+            out_string.push_str("\n");
+        }
+
+        let file_name = format!("export_{:08X}.txt", start);
+        return match save_file(&file_name, out_string.as_bytes()) {
+            Ok(count) => Ok(format!("written {} bytes to '{}'.", count, file_name)),
+            Err(s) => Err(s),
+        }
+    }
+
+    Err("Please select the block first.".to_owned())
 }
 
 //open and read file into Vec<u8>.

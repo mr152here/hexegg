@@ -22,6 +22,7 @@ pub enum Command {
     DeleteBlock,
     SaveBlock(String),
     FillBlock(Vec<u8>),
+    ExportBlock,
     InsertFilledBlock(Vec<u8>),
     AppendFilledBlock(Vec<u8>),
     OpenFile(String),
@@ -101,6 +102,7 @@ impl Command {
             Some(&"deleteblock") => Ok(Command::DeleteBlock),
             Some(&"saveblock") => Command::parse_save_block(&cmd_vec),
             Some(&"fillblock") => Command::parse_fill_block(&cmd_vec),
+            Some(&"exportblock") => Ok(Command::ExportBlock),
             Some(&"insertfilledblock") => Command::parse_insert_filled_block(&cmd_vec),
             Some(&"appendfilledblock") => Command::parse_append_filled_block(&cmd_vec),
 

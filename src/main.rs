@@ -972,6 +972,12 @@ fn main() {
                         MessageBox::new(0, rows-2, cols).show(&mut stdout, "Please select the block first.", MessageBoxType::Error, &color_scheme);
                     }
                 },
+                Some(Command::ExportBlock) => {
+                    match command_functions::export_block(&file_buffers, active_fb_index) {
+                        Ok(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Informative, &color_scheme); },
+                        Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
+                    }
+                },
                 Some(Command::InsertFile(file_name)) => {
                     if cursor.is_visible() {
                         match command_functions::read_file(&file_name) {
