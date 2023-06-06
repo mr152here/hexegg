@@ -923,6 +923,12 @@ fn main() {
                     if let Some((s,e)) = file_buffers[active_fb_index].selection() {
                         yank_buffer = file_buffers[active_fb_index].as_slice()[s..=e].to_vec();
                         MessageBox::new(0, rows-2, cols).show(&mut stdout, format!("Yanked {} bytes.", yank_buffer.len()).as_str(), MessageBoxType::Informative, &color_scheme);
+
+                        //try to put data into system clipboard
+                        if let Err(s) = command_functions::yank_block_to_clipboard(&yank_buffer, &config.clipboard_program) {
+                            MessageBox::new(0, rows-2, cols).show(&mut stdout, &s, MessageBoxType::Error, &color_scheme);
+                        }
+
                     } else {
                         yank_buffer.clear();
                         MessageBox::new(0, rows-2, cols).show(&mut stdout, "Nothing to yank. Buffer cleared.", MessageBoxType::Informative, &color_scheme);

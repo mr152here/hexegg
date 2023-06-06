@@ -44,6 +44,11 @@ active_color_scheme = "gudinuf"
 #clear terminal when program ends
 clear_screen_on_exit = false
 
+#specify program name to work with the system clipboard.(window is not supported yet)
+#"xclip", "xsel" - for linux
+#"" - to disable clipboard feature
+clipboard_program = "xclip"
+
 #which screen is loaded when program starts
 default_screen = "text_screen"
 
@@ -54,7 +59,7 @@ default_screen = "text_screen"
 name = "text_screen"
 enabled = true
 data_area_width = 9999
-location_bar_width = 8
+location_bar_width = 12
 show_info_bar = true
 show_offset_bar = true
 show_location_bar = false
@@ -63,7 +68,7 @@ show_location_bar = false
 name = "byte_screen"
 enabled = true
 data_area_width = 9999
-location_bar_width = 8
+location_bar_width = 12
 show_info_bar = true
 show_offset_bar = true
 show_location_bar = false
@@ -72,7 +77,7 @@ show_location_bar = false
 name = "word_screen"
 enabled = true
 data_area_width = 9999
-location_bar_width = 8
+location_bar_width = 12
 show_info_bar = true
 show_offset_bar = true
 show_location_bar = false

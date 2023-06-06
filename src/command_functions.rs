@@ -2,6 +2,7 @@ use std::{fs,str};
 use std::fs::File;
 use std::io::Write as _;
 use std::fmt::Write as _;
+use std::process::{Command, Stdio};
 use crate::location_list::LocationList;
 use crate::file_buffer::FileBuffer;
 use crate::ColorScheme;
@@ -398,6 +399,37 @@ pub fn export_block(file_buffers: &[FileBuffer], active_fb_index: usize) -> Resu
     }
 
     Err("Please select the block first.".to_owned())
+}
+
+//try to use xsel or xclip program to store data into clipboard selection
+pub fn yank_block_to_clipboard(data: &[u8], program_name: &str) -> Result<(), String> {
+
+    let(arg0, arg1) = match program_name {
+        "xclip" => ("-selection", "clipboard"),
+        "xsel" => ("-i", "--clipboard"),
+        "" => return Ok(()),
+        _ => return Err("Please set the correct program to work with the clipboard in config file.".to_owned()),
+    };
+
+    if let Ok(mut child) = Command::new(program_name)
+                .stdin(Stdio::piped())
+                .arg(arg0)
+                .arg(arg1)
+                .spawn()
+    {
+        if let Some(mut si) = child.stdin.take() {
+            if let Err(e) = si.write(data) {
+                return Err(format!("Can't write to the stdin of the {}. {}", program_name, e));
+            }
+        }
+
+        return match child.wait() {
+            Err(e) => Err(format!("{}", e)),
+            Ok(_) => Ok(()),
+        };
+    }
+
+    Err(format!("Can't spawn {}!", program_name))
 }
 
 //open and read file into Vec<u8>.
