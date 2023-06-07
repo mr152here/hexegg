@@ -401,35 +401,40 @@ pub fn export_block(file_buffers: &[FileBuffer], active_fb_index: usize) -> Resu
     Err("Please select the block first.".to_owned())
 }
 
-//try to use xsel or xclip program to store data into clipboard selection
-pub fn yank_block_to_clipboard(data: &[u8], program_name: &str) -> Result<(), String> {
+//try to send selected block via stdin to external application specified in config.toml
+pub fn yank_block_to_program(data: &[u8], clipboard_program: &Vec<String>) -> Result<(), String> {
 
-    let(arg0, arg1) = match program_name {
-        "xclip" => ("-selection", "clipboard"),
-        "xsel" => ("-i", "--clipboard"),
-        "" => return Ok(()),
-        _ => return Err("Please set the correct program to work with the clipboard in config file.".to_owned()),
-    };
+    if let Some(prog_name) = clipboard_program.first() {
+        if !prog_name.is_empty() {
 
-    if let Ok(mut child) = Command::new(program_name)
-                .stdin(Stdio::piped())
-                .arg(arg0)
-                .arg(arg1)
-                .spawn()
-    {
-        if let Some(mut si) = child.stdin.take() {
-            if let Err(e) = si.write(data) {
-                return Err(format!("Can't write to the stdin of the {}. {}", program_name, e));
+            let prog_args = if clipboard_program.len() > 1 {
+                &clipboard_program.as_slice()[1..]
+            } else {
+                &[]
+            };
+
+            if let Ok(mut child) = Command::new(prog_name)
+                        .stdin(Stdio::piped())
+                        .args(prog_args)
+                        .spawn()
+            {
+                if let Some(mut si) = child.stdin.take() {
+                    if let Err(e) = si.write(data) {
+                        return Err(format!("Can't write to the stdin of the {}. {}", prog_name, e));
+                    }
+                }
+
+                return match child.wait() {
+                    Err(e) => Err(format!("{}", e)),
+                    Ok(_) => Ok(()),
+                };
+
+            } else {
+                return Err(format!("Can't spawn '{}'!", prog_name));
             }
         }
-
-        return match child.wait() {
-            Err(e) => Err(format!("{}", e)),
-            Ok(_) => Ok(()),
-        };
     }
-
-    Err(format!("Can't spawn {}!", program_name))
+    Ok(())
 }
 
 //open and read file into Vec<u8>.

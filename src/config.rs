@@ -13,7 +13,7 @@ pub struct Config {
     pub clear_screen_on_exit: bool,
     pub highlight_style: HighlightStyle,
     pub active_color_scheme: String,
-    pub clipboard_program: String,
+    pub yank_to_program: Vec<String>,
     pub default_screen: String,
     screen_settings: Vec<ScreenSettings>,
     color_scheme: Vec<ColorScheme>

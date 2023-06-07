@@ -44,10 +44,22 @@ active_color_scheme = "gudinuf"
 #clear terminal when program ends
 clear_screen_on_exit = false
 
-#specify program name to work with the system clipboard.(window is not supported yet)
-#"xclip", "xsel" - for linux
-#"" - to disable clipboard feature
-clipboard_program = "xclip"
+#specify program to works with yanked data / block.
+#Hexegg execute it, send selected block via stdin and wait until process ends.
+#Variable must be an array where first item is program name, and the others are program arguments.
+#Use empty array disable this features.
+#
+#Examples:
+#send it to the clipboard (X server)
+#yank_to_program = ["xclip", "-selection", "clipboard"]
+#yank_to_program = ["xsel", "-i", "--clipboard"]
+#
+#clipboard on MS Windows
+#yank_to_program = ["clip.exe"]
+#
+#send it to neovim
+#yank_to_program = ["nvim"]
+yank_to_program = []
 
 #which screen is loaded when program starts
 default_screen = "text_screen"

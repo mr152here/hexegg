@@ -924,8 +924,8 @@ fn main() {
                         yank_buffer = file_buffers[active_fb_index].as_slice()[s..=e].to_vec();
                         MessageBox::new(0, rows-2, cols).show(&mut stdout, format!("Yanked {} bytes.", yank_buffer.len()).as_str(), MessageBoxType::Informative, &color_scheme);
 
-                        //try to put data into system clipboard
-                        if let Err(s) = command_functions::yank_block_to_clipboard(&yank_buffer, &config.clipboard_program) {
+                        //try to put data via stdin into external application
+                        if let Err(s) = command_functions::yank_block_to_program(&yank_buffer, &config.yank_to_program) {
                             MessageBox::new(0, rows-2, cols).show(&mut stdout, &s, MessageBoxType::Error, &color_scheme);
                         }
 
