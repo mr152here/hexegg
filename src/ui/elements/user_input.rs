@@ -26,10 +26,14 @@ impl UserInput {
         let mut user_string = String::new();
         stdout.queue(cursor::Show).unwrap();
 
+        let info_text_len = info_text.len();
+        let mut cursor_pos = info_text_len;
+        let mut cursor_in_string = 0;
+
         loop {
 
             //draw flush and wait for user input
-            self.draw(stdout, info_text, &user_string, color_scheme);
+            self.draw(stdout, info_text, &user_string, cursor_pos as u16, color_scheme);
             stdout.flush().unwrap();
             let event = read().unwrap();
 
@@ -54,25 +58,78 @@ impl UserInput {
                         break;
                     },
 
-                    //Backspace to delete last character from user input
-                    KeyEvent{ code: KeyCode::Backspace, .. } => { user_string.pop(); },
+                    //delete character left to the cursor
+                    KeyEvent{ code: KeyCode::Backspace, .. } => {
+                        if cursor_in_string > 0 {
+                            cursor_in_string -= 1;
+                            cursor_pos -= 1;
+                            user_string.remove(cursor_in_string);
+                        }
+                    },
 
-                    //Up to get previous user input from history
+                    //delete character at the cursor position
+                    KeyEvent{ code: KeyCode::Delete, .. } => {
+                        if cursor_in_string < user_string.len() {
+                            user_string.remove(cursor_in_string);
+                        }
+                    },
+
+                    //move cursor to the start of the string
+                    KeyEvent{ code: KeyCode::Home, .. } => {
+                        cursor_in_string = 0;
+                        cursor_pos = info_text_len;
+                    },
+
+                    //move cursor to the end of the string
+                    KeyEvent{ code: KeyCode::End, .. } => {
+                        cursor_in_string = user_string.len();
+                        cursor_pos = info_text_len + cursor_in_string;
+                    },
+
+                    //get previous user input from history
                     KeyEvent{ code: KeyCode::Up, .. } => {
                         history_idx = history_idx.saturating_sub(1);
                         user_string = user_input_history.get(history_idx).unwrap_or(&"".to_string()).to_owned();
+
+                        cursor_in_string = user_string.len();
+                        cursor_pos = cursor_in_string + info_text_len;
                     },
 
-                    //Down to get next user input from history
+                    //get next user input from history
                     KeyEvent{ code: KeyCode::Down, .. } => {
                         if history_idx <= user_input_history.len() {
                             history_idx += 1;
                         }
                         user_string = user_input_history.get(history_idx).unwrap_or(&"".to_string()).to_owned();
+
+                        cursor_in_string = user_string.len();
+                        cursor_pos = cursor_in_string + info_text_len;
                     },
 
-                    //Any printable character push into user input
-                    KeyEvent{ code: KeyCode::Char(c), .. } if (' '..='~').contains(&c) => { user_string.push(c); },
+                    //Move cursor to the left
+                    KeyEvent{ code: KeyCode::Left, .. } => {
+                        if cursor_in_string > 0 {
+                            cursor_in_string -= 1;
+                            cursor_pos -= 1;
+                        }
+                    },
+
+                    //move cursor to the right
+                    KeyEvent{ code: KeyCode::Right, .. } => {
+                        if cursor_in_string < user_string.len() {
+                            cursor_in_string += 1;
+                            cursor_pos += 1;
+                        }
+                    },
+
+                    //Any printable character push into user input string
+                    KeyEvent{ code: KeyCode::Char(c), .. } if (' '..='~').contains(&c) => {
+                        user_string.insert(cursor_pos - info_text_len, c);
+                        if cursor_in_string < user_string.len() {
+                            cursor_in_string += 1;
+                            cursor_pos += 1;
+                        }
+                    },
                     _ => (),
                 }
             }
@@ -83,7 +140,7 @@ impl UserInput {
     }
 
 
-    fn draw(&self, stdout: &mut std::io::Stdout, info_text: &str, user_string: &str, color_scheme: &ColorScheme) {
+    fn draw(&self, stdout: &mut std::io::Stdout, info_text: &str, user_string: &str, cursor_pos: u16, color_scheme: &ColorScheme) {
 
         //draw border line
         stdout.queue(SetForegroundColor(color_scheme.fg_color)).unwrap();
@@ -96,5 +153,6 @@ impl UserInput {
         stdout.queue(Print(Clear(ClearType::CurrentLine))).unwrap();
         stdout.queue(Print(info_text)).unwrap();
         stdout.queue(Print(user_string)).unwrap();
+        stdout.queue(crossterm::cursor::MoveToColumn(cursor_pos)).unwrap();
     }
 }
