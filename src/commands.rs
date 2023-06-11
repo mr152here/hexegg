@@ -39,6 +39,45 @@ pub enum Command {
 }
 
 
+pub const COMMAND_LIST: [&str; 35] = [
+        "appendblock",
+        "appendfile",
+        "appendfilledblock",
+        "bookmark",
+        "clearlocationbar",
+        "closefile",
+        "deleteblock",
+        "entropy",
+        "exportblock",
+        "fillblock",
+        "filter",
+        "find",
+        "findall",
+        "findallbookmarks",
+        "findalldiffs",
+        "findallhex",
+        "findallhighlights",
+        "findallpatches",
+        "findallsignatures",
+        "findallstrings",
+        "findhex",
+        "findstring",
+        "goto",
+        "histogram",
+        "insertblock",
+        "insertfile",
+        "insertfilledblock",
+        "openblock",
+        "openfile",
+        "parseheader",
+        "quit",
+        "saveblock",
+        "savefile",
+        "set",
+        "yankblock"
+    ];
+
+
 impl Command {
 
     pub fn from_str(command_string: &str) -> Result<Command, &'static str> {

@@ -5,6 +5,7 @@ use crossterm::style::{Print, SetBackgroundColor, SetForegroundColor};
 use crossterm::terminal::{Clear, ClearType};
 
 use crate::config::ColorScheme;
+use crate::commands::COMMAND_LIST;
 
 pub struct UserInput {
     x: u16,
@@ -119,6 +120,36 @@ impl UserInput {
                         if cursor_in_string < user_string.len() {
                             cursor_in_string += 1;
                             cursor_pos += 1;
+                        }
+                    },
+
+                    //command auto completion code
+                    KeyEvent{ code: KeyCode::Tab, .. } => {
+                        let mut common_commands: Vec<&str> = COMMAND_LIST.into_iter().filter(|s| s.starts_with(&user_string)).collect();
+
+                        if !common_commands.is_empty() {
+
+                            //if there is only one command, set it and ends it with space
+                            if common_commands.len() == 1 {
+                                user_string = common_commands.first().unwrap().to_string();
+                                user_string.push(' ');
+
+                            //if there is a multiple results, set the max common length
+                            } else {
+                                let ref_string = common_commands.pop().unwrap();
+                                let mut common_length = user_string.len();
+
+                                while common_length < ref_string.len() {
+                                    if !common_commands.iter().all(|command| command.starts_with(&ref_string[..common_length])) {
+                                        break;
+                                    }
+                                    common_length += 1;
+                                }
+                                user_string = ref_string[..common_length.saturating_sub(1)].to_string();
+                            }
+
+                            cursor_in_string = user_string.len();
+                            cursor_pos = cursor_in_string + info_text_len;
                         }
                     },
 
