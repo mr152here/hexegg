@@ -30,12 +30,15 @@ impl UserInput {
         let info_text_len = info_text.len();
         let mut cursor_pos = info_text_len;
         let mut cursor_in_string = 0;
+        let mut command_list = Vec::<&str>::new();
 
         loop {
 
             //draw flush and wait for user input
-            self.draw(stdout, info_text, &user_string, cursor_pos as u16, color_scheme);
+            self.draw(stdout, info_text, &user_string, cursor_pos as u16, &command_list, color_scheme);
             stdout.flush().unwrap();
+            command_list.clear();
+
             let event = read().unwrap();
 
             //process only keyboard events
@@ -125,22 +128,22 @@ impl UserInput {
 
                     //command auto completion code
                     KeyEvent{ code: KeyCode::Tab, .. } => {
-                        let mut common_commands: Vec<&str> = COMMAND_LIST.into_iter().filter(|s| s.starts_with(&user_string)).collect();
+                        command_list = COMMAND_LIST.into_iter().filter(|s| s.starts_with(&user_string)).collect();
 
-                        if !common_commands.is_empty() {
+                        if !command_list.is_empty() {
 
                             //if there is only one command, set it and ends it with space
-                            if common_commands.len() == 1 {
-                                user_string = common_commands.first().unwrap().to_string();
+                            if command_list.len() == 1 {
+                                user_string = command_list.first().unwrap().to_string();
                                 user_string.push(' ');
 
-                            //if there is a multiple results, set the max common length
+                            //if there is a multiple results, find and set max common length
                             } else {
-                                let ref_string = common_commands.pop().unwrap();
+                                let ref_string = command_list.last().unwrap();
                                 let mut common_length = user_string.len();
 
                                 while common_length < ref_string.len() {
-                                    if !common_commands.iter().all(|command| command.starts_with(&ref_string[..common_length])) {
+                                    if !command_list.iter().all(|command| command.starts_with(&ref_string[..common_length])) {
                                         break;
                                     }
                                     common_length += 1;
@@ -171,13 +174,31 @@ impl UserInput {
     }
 
 
-    fn draw(&self, stdout: &mut std::io::Stdout, info_text: &str, user_string: &str, cursor_pos: u16, color_scheme: &ColorScheme) {
+    fn draw(&self, stdout: &mut std::io::Stdout, info_text: &str, user_string: &str, cursor_pos: u16, command_list: &Vec::<&str>, color_scheme: &ColorScheme) {
 
-        //draw border line
+        //draw border line with aviable commands if any
         stdout.queue(SetForegroundColor(color_scheme.fg_color)).unwrap();
         stdout.queue(SetBackgroundColor(color_scheme.bg_color)).unwrap();
         stdout.queue(cursor::MoveTo(self.x, self.y)).unwrap();
-        stdout.queue(Print("-".repeat(self.w as usize))).unwrap();
+        let mut free_space = self.w as usize;
+
+        if command_list.len() > 1 {
+            let mut cl_string = "-[ ".to_string();
+
+            for command in command_list.iter() {
+                if cl_string.len() + command.len() < (self.w as usize).saturating_sub(7) {
+                    cl_string.push_str(command);
+                    cl_string.push_str(", ");
+                } else {
+                    cl_string.push_str(".. ");
+                    break;
+                }
+            }
+            cl_string.push_str("]-");
+            free_space -= cl_string.len();
+            stdout.queue(Print(cl_string)).unwrap();
+        }
+        stdout.queue(Print("-".repeat(free_space))).unwrap();
 
         //clear input line and draw strings
         stdout.queue(cursor::MoveTo(self.x, self.y+1)).unwrap();
