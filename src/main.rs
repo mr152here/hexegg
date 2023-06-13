@@ -280,66 +280,64 @@ fn main() {
                 KeyEvent{ code: KeyCode::Char('.'), .. } if !cursor.is_edit() => command = Some(Command::FindDiff),
                 KeyEvent{ code: KeyCode::Char(','), .. } if !cursor.is_edit() => command = Some(Command::FindPatch),
                 KeyEvent{ code: KeyCode::Char('['), .. } if !cursor.is_edit() => {
-                    if let Some((o,_)) = file_buffers[active_fb_index].location_list_mut().previous() {
-                        command = Some(Command::Goto(o)) 
+                    if let Some(loc) = file_buffers[active_fb_index].location_list_mut().previous() {
+                        command = Some(Command::Goto(loc.offset))
                     } 
                 },
                 KeyEvent{ code: KeyCode::Char(']'), .. } if !cursor.is_edit() => {
-                    if let Some((o,_)) = file_buffers[active_fb_index].location_list_mut().next() {
-                        command = Some(Command::Goto(o))
+                    if let Some(loc) = file_buffers[active_fb_index].location_list_mut().next() {
+                        command = Some(Command::Goto(loc.offset))
                     }
                 },
                 KeyEvent{ code: KeyCode::Char('{'), .. } if !cursor.is_edit() => {
                     let lines = screens[active_screen_index].num_of_rows() as usize;
-                    let ll = &mut file_buffers[active_fb_index].location_list_mut();
+                    let ll = file_buffers[active_fb_index].location_list_mut();
                     ll.set_current_index(ll.current_index().saturating_sub(lines));
 
-                    if let Some((o,_)) = ll.current() {
-                        command = Some(Command::Goto(o))
+                    if let Some(loc) = ll.current() {
+                        command = Some(Command::Goto(loc.offset))
                     }
                 },
                 KeyEvent{ code: KeyCode::Char('}'), .. } if !cursor.is_edit() => {
                     let lines = screens[active_screen_index].num_of_rows() as usize;
-                    let ll = &mut file_buffers[active_fb_index].location_list_mut();
+                    let ll = file_buffers[active_fb_index].location_list_mut();
                     ll.set_current_index(ll.current_index() + lines);
 
-                    if let Some((o,_)) = ll.current() {
-                        command = Some(Command::Goto(o))
+                    if let Some(loc) = ll.current() {
+                        command = Some(Command::Goto(loc.offset))
                     }
                 },
                 KeyEvent{ code: KeyCode::Char('<'), .. } if !cursor.is_edit() => {
-                    if let Some((o,_)) = file_buffers[active_fb_index].location_list().current() {
-                        command = Some(Command::Goto(o))
+                    if let Some(loc) = file_buffers[active_fb_index].location_list().current() {
+                        command = Some(Command::Goto(loc.offset))
                     }
                 },
                 KeyEvent{ code: KeyCode::Char('>'), .. } if !cursor.is_edit() => {
                     let offset = if cursor.is_visible() { cursor.position() } else { file_buffers[active_fb_index].position() };
-                    let hl = &file_buffers[active_fb_index].highlight_list();
+                    let ll = file_buffers[active_fb_index].location_list_mut();
 
-                    if let Some((ho,_)) = hl.range(offset) {
-                        let ll = &mut file_buffers[active_fb_index].location_list_mut();
-                        if let Some(idx) = ll.find_idx(ho) {
-                            ll.set_current_index(idx);
-                            screens.iter_mut().for_each(|s| s.show_location_bar(true));
-                        } else {
-                            MessageBox::new(0, rows-2, cols).show(&mut stdout, format!("Offset {:08X} not found in location_bar.", ho).as_str(), MessageBoxType::Error, &color_scheme);
-                        }
+                    if let Some(idx) = ll.find_idx(offset) {
+                        ll.set_current_index(idx);
+                        screens.iter_mut().for_each(|s| s.show_location_bar(true));
+                    } else {
+                        MessageBox::new(0, rows-2, cols).show(&mut stdout, format!("Offset {:08X} not found in location_bar.", offset).as_str(), MessageBoxType::Error, &color_scheme);
                     }
                 },
                 KeyEvent{ code: KeyCode::Char('R'), .. } if !cursor.is_edit() => {
-                    let ll = &mut file_buffers[active_fb_index].location_list_mut();
+                    let fb = &mut file_buffers[active_fb_index];
 
-                    if let Some((o,_)) = ll.current() {
-                        ll.remove_current_location();
-                        file_buffers[active_fb_index].highlight_list_mut().remove(o);
+                    if fb.location_list().current().is_some() {
+                        let loc_offset = fb.location_list().current().unwrap().offset;
+                        fb.location_list_mut().remove_current_location();
+                        fb.highlight_list_mut().remove(loc_offset);
                     }
                 },
                 KeyEvent{ code: KeyCode::Char('r'), .. } if !cursor.is_edit() => {
-                    let ll = &mut file_buffers[active_fb_index].location_list_mut();
-                    if let Some((_, s)) = &mut ll.get_mut(ll.current_index()) {
-                        let user_string = UserInput::new(0, rows-2, cols).input(&mut stdout, format!("rename '{s}' to:").as_str(), &mut cmd_history, &color_scheme);
-                        if !user_string.is_empty() && *s != user_string {
-                            *s = user_string;
+                    let ll = file_buffers[active_fb_index].location_list_mut();
+                    if let Some(loc) = &mut ll.get_mut(ll.current_index()) {
+                        let user_string = UserInput::new(0, rows-2, cols).input(&mut stdout, format!("rename '{}' to:", loc.name).as_str(), &mut cmd_history, &color_scheme);
+                        if !user_string.is_empty() && *loc.name != user_string {
+                            (*loc).name = user_string;
                         }
                     }
                 },
@@ -483,8 +481,8 @@ fn main() {
                         command = Some(Command::GotoRelative(-(scroll_size as isize)));
 
                     } else if screens[active_screen_index].is_over_location_bar(column, row) {
-                        if let Some((o,_)) = file_buffers[active_fb_index].location_list_mut().previous() {
-                            command = Some(Command::Goto(o))
+                        if let Some(loc) = file_buffers[active_fb_index].location_list_mut().previous() {
+                            command = Some(Command::Goto(loc.offset))
                         }
                     }
                 },
@@ -493,8 +491,8 @@ fn main() {
                         command = Some(Command::GotoRelative(scroll_size as isize));
 
                     } else if screens[active_screen_index].is_over_location_bar(column, row) {
-                        if let Some((o,_)) = file_buffers[active_fb_index].location_list_mut().next() {
-                            command = Some(Command::Goto(o))
+                        if let Some(loc) = file_buffers[active_fb_index].location_list_mut().next() {
+                            command = Some(Command::Goto(loc.offset))
                         }
                     }
                 },
@@ -520,9 +518,9 @@ fn main() {
                         let fb = &mut file_buffers[active_fb_index];
 
                         if let Some(loc_list_idx) = screen.location_list_index(column, row, fb.location_list()) {
-                            if let Some((o,_)) = fb.location_list().get(loc_list_idx) {
+                            if let Some(loc) = fb.location_list().get(loc_list_idx) {
+                                command = Some(Command::Goto(loc.offset));
                                 fb.location_list_mut().set_current_index(loc_list_idx);
-                                command = Some(Command::Goto(o));
                             }
                         }
                     }
@@ -730,12 +728,12 @@ fn main() {
                     } else {
                         match command_functions::find_all(&file_buffers[active_fb_index], &b) {
                             Ok(ll) => {
-                                if let Some((o,_)) = ll.get(0) {
-                                    command_functions::set_position(&mut file_buffers, active_fb_index, o, config.lock_file_buffers);
+                                if let Some(loc) = ll.get(0) {
+                                    command_functions::set_position(&mut file_buffers, active_fb_index, loc.offset, config.lock_file_buffers);
                                     let hl = ll.iter()
-                                                .map(|(o,_)| {
+                                                .map(|loc| {
                                                     let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
-                                                    (*o, *o + b.len() - 1, Some(color))
+                                                    (loc.offset, loc.offset + loc.size.saturating_sub(1), Some(color))
                                                 })
                                                 .collect::<HighlightList>();
 
@@ -768,9 +766,9 @@ fn main() {
                     match command_functions::find_all_strings(&file_buffers[active_fb_index], min_size, &substring) {
                         Ok(ll) => {
                             let hl = ll.iter()
-                                        .map(|(o,s)| {
+                                        .map(|loc| {
                                             let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
-                                            (*o, *o + s.len() - 1, Some(color))
+                                            (loc.offset, loc.offset + loc.size.saturating_sub(1), Some(color))
                                         })
                                         .collect::<HighlightList>();
 
@@ -826,7 +824,8 @@ fn main() {
                 },
                 Some(Command::FindAllHighlights) => {
                     let fb = &mut file_buffers[active_fb_index];
-                    let ll = fb.highlight_list().iter().filter_map(|(o, c)| c.is_some().then_some((*o, format!("{:08X}", o))) ).collect::<LocationList>();
+                    //TODO: add size to location list from highlight range
+                    let ll = fb.highlight_list().iter().filter_map(|(o, c)| c.is_some().then_some((format!("{:08X}", o), *o)) ).collect::<LocationList>();
 
                     if ll.is_empty() {
                         MessageBox::new(0, rows-2, cols).show(&mut stdout, "No highlights found!", MessageBoxType::Error, &color_scheme);
@@ -1026,7 +1025,9 @@ fn main() {
                         match command_functions::parse_struct(&fb.as_slice()[o..], name) {
                             Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
                             Ok(vfd) => {
-                                let ll = vfd.iter().map(|fd| (fd.offset + o, fd.name.clone())).collect::<LocationList>();
+                                //TODO: add size to ll and use ll directly
+                                //TODO: remove this line
+                                let ll = vfd.iter().map(|fd| (fd.name.clone(), fd.offset + o)).collect::<LocationList>();
                                 let hl = vfd.iter().filter_map(|fd| {
                                     if fd.size > 0 {
                                         let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
@@ -1049,9 +1050,10 @@ fn main() {
                     fb.set_filtered_location_list(None);
 
                     if !filter_strings.is_empty() {
+                                //TODO: add size if possible
                         let fll = fb.location_list()
                                         .iter()
-                                        .filter_map(|(u,s)| filter_strings.iter().any(|fs| s.contains(fs)).then_some((*u, s.to_owned())))
+                                        .filter_map(|loc| filter_strings.iter().any(|fs| loc.name.contains(fs)).then_some(loc.clone()))
                                         .collect();
 
                         fb.set_filtered_location_list(Some(fll));

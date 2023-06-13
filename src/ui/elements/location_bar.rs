@@ -72,8 +72,8 @@ impl LocationBar {
             //print strings from location list. Limit it size to self width
             let mut print_string: String;
 
-            if let Some((_, s)) = location_list.get(self.display_from + row as usize) {
-                print_string = s.chars()
+            if let Some(location) = location_list.get(self.display_from + row as usize) {
+                print_string = location.name.chars()
                     .enumerate()
                     .map_while(|(i, c)| (i < width).then_some(c))
                     .collect();

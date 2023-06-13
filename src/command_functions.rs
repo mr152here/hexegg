@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::Write as _;
 use std::fmt::Write as _;
 use std::process::{Command, Stdio};
-use crate::location_list::LocationList;
+use crate::location_list::{Location, LocationList};
 use crate::file_buffer::FileBuffer;
 use crate::ColorScheme;
 use crate::config::{Config, HighlightStyle, ScreenPagingSize};
@@ -41,7 +41,7 @@ pub fn find_all_patches(fb: &FileBuffer) -> Result<LocationList, String> {
 
     } else {
         Ok(fb.patches().iter()
-            .map(|(o,_)|{(*o, format!("{:08X}", o))})
+            .map(|(o,_)|{(format!("{:08X}", o), *o)})
             .collect::<LocationList>())
     }
 }
@@ -86,8 +86,10 @@ pub fn find_all(fb: &FileBuffer, b: &[u8]) -> Result<LocationList, String> {
     let pattern_offsets = find_all_patterns(fb.as_slice(), b);
 
     if !pattern_offsets.is_empty() {
+        let b_len = b.len();
+
         Ok(pattern_offsets.iter()
-                  .map(|&o| (o, format!("{:08X}", o)))
+                  .map(|&o| Location {name:format!("{:08X}", o), offset:o, size: b_len})
                   .collect::<LocationList>())
     } else {
         let mut s = String::from("Pattern ");
@@ -185,7 +187,9 @@ pub fn find_all_strings(fb: &FileBuffer, min_size: usize, substring: &Vec<u8>) -
             //process only strings with more then minimal size
             if (index - start_index) >= min_size {
                 if substring.is_empty() || data[start_index..index].windows( substring.len() ).any(|s| s.starts_with(substring)) {
-                    loc_list.add_location(start_index, String::from_utf8_lossy(&data[start_index..index]).to_string());
+                    let s = String::from_utf8_lossy(&data[start_index..index]).to_string();
+                    let s_len = s.len();
+                    loc_list.add_location(Location{name: s, offset: start_index, size: s_len});
                 }
             }
             in_string = false;
@@ -195,7 +199,9 @@ pub fn find_all_strings(fb: &FileBuffer, min_size: usize, substring: &Vec<u8>) -
     //if data ends with string
     if in_string && (data.len() - start_index) >= min_size { 
         if substring.is_empty() || data[start_index..].windows( substring.len() ).any(|s| s.starts_with(substring)) {
-            loc_list.add_location(start_index, String::from_utf8_lossy(&data[start_index..]).to_string());
+            let s = String::from_utf8_lossy(&data[start_index..]).to_string();
+            let s_len = s.len();
+            loc_list.add_location(Location{name: s, offset: start_index, size: s_len});
         }
     }
     
@@ -228,7 +234,7 @@ pub fn find_all_diffs(file_buffers: &[FileBuffer], active_fb_index: usize) -> Re
         .filter(|&(offset, byte)| {
             file_buffers.iter().any(|filebuf| { if let Some(b) = filebuf.get(offset) { b != *byte } else { true } })
         })
-        .map(|(o,_)| (o, format!("{:08X}", o)))
+        .map(|(o,_)| (format!("{:08X}", o), o))
         .collect::<LocationList>();
 
     match ll.is_empty() {
@@ -252,10 +258,10 @@ pub fn find_all_signatures(file_buffers: &[FileBuffer], active_fb_index: usize, 
                 let matched = name_list.iter().any(|name| name.eq(sig_name));
                 
                 if !matched && ignored || matched && !ignored {
-                    result_ll.add_location(i, sig_name.to_owned());
+                    result_ll.add_location(Location{name: sig_name.to_owned(), offset: i, size: 0});
                 }
             } else {
-                result_ll.add_location(i, sig_name.to_owned());
+                result_ll.add_location(Location{name: sig_name.to_owned(), offset: i, size: 0});
             }
         }
     }
@@ -270,7 +276,7 @@ pub fn find_all_signatures(file_buffers: &[FileBuffer], active_fb_index: usize, 
 pub fn find_all_bookmarks(file_buffers: &[FileBuffer], active_fb_index: usize) -> Result<LocationList, String> {
     let fb = &file_buffers[active_fb_index];
     let ll = (0..10).filter_map(|idx| fb.bookmark(idx)
-        .map(|o| (o,format!("bm_{}",idx))))
+        .map(|o| (format!("bm_{}",idx), o)))
         .collect::<LocationList>();
 
     match ll.is_empty() {
@@ -310,7 +316,7 @@ pub fn calculate_entropy(fb: &FileBuffer, block_size: usize, margin: f32) -> Loc
             let ent = (100.0 * entropy(c)).round() / 100.0;
             if (prev_ent - ent).abs() > margin {
                 prev_ent = ent;
-                return Some((i*block_size, format!("{:>8.2}", ent)));
+                return Some((format!("{:>8.2}", ent), i*block_size));
             }
             None
         })
@@ -325,7 +331,7 @@ pub fn calculate_histogram(data: &[u8]) -> LocationList {
     histogram.sort_by_key(|&(_,v)| usize::MAX - v);
 
     histogram.iter()
-        .map(|(b,v)| (0, format!("{:02X}_{}", b, v)))
+        .map(|(b,v)| (format!("{:02X}_{}", b, v), 0))
         .collect::<LocationList>()
 }
 
