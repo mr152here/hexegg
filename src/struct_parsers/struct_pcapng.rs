@@ -1,25 +1,25 @@
 use crate::signatures::is_signature;
+use crate::location_list::{Location, LocationList};
 use crate::struct_parsers::*;
 
 type Read16u = dyn Fn(&[u8], usize) -> Option<u16>;
 type Read32u = dyn Fn(&[u8], usize) -> Option<u32>;
 
-pub fn parse_pcapng_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String> {
+pub fn parse_pcapng_struct(data: &[u8]) -> Result<LocationList, String> {
 
     if !is_signature(data, "pcapng") {
         return Err("Invalid 'PCAPNG' signature!".to_owned());
     }
 
     //read section header block
-    let mut header = vec![
-        FieldDescription {name: "-- PCAPNG --".to_owned(), offset: 0, size: 0},
-        FieldDescription {name: "block_type".to_owned(), offset: 0, size: 4},
-        FieldDescription {name: "block_length".to_owned(), offset: 4, size: 4},
-        FieldDescription {name: "byte_order".to_owned(), offset: 8, size: 4},
-        FieldDescription {name: "major".to_owned(), offset: 12, size: 2},
-        FieldDescription {name: "minor".to_owned(), offset: 14, size: 2},
-        FieldDescription {name: "section_length".to_owned(), offset: 16, size: 8},
-    ];
+    let mut header = LocationList::new();
+    header.add_location(Location {name: "-- PCAPNG --".to_owned(), offset: 0, size: 0});
+    header.add_location(Location {name: "block_type".to_owned(), offset: 0, size: 4});
+    header.add_location(Location {name: "block_length".to_owned(), offset: 4, size: 4});
+    header.add_location(Location {name: "byte_order".to_owned(), offset: 8, size: 4});
+    header.add_location(Location {name: "major".to_owned(), offset: 12, size: 2});
+    header.add_location(Location {name: "minor".to_owned(), offset: 14, size: 2});
+    header.add_location(Location {name: "section_length".to_owned(), offset: 16, size: 8});
 
     let little_endian = match read_le_u32(data, 8) {
         Some(v) if v == 0x1a2b3c4d => true,
@@ -49,7 +49,7 @@ pub fn parse_pcapng_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String>
         }
     }
 
-    header.push(FieldDescription {name: "block_length".to_owned(), offset: block_length - 4, size: 4});
+    header.add_location(Location {name: "block_length".to_owned(), offset: block_length - 4, size: 4});
 
     //read in the loop all other blocks for current section until
     //next section header is found or EOF or section_length is reached
@@ -87,9 +87,10 @@ pub fn parse_pcapng_struct(data: &[u8]) -> Result<Vec<FieldDescription>, String>
     Ok(header)
 }
 
-fn parse_options(data: &[u8], mut offset: usize, read_u16: &Read16u) -> Result<Vec<FieldDescription>, String> {
+fn parse_options(data: &[u8], mut offset: usize, read_u16: &Read16u) -> Result<LocationList, String> {
 
-    let mut options = vec![FieldDescription {name: "options".to_owned(), offset, size: 2}];
+    let mut options = LocationList::new();
+    options.add_location(Location {name: "options".to_owned(), offset, size: 2});
 
     loop {
         let option_code = match read_u16(data, offset) {
@@ -102,11 +103,11 @@ fn parse_options(data: &[u8], mut offset: usize, read_u16: &Read16u) -> Result<V
             None => return Err("'option_size' is out of data range!".to_owned()),
         };
 
-        options.push(FieldDescription {name: ".code".to_owned(), offset, size: 2});
-        options.push(FieldDescription {name: ".length".to_owned(), offset: offset + 2, size: 2});
+        options.add_location(Location {name: ".code".to_owned(), offset, size: 2});
+        options.add_location(Location {name: ".length".to_owned(), offset: offset + 2, size: 2});
 
         if option_length > 0 {
-            options.push(FieldDescription {name: ".data".to_owned(), offset: offset + 4, size: option_length as usize});
+            options.add_location(Location {name: ".data".to_owned(), offset: offset + 4, size: option_length as usize});
         }
 
         //align length to 4 bytes
@@ -122,9 +123,10 @@ fn parse_options(data: &[u8], mut offset: usize, read_u16: &Read16u) -> Result<V
     Ok(options)
 }
 
-fn parse_records(data: &[u8], mut offset: usize, read_u16: &Read16u) -> Result<Vec<FieldDescription>, String> {
+fn parse_records(data: &[u8], mut offset: usize, read_u16: &Read16u) -> Result<LocationList, String> {
 
-    let mut records = vec![FieldDescription {name: "records".to_owned(), offset, size: 2}];
+    let mut records = LocationList::new();
+    records.add_location(Location {name: "records".to_owned(), offset, size: 2});
 
     loop {
         let record_type = match read_u16(data, offset) {
@@ -137,11 +139,11 @@ fn parse_records(data: &[u8], mut offset: usize, read_u16: &Read16u) -> Result<V
             None => return Err("'record_length' is out of data range!".to_owned()),
         };
 
-        records.push(FieldDescription {name: ".type".to_owned(), offset, size: 2});
-        records.push(FieldDescription {name: ".length".to_owned(), offset: offset + 2, size: 2});
+        records.add_location(Location {name: ".type".to_owned(), offset, size: 2});
+        records.add_location(Location {name: ".length".to_owned(), offset: offset + 2, size: 2});
 
         if record_length > 0 {
-            records.push(FieldDescription {name: ".data".to_owned(), offset: offset + 4, size: record_length as usize});
+            records.add_location(Location {name: ".data".to_owned(), offset: offset + 4, size: record_length as usize});
         }
 
         //align length to 4 bytes
@@ -157,41 +159,40 @@ fn parse_records(data: &[u8], mut offset: usize, read_u16: &Read16u) -> Result<V
 }
 
 //process interface description block
-fn interface_description(data: &[u8], offset: usize, read_u16: &Read16u, read_u32: &Read32u) -> Result<Vec<FieldDescription>, String> {
+fn interface_description(data: &[u8], offset: usize, read_u16: &Read16u, read_u32: &Read32u) -> Result<LocationList, String> {
 
     let block_length = match read_u32(data, offset + 4) {
         Some(v) => v as usize,
         None => return Err("'block_length' is out of data range!".to_owned()),
     };
 
-    let mut block = vec![
-        FieldDescription {name: "interface_desc_block".to_owned(), offset, size: 4},
-        FieldDescription {name: ".length".to_owned(), offset: offset + 4, size: 4},
-        FieldDescription {name: ".link_type".to_owned(), offset: offset + 8, size: 2},
-        FieldDescription {name: ".reserved".to_owned(), offset: offset + 10, size: 2},
-        FieldDescription {name: ".snap_length".to_owned(), offset: offset + 12, size: 4},
-    ];
+    let mut block = LocationList::new();
+    block.add_location(Location {name: "interface_desc_block".to_owned(), offset, size: 4});
+    block.add_location(Location {name: ".length".to_owned(), offset: offset + 4, size: 4});
+    block.add_location(Location {name: ".link_type".to_owned(), offset: offset + 8, size: 2});
+    block.add_location(Location {name: ".reserved".to_owned(), offset: offset + 10, size: 2});
+    block.add_location(Location {name: ".snap_length".to_owned(), offset: offset + 12, size: 4});
 
     if block_length > 20 {
         match parse_options(data, offset + 16, read_u16) {
             Err(s) => return Err(s),
             Ok(mut options) => {
-                options.iter_mut().for_each(|fd| {
+                for loc in &mut options {
                     let mut new_name = ".".to_owned();
-                    new_name.push_str(fd.name.as_str());
-                    fd.name = new_name;
-                });
+                    new_name.push_str(loc.name.as_str());
+                    loc.name = new_name;
+                }
                 block.extend(options)
             },
         }
     }
 
-    block.push(FieldDescription {name: ".length".to_owned(), offset: offset + block_length - 4, size: 4});
+    block.add_location(Location {name: ".length".to_owned(), offset: offset + block_length - 4, size: 4});
     Ok(block)
 }
 
 //process simple packet block
-fn simple_packet(data: &[u8], offset: usize, read_u32: &Read32u) -> Result<Vec<FieldDescription>, String> {
+fn simple_packet(data: &[u8], offset: usize, read_u32: &Read32u) -> Result<LocationList, String> {
 
     let block_length = match read_u32(data, offset + 4) {
         Some(v) => v as usize,
@@ -203,98 +204,96 @@ fn simple_packet(data: &[u8], offset: usize, read_u32: &Read32u) -> Result<Vec<F
         None => return Err("'packet_length' is out of data range!".to_owned()),
     };
 
-    Ok(vec![
-        FieldDescription {name: "simple_packet_block".to_owned(), offset, size: 4},
-        FieldDescription {name: ".length".to_owned(), offset: offset + 4, size: 4},
-        FieldDescription {name: ".original_length".to_owned(), offset: offset + 8, size: 4},
-        FieldDescription {name: ".packet_data".to_owned(), offset: offset + 12, size: packet_length},
-        FieldDescription {name: ".length".to_owned(), offset: offset + block_length - 4, size: 4},
-    ])
+    let mut ll = LocationList::new();
+    ll.add_location(Location {name: "simple_packet_block".to_owned(), offset, size: 4});
+    ll.add_location(Location {name: ".length".to_owned(), offset: offset + 4, size: 4});
+    ll.add_location(Location {name: ".original_length".to_owned(), offset: offset + 8, size: 4});
+    ll.add_location(Location {name: ".packet_data".to_owned(), offset: offset + 12, size: packet_length});
+    ll.add_location(Location {name: ".length".to_owned(), offset: offset + block_length - 4, size: 4});
+    Ok(ll)
 }
 
 //process name resolution block
-fn name_resolution(data: &[u8], offset: usize, read_u16: &Read16u, read_u32: &Read32u) -> Result<Vec<FieldDescription>, String> {
+fn name_resolution(data: &[u8], offset: usize, read_u16: &Read16u, read_u32: &Read32u) -> Result<LocationList, String> {
 
     let block_length = match read_u32(data, offset + 4) {
         Some(v) => v as usize,
         None => return Err("'block_length' is out of data range!".to_owned()),
     };
 
-    let mut block = vec![
-        FieldDescription {name: "name_resolution_block".to_owned(), offset, size: 4},
-        FieldDescription {name: ".length".to_owned(), offset: offset + 4, size: 4}
-    ];
+    let mut block = LocationList::new();
+    block.add_location(Location {name: "name_resolution_block".to_owned(), offset, size: 4});
+    block.add_location(Location {name: ".length".to_owned(), offset: offset + 4, size: 4});
 
     //parse records
     match parse_records(data, offset + 8, read_u16) {
         Err(s) => return Err(s),
         Ok(mut records) => {
-            records.iter_mut().for_each(|fd| {
+            for loc in &mut records {
                 let mut new_name = ".".to_owned();
-                new_name.push_str(fd.name.as_str());
-                fd.name = new_name;
-            });
+                new_name.push_str(loc.name.as_str());
+                loc.name = new_name;
+            }
             block.extend(records)
         },
     }
 
     //parse options
-    let last_offset = block.last().unwrap().offset + 2;
+    let last_offset = (&block).into_iter().last().unwrap().offset + 2;
 
     if block_length > (last_offset + 4) {
         match parse_options(data, last_offset, read_u16) {
             Err(s) => return Err(s),
             Ok(mut options) => {
-                options.iter_mut().for_each(|fd| {
+                for loc in &mut options {
                     let mut new_name = ".".to_owned();
-                    new_name.push_str(fd.name.as_str());
-                    fd.name = new_name;
-                });
+                    new_name.push_str(loc.name.as_str());
+                    loc.name = new_name;
+                }
                 block.extend(options)
             },
         }
     }
 
-    block.push(FieldDescription {name: ".length".to_owned(), offset: offset + block_length - 4, size: 4});
+    block.add_location(Location {name: ".length".to_owned(), offset: offset + block_length - 4, size: 4});
     Ok(block)
 }
 
-fn interface_statistics(data: &[u8], offset: usize, read_u16: &Read16u, read_u32: &Read32u) -> Result<Vec<FieldDescription>, String> {
+fn interface_statistics(data: &[u8], offset: usize, read_u16: &Read16u, read_u32: &Read32u) -> Result<LocationList, String> {
 
     let block_length = match read_u32(data, offset + 4) {
         Some(v) => v as usize,
         None => return Err("'block_length' is out of data range!".to_owned()),
     };
 
-    let mut block = vec![
-        FieldDescription {name: "interface_statistics_block".to_owned(), offset, size: 4},
-        FieldDescription {name: ".length".to_owned(), offset: offset + 4, size: 4},
-        FieldDescription {name: ".interface_id".to_owned(), offset: offset + 8, size: 4},
-        FieldDescription {name: ".time_stamp_h".to_owned(), offset: offset + 12, size: 4},
-        FieldDescription {name: ".time_stamp_l".to_owned(), offset: offset + 16, size: 4},
-    ];
+    let mut block = LocationList::new();
+    block.add_location(Location {name: "interface_statistics_block".to_owned(), offset, size: 4});
+    block.add_location(Location {name: ".length".to_owned(), offset: offset + 4, size: 4});
+    block.add_location(Location {name: ".interface_id".to_owned(), offset: offset + 8, size: 4});
+    block.add_location(Location {name: ".time_stamp_h".to_owned(), offset: offset + 12, size: 4});
+    block.add_location(Location {name: ".time_stamp_l".to_owned(), offset: offset + 16, size: 4});
 
     //parse options
     if block_length > 6*4 {
         match parse_options(data, offset + 20, read_u16) {
             Err(s) => return Err(s),
             Ok(mut options) => {
-                options.iter_mut().for_each(|fd| {
+                for loc in &mut options {
                     let mut new_name = ".".to_owned();
-                    new_name.push_str(fd.name.as_str());
-                    fd.name = new_name;
-                });
+                    new_name.push_str(loc.name.as_str());
+                    loc.name = new_name;
+                }
                 block.extend(options)
             },
         }
     }
 
-    block.push(FieldDescription {name: ".length".to_owned(), offset: offset + block_length - 4, size: 4});
+    block.add_location(Location {name: ".length".to_owned(), offset: offset + block_length - 4, size: 4});
     Ok(block)
 }
 
 //process enhanced packet block
-fn enhanced_packet(data: &[u8], offset: usize, read_u16: &Read16u, read_u32: &Read32u) -> Result<Vec<FieldDescription>, String> {
+fn enhanced_packet(data: &[u8], offset: usize, read_u16: &Read16u, read_u32: &Read32u) -> Result<LocationList, String> {
 
     let block_length = match read_u32(data, offset + 4) {
         Some(v) => v as usize,
@@ -306,16 +305,15 @@ fn enhanced_packet(data: &[u8], offset: usize, read_u16: &Read16u, read_u32: &Re
         None => return Err("'captured_length' is out of data range!".to_owned()),
     };
 
-    let mut block = vec![
-        FieldDescription {name: "enhanced_packet_block".to_owned(), offset, size: 4},
-        FieldDescription {name: ".length".to_owned(), offset: offset + 4, size: 4},
-        FieldDescription {name: ".interface_id".to_owned(), offset: offset + 8, size: 4},
-        FieldDescription {name: ".time_stamp_h".to_owned(), offset: offset + 12, size: 4},
-        FieldDescription {name: ".time_stamp_l".to_owned(), offset: offset + 16, size: 4},
-        FieldDescription {name: ".captured_length".to_owned(), offset: offset + 20, size: 4},
-        FieldDescription {name: ".original_length".to_owned(), offset: offset + 24, size: 4},
-        FieldDescription {name: ".data".to_owned(), offset: offset + 28, size: captured_length},
-    ];
+    let mut block = LocationList::new();
+    block.add_location(Location {name: "enhanced_packet_block".to_owned(), offset, size: 4});
+    block.add_location(Location {name: ".length".to_owned(), offset: offset + 4, size: 4});
+    block.add_location(Location {name: ".interface_id".to_owned(), offset: offset + 8, size: 4});
+    block.add_location(Location {name: ".time_stamp_h".to_owned(), offset: offset + 12, size: 4});
+    block.add_location(Location {name: ".time_stamp_l".to_owned(), offset: offset + 16, size: 4});
+    block.add_location(Location {name: ".captured_length".to_owned(), offset: offset + 20, size: 4});
+    block.add_location(Location {name: ".original_length".to_owned(), offset: offset + 24, size: 4});
+    block.add_location(Location {name: ".data".to_owned(), offset: offset + 28, size: captured_length});
 
     let captured_aligned_length = (captured_length + 3) & !3;
 
@@ -323,22 +321,22 @@ fn enhanced_packet(data: &[u8], offset: usize, read_u16: &Read16u, read_u32: &Re
         match parse_options(data, offset + captured_aligned_length, read_u16) {
             Err(s) => return Err(s),
             Ok(mut options) => {
-                options.iter_mut().for_each(|fd| {
+                for loc in &mut options {
                     let mut new_name = ".".to_owned();
-                    new_name.push_str(fd.name.as_str());
-                    fd.name = new_name;
-                });
+                    new_name.push_str(loc.name.as_str());
+                    loc.name = new_name;
+                }
                 block.extend(options)
             },
         }
     }
 
-    block.push(FieldDescription {name: ".length".to_owned(), offset: offset + block_length - 4, size: 4});
+    block.add_location(Location {name: ".length".to_owned(), offset: offset + block_length - 4, size: 4});
     Ok(block)
 }
 
 //process decryption secrets block
-fn decryption_secrets(data: &[u8], offset: usize, read_u16: &Read16u, read_u32: &Read32u) -> Result<Vec<FieldDescription>, String> {
+fn decryption_secrets(data: &[u8], offset: usize, read_u16: &Read16u, read_u32: &Read32u) -> Result<LocationList, String> {
 
     let block_length = match read_u32(data, offset + 4) {
         Some(v) => v as usize,
@@ -350,38 +348,39 @@ fn decryption_secrets(data: &[u8], offset: usize, read_u16: &Read16u, read_u32: 
         None => return Err("'captured_length' is out of data range!".to_owned()),
     };
 
-    let mut block = vec![
-        FieldDescription {name: "decryption_secrets_block".to_owned(), offset, size: 4},
-        FieldDescription {name: ".length".to_owned(), offset: offset + 4, size: 4},
-        FieldDescription {name: ".secrets_type".to_owned(), offset: offset + 8, size: 4},
-        FieldDescription {name: ".secrets_length".to_owned(), offset: offset + 12, size: 4},
-        FieldDescription {name: ".data".to_owned(), offset: offset + 16, size: secrets_length},
-    ];
+    let mut block = LocationList::new();
+    block.add_location(Location {name: "decryption_secrets_block".to_owned(), offset, size: 4});
+    block.add_location(Location {name: ".length".to_owned(), offset: offset + 4, size: 4});
+    block.add_location(Location {name: ".secrets_type".to_owned(), offset: offset + 8, size: 4});
+    block.add_location(Location {name: ".secrets_length".to_owned(), offset: offset + 12, size: 4});
+    block.add_location(Location {name: ".data".to_owned(), offset: offset + 16, size: secrets_length});
 
     let aligned_length = (secrets_length + 3) & !3;
     if block_length > (5*4 + aligned_length) {
         match parse_options(data, offset + aligned_length, read_u16) {
             Err(s) => return Err(s),
             Ok(mut options) => {
-                options.iter_mut().for_each(|fd| {
+                for loc in &mut options {
                     let mut new_name = ".".to_owned();
-                    new_name.push_str(fd.name.as_str());
-                    fd.name = new_name;
-                });
+                    new_name.push_str(loc.name.as_str());
+                    loc.name = new_name;
+                }
                 block.extend(options)
             },
         }
     }
 
-    block.push(FieldDescription {name: ".length".to_owned(), offset: offset + block_length - 4, size: 4});
+    block.add_location(Location {name: ".length".to_owned(), offset: offset + block_length - 4, size: 4});
     Ok(block)
 }
 
-fn unknown_block(data: &[u8], offset: usize, read_u32: &Read32u) -> Result<Vec<FieldDescription>, String> {
+fn unknown_block(data: &[u8], offset: usize, read_u32: &Read32u) -> Result<LocationList, String> {
 
     let block_length = match read_u32(data, offset + 4) {
         Some(v) => v as usize,
         None => return Err("'block_length' is out of data range!".to_owned()),
     };
-    Ok(vec![FieldDescription {name: "unknown_block".to_owned(), offset, size: block_length}])
+    let mut ll = LocationList::new();
+    ll.add_location(Location {name: "unknown_block".to_owned(), offset, size: block_length});
+    Ok(ll)
 }

@@ -1,4 +1,5 @@
 use std::mem::size_of;
+use crate::location_list::LocationList;
 pub mod struct_bmp;
 pub mod struct_elf;
 pub mod struct_gif;
@@ -8,13 +9,7 @@ pub mod struct_pcap;
 pub mod struct_pcapng;
 pub mod struct_png;
 
-pub struct FieldDescription {
-    pub name: String,
-    pub offset: usize,
-    pub size: usize
-}
-
-pub fn parse_struct_by_name(data: &[u8], name: &str) -> Result<Vec<FieldDescription>, String> {
+pub fn parse_struct_by_name(data: &[u8], name: &str) -> Result<LocationList, String> {
     match name {
         "bmp" => struct_bmp::parse_bmp_struct(data),
         "dib" => struct_bmp::parse_dib_struct(data),

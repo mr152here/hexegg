@@ -337,7 +337,7 @@ fn main() {
                     if let Some(loc) = &mut ll.get_mut(ll.current_index()) {
                         let user_string = UserInput::new(0, rows-2, cols).input(&mut stdout, format!("rename '{}' to:", loc.name).as_str(), &mut cmd_history, &color_scheme);
                         if !user_string.is_empty() && *loc.name != user_string {
-                            (*loc).name = user_string;
+                            loc.name = user_string;
                         }
                     }
                 },
@@ -730,7 +730,7 @@ fn main() {
                             Ok(ll) => {
                                 if let Some(loc) = ll.get(0) {
                                     command_functions::set_position(&mut file_buffers, active_fb_index, loc.offset, config.lock_file_buffers);
-                                    let hl = ll.iter()
+                                    let hl = (&ll).into_iter()
                                                 .map(|loc| {
                                                     let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
                                                     (loc.offset, loc.offset + loc.size.saturating_sub(1), Some(color))
@@ -765,7 +765,7 @@ fn main() {
                 Some(Command::FindAllStrings(min_size, substring)) => {
                     match command_functions::find_all_strings(&file_buffers[active_fb_index], min_size, &substring) {
                         Ok(ll) => {
-                            let hl = ll.iter()
+                            let hl = (&ll).into_iter()
                                         .map(|loc| {
                                             let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
                                             (loc.offset, loc.offset + loc.size.saturating_sub(1), Some(color))
@@ -1024,11 +1024,8 @@ fn main() {
                     if o < fb.len() {
                         match command_functions::parse_struct(&fb.as_slice()[o..], name) {
                             Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
-                            Ok(vfd) => {
-                                //TODO: add size to ll and use ll directly
-                                //TODO: remove this line
-                                let ll = vfd.iter().map(|fd| (fd.name.clone(), fd.offset + o)).collect::<LocationList>();
-                                let hl = vfd.iter().filter_map(|fd| {
+                            Ok(ll) => {
+                                let hl = (&ll).into_iter().filter_map(|fd| {
                                     if fd.size > 0 {
                                         let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
                                         return Some((fd.offset + o, fd.offset + o + fd.size -1 , Some(color)));
@@ -1050,9 +1047,8 @@ fn main() {
                     fb.set_filtered_location_list(None);
 
                     if !filter_strings.is_empty() {
-                                //TODO: add size if possible
                         let fll = fb.location_list()
-                                        .iter()
+                                        .into_iter()
                                         .filter_map(|loc| filter_strings.iter().any(|fs| loc.name.contains(fs)).then_some(loc.clone()))
                                         .collect();
 

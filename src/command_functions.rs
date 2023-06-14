@@ -8,7 +8,7 @@ use crate::file_buffer::FileBuffer;
 use crate::ColorScheme;
 use crate::config::{Config, HighlightStyle, ScreenPagingSize};
 use crate::signatures::*;
-use crate::struct_parsers::{FieldDescription, parse_struct_by_name};
+use crate::struct_parsers::parse_struct_by_name;
 
 //set file offset to one/all filebuffers
 pub fn set_position(file_buffers: &mut [FileBuffer], active_fb: usize, position: usize, lock_buffers: bool) {
@@ -336,7 +336,7 @@ pub fn calculate_histogram(data: &[u8]) -> LocationList {
 }
 
 //parse binary structure at the given offset.
-pub fn parse_struct(data: &[u8], name: Option<String>) -> Result<Vec<FieldDescription>, String> {
+pub fn parse_struct(data: &[u8], name: Option<String>) -> Result<LocationList, String> {
 
     let sig_name = match name {
         Some(s) => s,
@@ -394,7 +394,7 @@ pub fn export_block(file_buffers: &[FileBuffer], active_fb_index: usize) -> Resu
                     return Err(s.to_string());
                 }
             }
-            out_string.push_str("\n");
+            out_string.push('\n');
         }
 
         let file_name = format!("export_{:08X}.txt", start);

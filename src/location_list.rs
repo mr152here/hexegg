@@ -1,3 +1,5 @@
+use std::ops::{Index, IndexMut};
+
 #[derive(Clone)]
 pub struct Location {
     pub name: String,
@@ -82,11 +84,6 @@ impl LocationList {
         self.loc_list.push(location);
     }
 
-    //returns iterator
-    pub fn iter(&self) -> impl Iterator<Item = &'_ Location> {
-        self.loc_list.iter()
-    }
-
     pub fn len(&self) -> usize {
         self.loc_list.len()
     }
@@ -107,5 +104,56 @@ impl FromIterator<(String, usize)> for LocationList {
         let mut ll = LocationList::new();
         iter.into_iter().for_each(|t| ll.add_location(Location{name: t.0, offset: t.1, size: 0}));
         ll
+    }
+}
+
+impl IntoIterator for LocationList {
+    type Item = Location;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.loc_list.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a LocationList {
+    type Item = &'a Location;
+    type IntoIter = core::slice::Iter<'a, Location>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.loc_list.iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a mut LocationList {
+    type Item = &'a mut Location;
+    type IntoIter = core::slice::IterMut<'a, Location>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.loc_list.iter_mut()
+    }
+}
+
+impl Extend<Location> for LocationList {
+
+    fn extend<T: IntoIterator<Item=Location>>(&mut self, iter: T){
+        for location in iter {
+            self.add_location(location);
+        }
+    }
+}
+
+impl Index<usize> for LocationList {
+    type Output = Location;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        self.loc_list.index(index)
+    }
+}
+
+impl IndexMut<usize> for LocationList {
+
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        self.loc_list.index_mut(index)
     }
 }
