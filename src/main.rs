@@ -497,13 +497,14 @@ fn main() {
                     }
                 },
                 MouseEvent{ kind: MouseEventKind::Down(MouseButton::Left), column, row, .. } => {
+                    let fb = &mut file_buffers[active_fb_index];
                     let screen = &screens[active_screen_index];
                     let is_double_click = column == last_mouse_col && row == last_mouse_row && last_click_time.elapsed().as_millis() < 500;
 
                     if screen.is_over_data_area(column, row) {
+
                         if let Some(fo) = screen.screen_coord_to_file_offset(file_view_offset, column, row) {
                             if is_double_click {
-                                let fb = &mut file_buffers[active_fb_index];
                                 fb.set_selection(if let Some((s,e)) = fb.highlight_list().range(cursor.position()) {
                                         Some((s, std::cmp::min(e, fb.len())))
                                     } else {
@@ -515,12 +516,15 @@ fn main() {
                         }
 
                     } else if screen.is_over_location_bar(column, row) {
-                        let fb = &mut file_buffers[active_fb_index];
 
                         if let Some(loc_list_idx) = screen.location_list_index(column, row, fb.location_list()) {
                             if let Some(loc) = fb.location_list().get(loc_list_idx) {
-                                command = Some(Command::Goto(loc.offset));
-                                fb.location_list_mut().set_current_index(loc_list_idx);
+                                if is_double_click && loc.size > 0 {
+                                    fb.set_selection(Some((loc.offset, loc.offset + loc.size - 1)));
+                                } else {
+                                    command = Some(Command::Goto(loc.offset));
+                                    fb.location_list_mut().set_current_index(loc_list_idx);
+                                }
                             }
                         }
                     }
