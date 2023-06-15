@@ -530,9 +530,20 @@ fn main() {
                     last_mouse_row = row;
                 }
                 MouseEvent{ kind: MouseEventKind::Down(MouseButton::Right), column, row, .. } => {
-                    if screens[active_screen_index].is_over_data_area(column, row) {
-                        if let Some(fo) = screens[active_screen_index].screen_coord_to_file_offset(file_view_offset, column, row) {
-                            file_buffers[active_fb_index].set_selection(Some((cursor.position(), fo)));
+                    let fb = &mut file_buffers[active_fb_index];
+                    let screen = &screens[active_screen_index];
+
+                    if screen.is_over_data_area(column, row) {
+                        if let Some(fo) = screen.screen_coord_to_file_offset(file_view_offset, column, row) {
+                            fb.set_selection(Some((cursor.position(), fo)));
+                        }
+
+                    } else if screen.is_over_location_bar(column, row) {
+                        if let Some(loc_list_idx) = screen.location_list_index(column, row, fb.location_list()) {
+                            if let Some(loc) = fb.location_list().get(loc_list_idx) {
+                                command = Some(Command::Goto(loc.offset + loc.size.saturating_sub(1)));
+                                fb.location_list_mut().set_current_index(loc_list_idx);
+                            }
                         }
                     }
                 }
