@@ -137,7 +137,59 @@ pub fn find_string_at_position(fb: &FileBuffer, position: usize) -> Option<(usiz
     None
 }
 
+//find if there is any "ascii - unicode" string at the position
+pub fn find_unicode_string_at_position(fb: &FileBuffer, position: usize) -> Option<(usize, usize)> {
 
+    if let Some(b) = fb.get(position) {
+        if (0x20..=0x7E).contains(&b) || b == 0 {
+
+            //find end of the string
+            let mut last_was_ascii = b != 0;
+            let (mut s, mut e) = (position, position);
+
+            while let Some(b) = fb.get(e + 1) {
+
+                if (last_was_ascii && b !=0) || (!last_was_ascii && !(0x20..=0x7E).contains(&b)) {
+                    break;
+                }
+                last_was_ascii = !last_was_ascii;
+                e += 1;
+            }
+
+            //find start of the string
+            last_was_ascii = b != 0;
+            while let Some(b) = fb.get(s.saturating_sub(1)) {
+
+                if (last_was_ascii && b !=0) || (!last_was_ascii && !(0x20..=0x7E).contains(&b)) {
+                    break;
+                }
+
+                last_was_ascii = !last_was_ascii;
+                s = s.saturating_sub(1);
+
+                if s == 0 {
+                    break;
+                }
+            }
+
+            //if string starts with 0 byte or ends with ascii byte remove them
+            if let Some(b) = fb.get(s) {
+                if b == 0 &&  s < e {
+                    s += 1;
+                }
+            }
+
+            if let Some(b) = fb.get(e) {
+                if (0x20..=0x7E).contains(&b) && s < e {
+                    e -= 1;
+                }
+            }
+
+            return (s < e).then_some((s,e));
+        }
+    }
+    None
+}
 
 //returns location of first string from current position in filebuffer. String must contains
 //substring and must be at least min_size long

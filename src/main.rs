@@ -394,6 +394,11 @@ fn main() {
                         in_selection_mode = false;
                     }
                 },
+                //select "ascii-unicode" string under the cursor
+                KeyEvent{ code: KeyCode::Char('U'), .. } if cursor.is_normal() => {
+                    let fb = &mut file_buffers[active_fb_index];
+                    fb.set_selection(command_functions::find_unicode_string_at_position(fb, cursor.position()));
+                },
                 KeyEvent{ code: KeyCode::Char('y'), .. } if !cursor.is_edit() => {
                     command = Some(Command::YankBlock);
                 },
@@ -839,7 +844,6 @@ fn main() {
                 },
                 Some(Command::FindAllHighlights) => {
                     let fb = &mut file_buffers[active_fb_index];
-                    //TODO: add size to location list from highlight range
                     let ll = fb.highlight_list().iter().filter_map(|(o, c)| c.is_some().then_some((format!("{:08X}", o), *o)) ).collect::<LocationList>();
 
                     if ll.is_empty() {
