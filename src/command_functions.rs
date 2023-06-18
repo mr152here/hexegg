@@ -124,13 +124,20 @@ pub fn find_string_at_position(fb: &FileBuffer, position: usize) -> Option<(usiz
                 if !(0x20..=0x7E).contains(&b) {
                     break;
                 }
+
                 s = s.saturating_sub(1);
+
+                if s == 0 {
+                    break;
+                }
             }
             return Some((s,e));
         }
     }
     None
 }
+
+
 
 //returns location of first string from current position in filebuffer. String must contains
 //substring and must be at least min_size long
@@ -316,7 +323,7 @@ pub fn calculate_entropy(fb: &FileBuffer, block_size: usize, margin: f32) -> Loc
             let ent = (100.0 * entropy(c)).round() / 100.0;
             if (prev_ent - ent).abs() > margin {
                 prev_ent = ent;
-                return Some((format!("{:>8.2}", ent), i*block_size));
+                return Some((format!(" {:.2}", ent), i*block_size));
             }
             None
         })
