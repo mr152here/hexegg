@@ -376,16 +376,6 @@ fn main() {
                         cursor.set_position(file_view_offset);
                     }
                 },
-                KeyEvent{ code: KeyCode::Char('S'), .. } if cursor.is_normal() => {
-                    let fb = &mut file_buffers[active_fb_index];
-
-                    //select highlighted block and if not possible, select string under the cursor
-                    fb.set_selection(if let Some((s,e)) = fb.highlight_list().range(cursor.position()) {
-                            Some((s, std::cmp::min(e, fb.len())))
-                        } else {
-                            command_functions::find_string_at_position(fb, cursor.position())
-                        });
-                },
                 KeyEvent{ code: KeyCode::Char('s'), .. } if cursor.is_normal() => {
                     if !in_selection_mode && cursor.position() < file_buffers[active_fb_index].len() {
                         selection_start = cursor.position();
@@ -393,6 +383,23 @@ fn main() {
                     } else {
                         in_selection_mode = false;
                     }
+                },
+                //select highlighted block from the cursor position
+                KeyEvent{ code: KeyCode::Char('H'), .. } if cursor.is_normal() => {
+                    let fb = &mut file_buffers[active_fb_index];
+
+                    fb.set_selection(
+                        if let Some((s,e)) = fb.highlight_list().range(cursor.position()) {
+                            Some((s, std::cmp::min(e, fb.len())))
+                        } else {
+                            None
+                        }
+                    );
+                },
+                //select ascii string from the cursor position
+                KeyEvent{ code: KeyCode::Char('S'), .. } if cursor.is_normal() => {
+                    let fb = &mut file_buffers[active_fb_index];
+                    fb.set_selection(command_functions::find_string_at_position(fb, cursor.position()));
                 },
                 //select "ascii-unicode" string under the cursor
                 KeyEvent{ code: KeyCode::Char('U'), .. } if cursor.is_normal() => {
