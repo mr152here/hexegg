@@ -7,6 +7,7 @@ pub enum Command {
     Find(Vec<u8>),
     FindAll(Vec<u8>),
     FindString(usize, Vec<u8>),
+    FindUnicodeString(usize, Vec<u8>),
     FindAllStrings(usize, Vec<u8>),
     FindDiff,
     FindAllDiffs,
@@ -39,7 +40,7 @@ pub enum Command {
 }
 
 
-pub const COMMAND_LIST: [&str; 35] = [
+pub const COMMAND_LIST: [&str; 36] = [
         "appendblock",
         "appendfile",
         "appendfilledblock",
@@ -62,6 +63,7 @@ pub const COMMAND_LIST: [&str; 35] = [
         "findallstrings",
         "findhex",
         "findstring",
+        "findunicodestring",
         "goto",
         "histogram",
         "insertblock",
@@ -119,6 +121,9 @@ impl Command {
 
             Some(&"findstring") => Command::parse_find_string(&cmd_vec),
             Some(&"fs") => Command::parse_find_string(&cmd_vec),
+
+            Some(&"findunicodestring") => Command::parse_find_unicode_string(&cmd_vec),
+            Some(&"fu") => Command::parse_find_unicode_string(&cmd_vec),
 
             Some(&"findallstrings") => Command::parse_find_all_strings(&cmd_vec),
             Some(&"fas") => Command::parse_find_all_strings(&cmd_vec),
@@ -364,6 +369,45 @@ impl Command {
         };
 
         Ok(Command::FindString(std::cmp::max(min_size, substring.len()), substring))
+    }
+
+    //find ascii-unicode 2 byte per char string with minimium size and which contains specific substring (if any).
+    fn parse_find_unicode_string(v: &[&str]) -> Result<Command, &'static str> {
+
+        //parse first parameter
+        let min_size = match v.get(1) {
+            Some(&s) => {
+
+                //If is successfully converted into usize then it is 'min_size'. If not it is 'substring'
+                match s.parse::<usize>() {
+                    Ok(ms) => ms * 2,
+                    Err(_) => {
+                        let mut substring = Vec::<u8>::with_capacity(2*s.len());
+                        s.as_bytes().into_iter().for_each(|&b| {
+                            substring.push(b);
+                            substring.push(0);
+                        });
+                        return Ok(Command::FindUnicodeString(substring.len(), substring));
+                    },
+                }
+            },
+            None => return Err("At least 'min_size' or 'substring' parameter is required!"),
+        };
+
+        //parse second parameter. Should be 'substring' or nothing
+        let substring = match v.get(2) {
+            Some(&s) => {
+                let mut substring = Vec::<u8>::with_capacity(2*s.len());
+                s.as_bytes().into_iter().for_each(|&b| {
+                    substring.push(b);
+                    substring.push(0);
+                });
+                substring
+            },
+            None => Vec::new(),
+        };
+
+        Ok(Command::FindUnicodeString(std::cmp::max(min_size, substring.len()), substring))
     }
     
     fn parse_find_all_strings(v: &[&str]) -> Result<Command, &'static str> {
