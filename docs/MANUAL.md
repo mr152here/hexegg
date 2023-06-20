@@ -1,4 +1,4 @@
-# hexegg (0.7)
+# hexegg (0.8)
 
 Hexegg open and read all input files specified by their names as command-line arguments.
 
@@ -24,19 +24,19 @@ Basic controls are pretty intuitive. The arrow keys move the file viewing positi
 
 Hexegg offers various interpretations of the input data. Those are called "screens". In the current version, there are three screens: text, byte and word screen. You can cycle between them using 'ENTER' key. Each screen reads its setting from the *config.toml* file. Where you can set which one is default, width of some user interace elements and even disable unwanted screens.
 
-##### text screen
+##### Text screen
 
 Display data as they are in the file with (almost) cp437 character set.
 ![text_screen](assets/text_screen.png)
 
-##### byte screen
+##### Byte screen
 
 Display data as hexadecimal values and also as their "text" values.
 ![byte_screen](assets/byte_screen.png)
 
-##### word screen
+##### Word screen
 
-Display data as hexadecimal values in the pairs and their "text" values.
+Display data as hexadecimal values as a 2-byte pairs and their "text" values.
 ![byte_screen](assets/word_screen.png)
 
 #### Program modes
@@ -49,20 +49,22 @@ Switching program modes:
 - 'b' - switch the view mode to byte mode
 - 't' - switch the view mode to text mode
 - 'ESC' - return to the view mode from any other mode. In view mode cancel selection (if exists).
-- 's' - start or finish selection
-- 'S' - select whole highlighted block or string at the cursor position
-- 'y' - yank selected block
+- 's' - start or finish selection (in normal mode)
+- 'S' - select whole ascii string from the cursor position
+- 'H' - select whole highlighted block from the cursor position
+- 'U' - select whole "ascii-unicode" string from the cursor position
+- 'y' - yank selected block, and send it to the external application via STDIN
 
-If the program is in the "normal mode", you may select a block of bytes. Start by pressing the 's' key. Selection starts from the current cursor position, adjust it to the required size with standard movement keys, and press the 's' again to finish the selection (or you can cancel it anytime by 'ESC'). You can also select whole block of highlighted bytes or entire (ASCII) string at the cursor position by pressing 'S' key.
+If the program is in the "normal mode", you may select a block of bytes. Start by pressing the 's' key. Selection starts from the current cursor position, adjust it to the required size with standard movement keys, and press the 's' again to finish the selection (or you can cancel it anytime by 'ESC'). You can also select whole block of highlighted bytes by pressing 'H' with cursor somewhere in the highlighted block, entire (ASCII) string with 'S', or entire 2-byte width "ascii-unicode" string with 'U'.
 
-You can yank (copy) selected block with 'y' key. This makes easy to copy blocks from one file to another or new file. To put yanked block to the file use *insertblock* or *appendblock* commands. To open block in a new file buffer use *openblock* command. Note: System clipboard is not implemented yet.
+You can yank (copy) selected block with 'y' key. This makes it easy to copy blocks from one file to another or a new file. To put yanked block to the file use *insertblock* or *appendblock* commands. To open block in a new file buffer use *openblock* command. External application can be set in the *config.toml* file by setting *yank_to_program* variable to appropriate values. If set, application is executed and recieve whole yanked block via STDIN pipe. E.g. this can be use to put yanked block to the system clipboard by executing xcopy, xsel, .., send it via network using netcat etc.
 
 #### File buffers
 Every file is read into separate file buffer. Content of the file buffers is no longer synchronized with the later changes in associated file. Every file buffer has separate content, patches, view offset, selections, highlights, etc..  Only current cursor or view offset can by synchronized if 'file buffer offset lock' is enabled. You can cycle through all file buffers using 'TAB' key.
 
 #### Mouse
 
-You may enable/disable mouse by setting *mouse_enabled* in the configuration *config.toml* file. Is enabled by default. If your terminal doesn't support mouse, is recommended to disable it. You can move cursor anywhere to the file by left click (even if is not visible). To select a block, press and hold down left button and drag the mouse (if crossterm library support mouse drag event for your terminal). If not, you can always right click and block between cursor and current mouse position will be selected. Using mouse wheel, you can scroll through the file. To adjust its behavior see check cofiguration file for *mouse_scroll_type* and *mouse_scroll_size* variables. Double click somewhere at highlighted block or ASCII string will select it. Same as 'S' key.
+Mouse can be enable/disable by setting *mouse_enabled* in the configuration *config.toml* file. Is enabled by default. If your terminal doesn't support mouse, is recommended to disable it. You can move cursor anywhere to the file by left click (even if is not visible). To select a block, press and hold down left button and drag the mouse (if crossterm library support mouse drag event for your terminal). If not, you can always right click and block between cursor and current mouse position will be selected. Using mouse wheel, you can scroll through the file. To adjust its behavior check cofiguration file for *mouse_scroll_type* and *mouse_scroll_size* variables. Double click somewhere at highlighted block or ASCII string will select it. Same as 'H','S' keys.
 
 #### Bookmarks
 
@@ -84,26 +86,26 @@ Almost every file modification is stored in the "patch map", which contains the 
 - '-' - decrease row size (nice when looking for some symetry or tables)
 - 'i' - toggles the visibility of the info bar
 - 'o' - toggles the visibility of the offset bar
+- 'm' - highlight selected block
+- 'M' - remove highlight from the selected block or its selected part
 
 When you enable highlighting different bytes ('h' key), program shows those bytes in a different color, makes changes in files easy to spot. You can also use '.' key to jump to the next diff location.
 ![](assets/byte_screen_diff.png)  
 
 #### Location bar
 
-Whenever you perform an operation that returns multiple results, the results are displayed on the right side of the screen in a panel called the "location bar". You can quickly jump through the results and their associated offsets using:
+Whenever you perform an operation that may returns multiple results, the results are displayed on the right side of the screen in a panel called the "location bar". You can quickly goes through the results and their associated offsets using:
 - ']' - navigate to the next location
 - '[' - navigate to the previous location
 - '}' - page down in location bar
 - '{' - page up in location bar
-- '<' - navigate to the currently selected location
-- '>' - find highlighted block in location bar from the current position
+- '<' - navigate to the currently selected item
+- '>' - find highlighted block in location bar from the cursor position
 - 'r' - rename item in the location bar
 - 'R' - remove item from the location bar
-- 'm' - highlight selected block
-- 'M' - remove highlighted block or its selected part
 - 'l' - toggles location bar visibility (shortcuts still works)
 
-Location bar also support mouse events. By clicking on the item in the list, you will jump to the associated offset. Or you can quickly travers results by mouse wheel.
+Location bar also support mouse events. By left clicking on the item, you will jump to its offset. By right clicking you will jump to the end offset. Double click to select whole block (if item has known size). Or you can quickly travers through results using mouse wheel.
 
 #### Info bar
 
@@ -125,15 +127,17 @@ Hexegg has a build-in command interface with a simple history of last used comma
 - ENTER - execute command
 - UP - select a previous command from history
 - DOWN - select a next command from history  
-- BACKSPACE - delete last character from the command
+- BACKSPACE - delete previous character from the user string
+- DEL - delete current character from the user string
+- TAB - autocomplete command or show current command hints/possibilities
 
-Next is a list of available commands, their parameters, and their descriptions. The parameters in [] are optional, the parameters in <> are mandatory, and the parameters in {} have a predefined default value. If not stated otherwise, all parameters must be specified in order. If the {default} parameter is in front of another non-default parameter, it cannot be skipped. You can specify command by typing its full name (e.g. *findallstrings*) or (if any) by typing its sort name (e.g. *fas*). 
+Next is a list of available commands, their parameters, and their descriptions. The parameters in [] are optional, the parameters in <> are mandatory, and the parameters in {} have predefined default values. If not stated otherwise, all parameters must be specified in order. If the {default} parameter is in front of another non-default parameter, it cannot be skipped. You can specify command by typing its full name (e.g. *findallstrings*) or by typing its sort name (e.g. *fas*).
 
 #### Command list
 
 *quit*  
 *q*
-> closes all files; for each modified file, asks whether to save it and then exits.
+> closes all files. For each modified file, asks whether to save it and then exits.
 
 *quit!*  
 *q!*
@@ -152,11 +156,11 @@ Next is a list of available commands, their parameters, and their descriptions. 
 
 *bookmark \<bookmark_index\>*  
 *b \<bookmark_index\>*
-> store the current file or cursor position in the boomark register under the *bookmark_index* number. You can go to the stored location with *goto* command or by pressing that index number.
+> store the current position in the boomark register under the *bookmark_index* number. You can go to the stored location with *goto* command or by pressing that index number key (0,1,2,..).
 
 *findallbookmarks*  
 *fab*
-> show all bookmarks and their indexes in the location bar. You can navigate through them using standard '[',']' keys.
+> show all bookmarks and their indexes in the location bar.
 
 *findallpatches*  
 *fap*
@@ -172,7 +176,7 @@ Next is a list of available commands, their parameters, and their descriptions. 
 
 *findallsignatures \[sig_name\]* ...  
 *fasi \[sig_name\]* ...  
-> find the locations of embedded blocks specified with one or more *sig_name* parameter. If nothing is specified, find all known signatures. Currently implemented signatures are for: 7zip, ani, avi, bmp, bzip2, cab, cdr, deb, dls, dmg, elf, fat, gif, gzip, ico, java, jpeg, lz4, lzip, lzo, macho, midi, mzpe, nsis, png, rar, rpm, vcd_dat, wav, webp, xar, xz, zip, zpaq
+> find the locations of embedded blocks specified with one or more *sig_name* parameter. If nothing is specified, find all known signatures. Currently implemented signatures are for: 7zip, ani, avi, bmp, bzip2, cab, cdr, deb, dls, dmg, elf, fat, gif, gzip, ico, java, jpeg, lz4, lzip, lzo, macho, midi, mzpe, nsis, pcap, pcapng, png, rar, rpm, vcd_dat, wav, webp, xar, xz, zip, zpaq
 > 
 > 'fasi' - find all known signatures  
 > 'fasi elf gzip xar' - find locations of all "ELF", "GZIP" and "XAR" signatures
@@ -210,7 +214,7 @@ Next is a list of available commands, their parameters, and their descriptions. 
 
 *findstring \<min_size or substring\> \[substring\]*  
 *fs \<min_size or substring\> \[substring\]*
-> find and jump to the beginning of the next string that is at least *min_size* long and contains a *substring*. If the first parameter can be converted to an integer, then specifies *min_size*, otherwise specifies *substring*. The second *substring* parameter is used only when the first one is *min_size*. If the size of *substring* is greater than *min_size*, the former size is used. A string is a sequence of printable ascii characters that starts after and ends before any non-printable character.
+> find and jump to the beginning of the next string that is at least *min_size* long and contains a *substring*. If the first parameter can be converted to an integer, then specifies *min_size*, otherwise specifies *substring*. The second *substring* parameter is used only when the first one is *min_size*. If the size of *substring* is greater than *min_size*, the former size is used. A string is a sequence of printable ascii characters that starts after and ends before any non-printable character. Not necessary the zero-byte.
 > 
 > 'fs 10' - find the next string that is at least 10 bytes long.  
 > 'fs hexedit' - find the next string that is at least 7 bytes in size and contains 'hexedit'   
@@ -220,19 +224,30 @@ Next is a list of available commands, their parameters, and their descriptions. 
 
 *findallstrings \<min_size or substring\> \[substring\]*  
 *fas \<min_size or substring\> \[substring\]*
-> find all strings and show their first 8 bytes as a preview in the location bar. Works the same as *findstring* but locates all strings, not just the next one.
+> find all strings in file and show them in the location bar. Works the same as *findstring* but locates all strings, not just the next one.
+
+*findunicodestring \<min_size or substring\> \[substring\]*  
+*fu \<min_size or substring\> \[substring\]*
+> same as *findstring* except it works on "ascii-unicode" type string. That are 16bit wide characters strings, where every 1st is ascii and every 2nd byte is a zero-byte. Like H\x00e\x00l\x00l\x00o\x00 sequence. Parameters are specified as ascii *substring* and *min_size* is number of characters not bytes.
+
+*findallunicodestrings \<min_size or substring\> \[substring\]*  
+*fau \<min_size or substring\> \[substring\]*
+> find all "ascii-unicode" strings in file and show them in the location bar. Works the same as *findunicodestring* but locates all strings, not just the next one.
 
 *filter \[substring\] \[substring\] ...*
 > filter results in Location Bar and display only that containing at least one of *substrings*. To reset filter, use empty *filter* command.
 
 *deleteblock*
-> delete the selected block from the file
+> delete selected block from the file
 
 *openblock*
 > open selected or yanked block as a new file. Selection takes priority.
 
 *saveblock \<filename\>*
 > save the selected block into the file with *filename*.
+
+*exportblock
+> export selected block as a text file with filename 'export_<offset>.txt'. Each row contains formated 16 bytes and content can be easily inserted into documents, articles, source codes ...
 
 *fillblock \[pattern\]*
 > fill the selected block with *pattern*. If the number of bytes in pattern is less than the block size, *pattern* will be repeated. If *pattern* is not specified, a block will be filled with 0.
@@ -276,7 +291,7 @@ Next is a list of available commands, their parameters, and their descriptions. 
 > save the current file buffer with all its modifications as a *filename*. If no *filename* is specified, the file is saved under its own name.
 
 *parseheader \[header_name\]*
-> parse, show and highlight binary structure at the current position. If *header_name* is not given, it will first try to find correct signature at the position and than parse it. Currently recognized structures are: BMP, ELF, GIF, ICO, MZ, MZPE, PE, PNG.
+> parse, show and highlight binary structure at the current position. If *header_name* is not given, it will first try to find correct signature at the position and than parse it. Currently recognized structures are: BMP, ELF, GIF, ICO, MZ, MZPE, PE, PCAP, PCAPNG, PNG.
 > 
 > parseheader bmp - parse file from current position as a BMP structure
 > parseheader mz - parse file from current position as a (only) MZ structure
