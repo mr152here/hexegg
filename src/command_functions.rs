@@ -258,7 +258,6 @@ pub fn find_unicode_string(buffer: &[u8], start_offset: usize, min_size: usize, 
             }
             in_string = false;
         }
-
         index += 1;
     }
 
@@ -309,6 +308,62 @@ pub fn find_all_strings(fb: &FileBuffer, min_size: usize, substring: &Vec<u8>) -
         }
     }
     
+    match loc_list.is_empty() {
+        true => Err("Not found!".to_owned()),
+        false => Ok(loc_list),
+    }
+}
+
+pub fn find_all_unicode_strings(fb: &FileBuffer, min_size: usize, substring: &Vec<u8>) -> Result<LocationList, String> {
+    let data = fb.as_slice();
+    let mut loc_list = LocationList::new();
+    let mut start_index: usize = 0;
+    let mut in_string = false;
+    let mut index: usize = 0;
+
+    while let Some(b1) = data.get(index) {
+        let b2 = match data.get(index + 1) {
+            Some(&b2) => b2,
+            None => break,
+        };
+
+        if (0x20..=0x7E).contains(b1) && b2 == 0 {
+            if !in_string {
+                in_string = true;
+                start_index = index;
+            }
+            index += 1;
+
+        } else if in_string {
+
+            //process only strings longer or equal to minimal size
+            if (index - start_index) >= min_size {
+                if substring.is_empty() || data[start_index..index].windows( substring.len() ).any(|s| s.starts_with(substring)) {
+                    let s = data[start_index..index].into_iter()
+                                .filter(|&b| *b != 0)
+                                .map(|&b| b as char)
+                                .collect::<String>();
+
+                    loc_list.add_location(Location{name: s, offset: start_index, size: index - start_index});
+                }
+            }
+            in_string = false;
+        }
+        index += 1;
+    }
+
+    //if data ends with string
+    if in_string && (data.len() - start_index) >= min_size {
+        if substring.is_empty() || data[start_index..].windows( substring.len() ).any(|s| s.starts_with(substring)) {
+            let s = data[start_index..].into_iter()
+                        .filter(|&b| *b != 0)
+                        .map(|&b| b as char)
+                        .collect::<String>();
+
+            loc_list.add_location(Location{name: s, offset: start_index, size: data.len() - start_index});
+        }
+    }
+
     match loc_list.is_empty() {
         true => Err("Not found!".to_owned()),
         false => Ok(loc_list),

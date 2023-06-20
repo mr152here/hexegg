@@ -9,6 +9,7 @@ pub enum Command {
     FindString(usize, Vec<u8>),
     FindUnicodeString(usize, Vec<u8>),
     FindAllStrings(usize, Vec<u8>),
+    FindAllUnicodeStrings(usize, Vec<u8>),
     FindDiff,
     FindAllDiffs,
     FindPatch,
@@ -40,7 +41,7 @@ pub enum Command {
 }
 
 
-pub const COMMAND_LIST: [&str; 36] = [
+pub const COMMAND_LIST: [&str; 37] = [
         "appendblock",
         "appendfile",
         "appendfilledblock",
@@ -61,6 +62,7 @@ pub const COMMAND_LIST: [&str; 36] = [
         "findallpatches",
         "findallsignatures",
         "findallstrings",
+        "findallunicodestrings",
         "findhex",
         "findstring",
         "findunicodestring",
@@ -127,6 +129,9 @@ impl Command {
 
             Some(&"findallstrings") => Command::parse_find_all_strings(&cmd_vec),
             Some(&"fas") => Command::parse_find_all_strings(&cmd_vec),
+
+            Some(&"findallunicodestrings") => Command::parse_find_all_unicode_strings(&cmd_vec),
+            Some(&"fau") => Command::parse_find_all_unicode_strings(&cmd_vec),
 
             Some(&"findalldiffs") => Ok(Command::FindAllDiffs),
             Some(&"fad") => Ok(Command::FindAllDiffs),
@@ -345,7 +350,6 @@ impl Command {
 
     //find string with defined minimium size and which contains specific substring. If defined.
     fn parse_find_string(v: &[&str]) -> Result<Command, &'static str> {
-
         //parse first parameter
         let min_size = match v.get(1) {
             Some(&s) => {
@@ -373,7 +377,6 @@ impl Command {
 
     //find ascii-unicode 2 byte per char string with minimium size and which contains specific substring (if any).
     fn parse_find_unicode_string(v: &[&str]) -> Result<Command, &'static str> {
-
         //parse first parameter
         let min_size = match v.get(1) {
             Some(&s) => {
@@ -415,6 +418,15 @@ impl Command {
 
         if let Ok(Command::FindString(m,s)) = cmd {
             return Ok(Command::FindAllStrings(m,s));
+        }
+        cmd
+    }
+
+    fn parse_find_all_unicode_strings(v: &[&str]) -> Result<Command, &'static str> {
+        let cmd = Command::parse_find_unicode_string(v);
+
+        if let Ok(Command::FindUnicodeString(m,s)) = cmd {
+            return Ok(Command::FindAllUnicodeStrings(m,s));
         }
         cmd
     }

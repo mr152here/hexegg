@@ -822,6 +822,23 @@ fn main() {
                         Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
                     }
                 },
+                Some(Command::FindAllUnicodeStrings(min_size, substring)) => {
+                    match command_functions::find_all_unicode_strings(&file_buffers[active_fb_index], min_size, &substring) {
+                        Ok(ll) => {
+                            let hl = (&ll).into_iter()
+                                        .map(|loc| {
+                                            let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
+                                            (loc.offset, loc.offset + loc.size.saturating_sub(1), Some(color))
+                                        })
+                                        .collect::<HighlightList>();
+
+                            file_buffers[active_fb_index].set_location_list(ll);
+                            file_buffers[active_fb_index].set_highlight_list(hl);
+                            screens.iter_mut().for_each(|s| s.show_location_bar(true));
+                        },
+                        Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
+                    }
+                },
                 Some(Command::FindDiff) => {
                     let fb = &file_buffers[active_fb_index];
                     let start_offset = if cursor.is_visible() { cursor.position() } else { fb.position() } + 1;
