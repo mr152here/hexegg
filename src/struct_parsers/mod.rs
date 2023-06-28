@@ -4,6 +4,7 @@ pub mod struct_bmp;
 pub mod struct_elf;
 pub mod struct_gif;
 pub mod struct_ico;
+pub mod struct_jpeg;
 pub mod struct_mzpe;
 pub mod struct_pcap;
 pub mod struct_pcapng;
@@ -15,6 +16,7 @@ pub fn parse_struct_by_name(data: &[u8], name: &str) -> Result<LocationList, Str
         "dib" => struct_bmp::parse_dib_struct(data),
         "elf" => struct_elf::parse_elf_struct(data),
         "ico" => struct_ico::parse_ico_struct(data),
+        "jpeg" => struct_jpeg::parse_jpeg_struct(data),
         "gif" => struct_gif::parse_gif_struct(data),
         "mz" => struct_mzpe::parse_mz_struct(data),
         "mzpe" => struct_mzpe::parse_mzpe_struct(data),
