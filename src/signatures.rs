@@ -359,15 +359,8 @@ fn is_signature_gif(data: &[u8]) -> Option<&'static str> {
 //try to recognize JPEG header
 fn is_signature_jpeg(data: &[u8]) -> Option<&'static str> {
 
-    if data.len() > 12 && data.starts_with(&[0xFF, 0xD8, 0xFF]) { 
-
-        //following with APP0 or APP1 segment with JFIF\x00 or Exif\x00 bytes
-        if data[3] == 0xE0 {
-            return data[6..11].starts_with(&[0x4A, 0x46, 0x49, 0x46, 0]).then_some("jpeg");
-
-        } else if data[3] == 0xE1 {
-            return data[6..11].starts_with(&[0x45, 0x78, 0x69, 0x66, 0]).then_some("jpeg");
-        }
+    if data.len() > 12 && data.starts_with(&[0xFF, 0xD8, 0xFF]) && (data[3] == 0xE0 || data[3] == 0xE1) {
+        return Some("jpeg");
     }
     None
 }
