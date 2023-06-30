@@ -386,7 +386,7 @@ impl Command {
                     Ok(ms) => ms * 2,
                     Err(_) => {
                         let mut substring = Vec::<u8>::with_capacity(2*s.len());
-                        s.as_bytes().into_iter().for_each(|&b| {
+                        s.as_bytes().iter().for_each(|&b| {
                             substring.push(b);
                             substring.push(0);
                         });
@@ -401,7 +401,7 @@ impl Command {
         let substring = match v.get(2) {
             Some(&s) => {
                 let mut substring = Vec::<u8>::with_capacity(2*s.len());
-                s.as_bytes().into_iter().for_each(|&b| {
+                s.as_bytes().iter().for_each(|&b| {
                     substring.push(b);
                     substring.push(0);
                 });

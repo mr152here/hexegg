@@ -208,20 +208,16 @@ pub fn find_string(buffer: &[u8], start_offset: usize, min_size: usize, substrin
         } else if in_string {
 
             //process only strings longer or equal to minimal size
-            if (index - start_index) >= min_size {
-                if substring.is_empty() || data[start_index..index].windows( substring.len() ).any(|s| s.starts_with(substring)) {
-                    return Ok(start_index + start_offset);
-                }
+            if (index - start_index) >= min_size && (substring.is_empty() || data[start_index..index].windows(substring.len()).any(|s| s.starts_with(substring))) {
+                return Ok(start_index + start_offset);
             }
             in_string = false;
         }
     }
 
     //if data ends with string
-    if in_string && (data.len() - start_index) >= min_size { 
-        if substring.is_empty() || data[start_index..].windows( substring.len() ).any(|s| s.starts_with(substring)) {
-            return Ok(start_index + start_offset);
-        }
+    if in_string && (data.len() - start_index) >= min_size && (substring.is_empty() || data[start_index..].windows( substring.len() ).any(|s| s.starts_with(substring))) {
+        return Ok(start_index + start_offset);
     }
 
     Err("Not found!".to_owned())
@@ -251,10 +247,8 @@ pub fn find_unicode_string(buffer: &[u8], start_offset: usize, min_size: usize, 
         } else if in_string {
 
             //process only strings longer or equal to minimal size
-            if (index - start_index) >= min_size {
-                if substring.is_empty() || data[start_index..index].windows( substring.len() ).any(|s| s.starts_with(substring)) {
-                    return Ok(start_index + start_offset);
-                }
+            if (index - start_index) >= min_size && (substring.is_empty() || data[start_index..index].windows( substring.len() ).any(|s| s.starts_with(substring))) {
+                return Ok(start_index + start_offset);
             }
             in_string = false;
         }
@@ -262,10 +256,8 @@ pub fn find_unicode_string(buffer: &[u8], start_offset: usize, min_size: usize, 
     }
 
     //if data ends with string
-    if in_string && (data.len() - start_index) >= min_size {
-        if substring.is_empty() || data[start_index..].windows( substring.len() ).any(|s| s.starts_with(substring)) {
-            return Ok(start_index + start_offset);
-        }
+    if in_string && (data.len() - start_index) >= min_size && (substring.is_empty() || data[start_index..].windows( substring.len() ).any(|s| s.starts_with(substring))) {
+        return Ok(start_index + start_offset);
     }
 
     Err("Not found!".to_owned())
@@ -288,24 +280,20 @@ pub fn find_all_strings(fb: &FileBuffer, min_size: usize, substring: &Vec<u8>) -
         } else if in_string {
 
             //process only strings with more then minimal size
-            if (index - start_index) >= min_size {
-                if substring.is_empty() || data[start_index..index].windows( substring.len() ).any(|s| s.starts_with(substring)) {
-                    let s = String::from_utf8_lossy(&data[start_index..index]).to_string();
-                    let s_len = s.len();
-                    loc_list.add_location(Location{name: s, offset: start_index, size: s_len});
-                }
+            if (index - start_index) >= min_size && (substring.is_empty() || data[start_index..index].windows( substring.len() ).any(|s| s.starts_with(substring))) {
+                let s = String::from_utf8_lossy(&data[start_index..index]).to_string();
+                let s_len = s.len();
+                loc_list.add_location(Location{name: s, offset: start_index, size: s_len});
             }
             in_string = false;
         }
     }
 
     //if data ends with string
-    if in_string && (data.len() - start_index) >= min_size { 
-        if substring.is_empty() || data[start_index..].windows( substring.len() ).any(|s| s.starts_with(substring)) {
-            let s = String::from_utf8_lossy(&data[start_index..]).to_string();
-            let s_len = s.len();
-            loc_list.add_location(Location{name: s, offset: start_index, size: s_len});
-        }
+    if in_string && (data.len() - start_index) >= min_size && (substring.is_empty() || data[start_index..].windows( substring.len() ).any(|s| s.starts_with(substring))) {
+        let s = String::from_utf8_lossy(&data[start_index..]).to_string();
+        let s_len = s.len();
+        loc_list.add_location(Location{name: s, offset: start_index, size: s_len});
     }
     
     match loc_list.is_empty() {
@@ -337,15 +325,13 @@ pub fn find_all_unicode_strings(fb: &FileBuffer, min_size: usize, substring: &Ve
         } else if in_string {
 
             //process only strings longer or equal to minimal size
-            if (index - start_index) >= min_size {
-                if substring.is_empty() || data[start_index..index].windows( substring.len() ).any(|s| s.starts_with(substring)) {
-                    let s = data[start_index..index].into_iter()
-                                .filter(|&b| *b != 0)
-                                .map(|&b| b as char)
-                                .collect::<String>();
+            if (index - start_index) >= min_size && (substring.is_empty() || data[start_index..index].windows( substring.len() ).any(|s| s.starts_with(substring))) {
+                let s = data[start_index..index].iter()
+                            .filter(|&b| *b != 0)
+                            .map(|&b| b as char)
+                            .collect::<String>();
 
-                    loc_list.add_location(Location{name: s, offset: start_index, size: index - start_index});
-                }
+                loc_list.add_location(Location{name: s, offset: start_index, size: index - start_index});
             }
             in_string = false;
         }
@@ -353,15 +339,13 @@ pub fn find_all_unicode_strings(fb: &FileBuffer, min_size: usize, substring: &Ve
     }
 
     //if data ends with string
-    if in_string && (data.len() - start_index) >= min_size {
-        if substring.is_empty() || data[start_index..].windows( substring.len() ).any(|s| s.starts_with(substring)) {
-            let s = data[start_index..].into_iter()
-                        .filter(|&b| *b != 0)
-                        .map(|&b| b as char)
-                        .collect::<String>();
+    if in_string && (data.len() - start_index) >= min_size && (substring.is_empty() || data[start_index..].windows( substring.len() ).any(|s| s.starts_with(substring))) {
+        let s = data[start_index..].iter()
+                    .filter(|&b| *b != 0)
+                    .map(|&b| b as char)
+                    .collect::<String>();
 
-            loc_list.add_location(Location{name: s, offset: start_index, size: data.len() - start_index});
-        }
+        loc_list.add_location(Location{name: s, offset: start_index, size: data.len() - start_index});
     }
 
     match loc_list.is_empty() {
