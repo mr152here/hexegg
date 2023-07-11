@@ -1,6 +1,5 @@
-use std::{fs,str};
 use std::fs::File;
-use std::io::Write as _;
+use std::io::{Write as _, Read};
 use std::fmt::Write as _;
 use std::process::{Command, Stdio};
 use crate::location_list::{Location, LocationList};
@@ -496,8 +495,9 @@ pub fn parse_struct(data: &[u8], name: Option<String>) -> Result<LocationList, S
 
 //save selected block into the file
 pub fn save_block(file_buffers: &[FileBuffer], active_fb_index: usize, file_name: &str) -> Result<String, String> {
+
     if let Some((start,end)) = file_buffers[active_fb_index].selection() {
-        return match save_file(file_name, &file_buffers[active_fb_index].as_slice()[start..=end]) {
+        return match save_file(file_name, &file_buffers[active_fb_index].as_slice()[start..=end], true) {
             Ok(count) => Ok(format!("written {} bytes to '{}'.", count, file_name)),
             Err(s) => Err(s),
         };
@@ -507,9 +507,11 @@ pub fn save_block(file_buffers: &[FileBuffer], active_fb_index: usize, file_name
 
 //create a new filebuffer from selected/yanked block
 pub fn open_block(file_buffers: &mut Vec<FileBuffer>, active_fb_index: usize, yank_buffer: &[u8]) -> Result<(), String> {
+
     if let Some((s,e)) = file_buffers[active_fb_index].selection() {
         let file_data = file_buffers[active_fb_index].as_slice()[s..=e].to_vec();
         let mut fb = FileBuffer::from_vec(file_data);
+
         fb.set_filename(format!("dump_{:08X}_{:08X}", s, e).as_str());
         file_buffers.push(fb);
 
@@ -541,7 +543,7 @@ pub fn export_block(file_buffers: &[FileBuffer], active_fb_index: usize) -> Resu
         }
 
         let file_name = format!("export_{:08X}.txt", start);
-        return match save_file(&file_name, out_string.as_bytes()) {
+        return match save_file(&file_name, out_string.as_bytes(), true) {
             Ok(count) => Ok(format!("written {} bytes to '{}'.", count, file_name)),
             Err(s) => Err(s),
         }
@@ -587,16 +589,34 @@ pub fn yank_block_to_program(data: &[u8], clipboard_program: &Vec<String>) -> Re
 }
 
 //open and read file into Vec<u8>.
-pub fn read_file(file_name: &String) -> Result<Vec<u8>, String> {
-    match fs::read(file_name) {
-        Ok(data) => Ok(data),
+pub fn read_file(file_name: &String, size_limit: Option<u64>) -> Result<Vec<u8>, String> {
+
+    let f = match std::fs::File::open(file_name) {
+        Err(s) => return Err(s.to_string()),
+        Ok(f) => f,
+    };
+
+    let size_limit = match size_limit {
+        Some(l) => l,
+        None => {
+            match f.metadata() {
+                Err(s) => return Err(format!("Unable to obtain metadata from file '{}'. {}", file_name, s)),
+                Ok(md) => md.len(),
+            }
+        }
+    };
+
+    let mut buf = Vec::<u8>::new();
+    match f.take(size_limit).read_to_end(&mut buf) {
         Err(s) => Err(s.to_string()),
+        Ok(_) => Ok(buf),
     }
 }
 
 //save filebuffer/data into the file with name filename
-pub fn save_file(file_name: &str, data: &[u8]) -> Result<usize, String> {
-    let mut file = match File::create(file_name) {
+pub fn save_file(file_name: &str, data: &[u8], truncate: bool) -> Result<usize, String> {
+
+    let mut file = match File::options().write(true).create(true).truncate(truncate).open(file_name) {
         Ok(f) => f,
         Err(s) => return Err(s.to_string()),
     };
@@ -636,4 +656,3 @@ pub fn set_variable(var_name: &str, var_value: &str, config: &mut Config, color_
     }
     Ok(())
 }
-

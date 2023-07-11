@@ -37,6 +37,29 @@ use highlight_list::HighlightList;
 mod signatures;
 mod struct_parsers;
 
+fn parse_args() -> Result<(Option<u64>, Vec::<String>), String> {
+
+    let mut file_names = Vec::<String>::new();
+    let mut file_end_offset: Option<u64> = None;
+    let mut arg_iter = env::args().skip(1);
+
+    while let Some(arg) = arg_iter.next() {
+        match arg.as_str() {
+            "-t" => {
+                file_end_offset = match arg_iter.next() {
+                    Some(offset) => match offset.parse::<u64>() {
+                        Ok(eo) => Some(eo),
+                        Err(_) => return Err(format!("Unable to convert '{}' to integer!", offset)),
+                    },
+                    None => return Err("Expecting size limit after the '-t' parameter!".to_string()),
+                };
+            },
+            s => file_names.push(s.to_string()),
+        }
+    }
+    Ok((file_end_offset, file_names))
+}
+
 fn create_screens(cols: u16, rows: u16, config: &Config) -> Vec<Box<dyn Screen>> {
     let mut screens = Vec::<Box<dyn Screen>>::new();
 
@@ -121,22 +144,28 @@ fn main() {
     };
 
     let mut yank_buffer = Vec::<u8>::new();
-    let mut file_buffers: Vec<FileBuffer> = Vec::new();
+    let mut file_buffers = Vec::<FileBuffer>::new();
     let mut active_fb_index = 0;
 
     //parse cmdline and load every file into separate file buffer
-    for arg in env::args().skip(1) {
-        match command_functions::read_file(&arg) {
-            Ok(file_data) => {
-                let mut fb = FileBuffer::from_vec(file_data);
-                fb.set_filename(&arg);
-                file_buffers.push(fb);
-            },
-            Err(s) => { 
-                println!("Can't open file '{}'. {}\nPress enter to continue...", arg, s);
-                std::io::stdin().read_exact(&mut [0; 1]).expect("Failed to read stdin!");
-            },
-        }
+    match parse_args() {
+        Ok((file_size_limit, file_names)) => {
+            for file_name in file_names {
+                match command_functions::read_file(&file_name, file_size_limit) {
+                    Ok(file_data) => {
+                        let mut fb = FileBuffer::from_vec(file_data);
+                        fb.set_filename(&file_name);
+                        fb.set_truncate_on_save(file_size_limit.is_none());
+                        file_buffers.push(fb);
+                    },
+                    Err(s) => {
+                        println!("Can't open file '{}'. {}\nPress enter to continue...", file_name, s);
+                        std::io::stdin().read_exact(&mut [0; 1]).expect("Failed to read stdin!");
+                    },
+                }
+            }
+        },
+        Err(s) => { println!("{}", s); return; },
     }
 
     //if there is nothing to open, print message and quit
@@ -145,7 +174,7 @@ fn main() {
         println!("Copyright 2023 Michal Kopera\n\
             This software is licensed under the terms of Apache 2.0 license. http://www.apache.org/licenses/LICENSE-2.0\n\
             Is distributed on an \"AS IS\" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n\n\
-            hexegg version {}\nusage: hexegg <file1> [file2] [file3] ...\n", VERSION);
+            hexegg version {}\nusage: hexegg [-t file_size] <file1> [file2] [file3] ...\n", VERSION);
         return;
     }
 
@@ -594,7 +623,7 @@ fn main() {
                                 MessageBoxResponse::Cancel => break,
                                 MessageBoxResponse::No => (),
                                 MessageBoxResponse::Yes => {
-                                    if let Err(s) = command_functions::save_file(fb.filename(), fb.as_slice()) {
+                                    if let Err(s) = command_functions::save_file(fb.filename(), fb.as_slice(), fb.truncate_on_save()) {
                                        MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme);
                                     }
                                 },
@@ -908,11 +937,12 @@ fn main() {
                     file_buffers[active_fb_index].set_location_list(ll);
                     screens.iter_mut().for_each(|s| s.show_location_bar(true));
                 },
-                Some(Command::OpenFile(file_name)) => {
-                    match command_functions::read_file(&file_name) {
+                Some(Command::OpenFile(file_name, size_limit)) => {
+                    match command_functions::read_file(&file_name, size_limit) {
                         Ok(file_data) => {
                             let mut fb = FileBuffer::from_vec(file_data);
                             fb.set_filename(&file_name);
+                            fb.set_truncate_on_save(size_limit.is_none());
                             file_buffers.push(fb); 
                             active_fb_index = file_buffers.len() - 1;
                         },
@@ -927,7 +957,7 @@ fn main() {
                             MessageBoxResponse::Cancel => (),
                             MessageBoxResponse::No => { file_buffers.remove(active_fb_index); },
                             MessageBoxResponse::Yes => {
-                                if let Err(s) = command_functions::save_file(filename, file_buffers[active_fb_index].as_slice()) {
+                                if let Err(s) = command_functions::save_file(filename, file_buffers[active_fb_index].as_slice(), file_buffers[active_fb_index].truncate_on_save()) {
                                    MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme);
                                 }
                                 file_buffers.remove(active_fb_index);
@@ -948,7 +978,7 @@ fn main() {
                 },
                 Some(Command::SaveFile(file_name)) => {
                     let file_name = file_name.unwrap_or(file_buffers[active_fb_index].filename().to_owned());
-                    match command_functions::save_file(&file_name, file_buffers[active_fb_index].as_slice()) {
+                    match command_functions::save_file(&file_name, file_buffers[active_fb_index].as_slice(), file_buffers[active_fb_index].truncate_on_save()) {
                         Ok(count) => {
                             MessageBox::new(0, rows-2, cols).show(&mut stdout, format!("written {} bytes to '{}'.", count, file_name).as_str(), MessageBoxType::Informative, &color_scheme);
                             file_buffers[active_fb_index].set_filename(&file_name);
@@ -1044,7 +1074,7 @@ fn main() {
                 },
                 Some(Command::InsertFile(file_name)) => {
                     if cursor.is_visible() {
-                        match command_functions::read_file(&file_name) {
+                        match command_functions::read_file(&file_name, None) {
                             Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
                             Ok(data) => { file_buffers[active_fb_index].insert_block(cursor.position(), data); },
                         }
@@ -1054,7 +1084,7 @@ fn main() {
                 },
                 Some(Command::AppendFile(file_name)) => {
                     if cursor.is_visible() {
-                        match command_functions::read_file(&file_name) {
+                        match command_functions::read_file(&file_name, None) {
                             Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
                             Ok(data) => { file_buffers[active_fb_index].insert_block(cursor.position() + 1, data); },
                         }

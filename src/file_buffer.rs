@@ -16,9 +16,9 @@ pub struct FileBuffer {
     location_list: LocationList,
     location_list_filtered: Option<LocationList>,
     original_hash: u64,
-    modified: bool
+    modified: bool,
+    truncate_on_save: bool
 }
-
 
 impl FileBuffer {
 
@@ -37,7 +37,8 @@ impl FileBuffer {
             location_list: LocationList::new(),
             location_list_filtered: None,
             original_hash: hasher.finish(),
-            modified: false
+            modified: false,
+            truncate_on_save: true
         }
     }
 
@@ -162,6 +163,15 @@ impl FileBuffer {
     //returns true if something in the file buffer was changed
     pub fn is_modified(&self) -> bool {
         self.modified
+    }
+
+    //set flag that file buffer contains whole file content
+    pub fn set_truncate_on_save(&mut self, value: bool) {
+        self.truncate_on_save = value;
+    }
+
+    pub fn truncate_on_save(&self) -> bool {
+        self.truncate_on_save
     }
 
     //returns stored selection interval

@@ -27,7 +27,7 @@ pub enum Command {
     ExportBlock,
     InsertFilledBlock(Vec<u8>),
     AppendFilledBlock(Vec<u8>),
-    OpenFile(String),
+    OpenFile(String, Option<u64>),
     SaveFile(Option<String>),
     CloseFile,
     InsertFile(String),
@@ -482,10 +482,22 @@ impl Command {
     }
 
     fn parse_open_file(v: &[&str]) -> Result<Command, &'static str> {
-        match v.get(1) {
-            Some(s) => Ok(Command::OpenFile(s.to_string())),
-            None => Err("Missing 'filename' parameter!"),
-        }
+        let file_name = match v.get(1) {
+            Some(s) => s.to_string(),
+            None => return Err("Missing 'filename' parameter!"),
+        };
+
+        let file_limit = match v.get(2) {
+            Some(value_str) => {
+                match value_str.parse::<u64>() {
+                    Ok(limit) => Some(limit),
+                    Err(_) => return Err("Can't convert 'file_size' to integer!"),
+                }
+            },
+            None => None,
+        };
+
+        Ok(Command::OpenFile(file_name, file_limit))
     }
 
     fn parse_save_file(v: &[&str]) -> Result<Command, &'static str> {
