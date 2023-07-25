@@ -1,4 +1,5 @@
 use std::{env, fs};
+use std::path::Path;
 use std::io::{Read, Write};
 use std::time::Instant;
 use crossterm::style::{Color, Print, ResetColor};
@@ -125,16 +126,21 @@ fn xor_shift_rng(rnd_seed: &mut u32) -> u32 {
 
 
 fn main() {
-    //read config file
-    let cfg_string = match fs::read_to_string("config.toml") {
+
+    //get path to config file
+    let prog_path = env::args().next().unwrap_or("".to_owned());
+    let cfg_path = Path::new(&prog_path).parent().unwrap_or(Path::new("./")).join("config.toml");
+
+    //read file with configuration
+    let cfg_string = match fs::read_to_string(&cfg_path) {
         Ok(s) => s,
-        Err(s) => { println!("Reading 'config.toml' error: {}", s); return; },
+        Err(s) => { println!("Reading '{}' error: {}", cfg_path.to_str().unwrap(), s); return; },
     };
 
     //parse toml structure
     let mut config: Config = match toml::from_str(&cfg_string) {
         Ok(c) => c,
-        Err(s) => { println!("Parsing 'config.toml' error: {}", s); return; },
+        Err(s) => { println!("Parsing '{}' error: {}", cfg_path.to_str().unwrap(), s); return; },
     };
     
     //load colorscheme
