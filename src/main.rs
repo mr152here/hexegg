@@ -255,9 +255,12 @@ fn main() {
                     } else if cursor.is_visible() {
                         cursor.set_state(CursorState::Hidden);
 
-                    } else {
+                    } else if file_buffers[active_fb_index].selection().is_some() {
                         file_buffers[active_fb_index].set_selection(None);
                         in_selection_mode = false;
+
+                    } else if config.esc_to_quit {
+                        command = Some(Command::Quit(true));
                     }
                 },
                 KeyEvent{ code: KeyCode::Up, modifiers: km, .. } => {

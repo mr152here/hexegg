@@ -41,6 +41,9 @@ highlight_style = "RandomDark"
 #the name of the initial color scheme.
 active_color_scheme = "gudinuf"
 
+#enable quit with ESC key if nothing other can't be canceled. Additionally to 'q' key.
+esc_to_quit = false
+
 #clear terminal when program ends
 clear_screen_on_exit = false
 

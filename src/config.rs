@@ -10,6 +10,7 @@ pub struct Config {
     pub mouse_enabled: bool,
     pub mouse_scroll_type: ScreenPagingSize,
     pub mouse_scroll_size: usize,
+    pub esc_to_quit: bool,
     pub clear_screen_on_exit: bool,
     pub highlight_style: HighlightStyle,
     pub active_color_scheme: String,
