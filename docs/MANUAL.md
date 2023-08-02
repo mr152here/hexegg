@@ -1,12 +1,17 @@
-# hexegg (0.8)
+# hexegg (0.9)
 
 Hexegg open and read all input files specified by their names as command-line arguments.
 
 ```
-hexegg <file1> [file2] [file3] ...
+hexegg [-t <size_limit>] <file1> [file2] [file3] ...
 ```
 
-Each file is fully read into the memory, and takes there approximately its own size. File size (and memory consumption) is not limited, so please think twice before you open a large files or streams with undefined size like _/dev/random_.
+If *size_limit* is not specified, files are fully loaded into the memory. File size (and memory consumption) is not limited. If you wish to open large files, disks or streams with undefined size use *-t <size_limit>* parameter. Otherwise it may consume all your memory.
+
+For example:
+```
+hexegg -t 1024 /dev/random
+```
 
 ## Basic controls
 
@@ -77,6 +82,7 @@ Almost every file modification is stored in the "patch map", which contains the 
 #### More controls
 
 - 'q' - in the view mode will quit the program. If the file is modified, you will be asked whether to save it
+- ESC - will also quit program (if nothing else can't be canceled). Must be enabled in the config.toml 
 - 'h' - toggles highlighting different bytes
 - 'p' - show / hide non-printable characters (nice when looking for strings in binary blobs)
 - 'k' - toggle the file buffer offset lock. When lock is enabled, it will move cursor or file offset in all opened files. Not only in current one.
@@ -281,17 +287,17 @@ Next is a list of available commands, their parameters, and their descriptions. 
 *appendfile \<filename\>*
 > load and insert *filename*'s content after the cursor position.
 
-*openfile \<filename\>*
-> open *filename* and load its content into a new file buffer. You may cycle through all opened files with the TAB key.
+*openfile \<filename\> \[size_limit\]*
+> open *filename* and load its content into a new file buffer. If *size_limit* is specified, read up to *size_limit* bytes from the file. You may cycle through all opened files with the TAB key.
 
 *closefile*
 > close the current file. If the file is modified, you will be asked whether to save the changes or not. If there are no more opened files, the program will quit.
 
 *savefile \[filename\]*
-> save the current file buffer with all its modifications as a *filename*. If no *filename* is specified, the file is saved under its own name.
+> save the current file buffer with all its modifications as a *filename*. If *filename* is not specified, the file is saved under its own name. Files that are NOT opened with *<size_limit>* are truncated and a new file will be content of the filebuffer. Files opened with *<size_limit>* are not truncated, only that part of the file is overwritten and the rest is intact.
 
 *parseheader \[header_name\]*
-> parse, show and highlight binary structure at the current position. If *header_name* is not given, it will first try to find correct signature at the position and than parse it. Currently recognized structures are: BMP, ELF, GIF, ICO, MZ, MZPE, PE, PCAP, PCAPNG, PNG.
+> parse, show and highlight binary structure at the current position. If *header_name* is not given, it will first try to find correct signature at the position and than parse it. Currently recognized structures are: BMP, ELF, GIF, ICO, JPEG, MZ, MZPE, PE, PCAP, PCAPNG, PNG.
 > 
 > parseheader bmp - parse file from current position as a BMP structure
 > parseheader mz - parse file from current position as a (only) MZ structure

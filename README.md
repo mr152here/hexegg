@@ -12,8 +12,9 @@ Interactive hex editor for linux terminal (and other platforms) with some advanc
 - highlight diffs between files
 - advanced block manipulation such as insert, delete, fill from generator, from other files, etc ...
 - advanced search options
+- search for embeded files and known signatures
 - results highlighting
-- parse some binary structures
+- parse some binary structures MZPE, ELF, ..
 - simple command interface
 - minimal external dependencies
 - mouse support
@@ -37,14 +38,21 @@ cd hexegg
 cargo build --release
 ```
 
-And finally copy configuration [config.toml](config.toml) file to the same folder where compiled program is located.
+Then copy configuration [config.toml](config.toml) file to the same folder where compiled program is located.
 
 To view/edit files just execute hexegg in terminal and pass file name(s) as arguments.
 
 ```
-./hexegg <file1> [file2] [file3] ...
+hexegg [-t <size_limit>] <file1> [file2] [file3] ...
 ```
 
+for example:
+```
+hexegg notepad.exe
+hexegg myfile mypatchedfile
+hexegg -t 1000 /dev/random
+hexegg -t 1000000 /dev/sda1
+```
 ### Acknowledgment
 
 Hexegg is written in the [rust](https://www.rust-lang.org) programming language using the following libraries:
