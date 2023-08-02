@@ -491,7 +491,7 @@ impl Command {
             Some(value_str) => {
                 match value_str.parse::<u64>() {
                     Ok(limit) => Some(limit),
-                    Err(_) => return Err("Can't convert 'file_size' to integer!"),
+                    Err(_) => return Err("Can't convert 'size_limit' to integer!"),
                 }
             },
             None => None,
