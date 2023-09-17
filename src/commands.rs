@@ -18,6 +18,7 @@ pub enum Command {
     FindAllSignatures(Option<Vec<String>>, bool),
     FindAllBookmarks,
     YankBlock,
+    PipeBlock(Vec<String>),
     OpenBlock,
     InsertBlock,
     AppendBlock,
@@ -41,7 +42,7 @@ pub enum Command {
 }
 
 
-pub const COMMAND_LIST: [&str; 37] = [
+pub const COMMAND_LIST: [&str; 38] = [
         "appendblock",
         "appendfile",
         "appendfilledblock",
@@ -74,6 +75,7 @@ pub const COMMAND_LIST: [&str; 37] = [
         "openblock",
         "openfile",
         "parseheader",
+        "pipeblock",
         "quit",
         "saveblock",
         "savefile",
@@ -96,7 +98,7 @@ impl Command {
             Some(&"q") => Ok(Command::Quit(true)),
             Some(&"quit!") => Ok(Command::Quit(false)),
             Some(&"q!") => Ok(Command::Quit(false)),
-            
+
             Some(&"goto") => Command::parse_goto(&cmd_vec),
             Some(&"g") => Command::parse_goto(&cmd_vec),
 
@@ -145,6 +147,7 @@ impl Command {
             Some(&"fasi!") => Command::parse_find_all_signatures(&cmd_vec, true),
 
             Some(&"yankblock") => Ok(Command::YankBlock),
+            Some(&"pipeblock") => Command::parse_pipe_block(&cmd_vec),
             Some(&"openblock") => Ok(Command::OpenBlock),
             Some(&"insertblock") => Ok(Command::InsertBlock),
             Some(&"appendblock") => Ok(Command::AppendBlock),
@@ -168,7 +171,7 @@ impl Command {
             Some(&"histogram") => Ok(Command::Histogram),
             Some(&"parseheader") => Command::parse_parse_header(&cmd_vec),
             Some(&"set") => Command::parse_set(&cmd_vec),
-            
+
             //all unknown commands
             Some(_) => Err("Unknown command!"), 
 
@@ -502,6 +505,15 @@ impl Command {
 
     fn parse_save_file(v: &[&str]) -> Result<Command, &'static str> {
         Ok(Command::SaveFile(v.get(1).map(|s| s.to_string())))
+    }
+
+    fn parse_pipe_block(v: &[&str]) -> Result<Command, &'static str> {
+        let ret_vec =  v.iter()
+                .skip(1)
+                .map(|&s| s.to_owned())
+                .collect::<Vec<String>>();
+
+        Ok(Command::PipeBlock(ret_vec))
     }
 
     fn parse_save_block(v: &[&str]) -> Result<Command, &'static str> {

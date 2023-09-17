@@ -1022,13 +1022,25 @@ fn main() {
                         MessageBox::new(0, rows-2, cols).show(&mut stdout, format!("Yanked {} bytes.", yank_buffer.len()).as_str(), MessageBoxType::Informative, &color_scheme);
 
                         //try to put data via stdin into external application
-                        if let Err(s) = command_functions::yank_block_to_program(&yank_buffer, &config.yank_to_program) {
+                        if let Err(s) = command_functions::pipe_block_to_program(&yank_buffer, &config.yank_to_program) {
                             MessageBox::new(0, rows-2, cols).show(&mut stdout, &s, MessageBoxType::Error, &color_scheme);
                         }
 
                     } else {
                         yank_buffer.clear();
                         MessageBox::new(0, rows-2, cols).show(&mut stdout, "Nothing to yank. Buffer cleared.", MessageBoxType::Informative, &color_scheme);
+                    }
+                },
+                Some(Command::PipeBlock(prog_cmd)) => {
+                    if let Some((s,e)) = file_buffers[active_fb_index].selection() {
+                        let data = file_buffers[active_fb_index].as_slice()[s..=e].to_vec();
+
+                        if let Err(s) = command_functions::pipe_block_to_program(&data, &prog_cmd) {
+                            MessageBox::new(0, rows-2, cols).show(&mut stdout, &s, MessageBoxType::Error, &color_scheme);
+                        }
+
+                    } else {
+                        MessageBox::new(0, rows-2, cols).show(&mut stdout, "Please select the block first.", MessageBoxType::Error, &color_scheme);
                     }
                 },
                 Some(Command::OpenBlock) => {

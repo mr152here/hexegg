@@ -548,40 +548,37 @@ pub fn export_block(file_buffers: &[FileBuffer], active_fb_index: usize) -> Resu
             Err(s) => Err(s),
         }
     }
-
     Err("Please select the block first.".to_owned())
 }
 
-//try to send selected block via stdin to external application specified in config.toml
-pub fn yank_block_to_program(data: &[u8], clipboard_program: &Vec<String>) -> Result<(), String> {
+//try to send a data via stdin to external application
+pub fn pipe_block_to_program(data: &[u8], program_name: &Vec<String>) -> Result<(), String> {
 
-    if let Some(prog_name) = clipboard_program.first() {
+    if let Some(prog_name) = program_name.first() {
         if !prog_name.is_empty() {
 
-            let prog_args = if clipboard_program.len() > 1 {
-                &clipboard_program.as_slice()[1..]
+            let prog_args = if program_name.len() > 1 {
+                &program_name.as_slice()[1..]
             } else {
                 &[]
             };
 
-            if let Ok(mut child) = Command::new(prog_name)
-                        .stdin(Stdio::piped())
-                        .args(prog_args)
-                        .spawn()
-            {
-                if let Some(mut si) = child.stdin.take() {
-                    if let Err(e) = si.write(data) {
-                        return Err(format!("Can't write to the stdin of the {}. {}", prog_name, e));
+            //spawn child process
+            match Command::new(prog_name).stdin(Stdio::piped()).args(prog_args).spawn() {
+                Ok(mut child) => {
+                    if let Some(mut si) = child.stdin.take() {
+                        if let Err(e) = si.write(data) {
+                            return Err(format!("Can't write to the stdin of the {}. {}", prog_name, e));
+                        }
                     }
-                }
 
-                return match child.wait() {
-                    Err(e) => Err(format!("{}", e)),
-                    Ok(_) => Ok(()),
-                };
-
-            } else {
-                return Err(format!("Can't spawn '{}'!", prog_name));
+                    //wait for child process to finish
+                    return match child.wait() {
+                        Err(e) => Err(format!("{}", e)),
+                        Ok(_) => Ok(()),
+                    };
+                },
+                Err(e) => return Err(format!("Can't spawn '{}'! {}", prog_name, e)),
             }
         }
     }
