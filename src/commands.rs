@@ -508,12 +508,10 @@ impl Command {
     }
 
     fn parse_pipe_block(v: &[&str]) -> Result<Command, &'static str> {
-        let ret_vec =  v.iter()
-                .skip(1)
-                .map(|&s| s.to_owned())
-                .collect::<Vec<String>>();
-
-        Ok(Command::PipeBlock(ret_vec))
+        match v.get(1) {
+            Some(_) =>  Ok(Command::PipeBlock(v.iter().skip(1).map(|&s| s.to_owned()).collect::<Vec<String>>())),
+            None => Err("Missing 'program_name' parameter!"),
+        }
     }
 
     fn parse_save_block(v: &[&str]) -> Result<Command, &'static str> {
