@@ -1,5 +1,5 @@
 use std::{env, fs};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::io::{Read, Write};
 use std::time::Instant;
 use crossterm::style::{Color, Print, ResetColor};
@@ -59,6 +59,44 @@ fn parse_args() -> Result<(Option<u64>, Vec::<String>), String> {
         }
     }
     Ok((file_end_offset, file_names))
+}
+
+//returns path to the configuration file
+fn find_config_file() -> Result<PathBuf, String> {
+
+    //first try to find config in its own directory
+    let prog_path = env::args().next().unwrap_or("".to_owned());
+    let p = Path::new(&prog_path).parent().unwrap_or(Path::new("./")).join("config.toml");
+    if p.exists() {
+        return Ok(PathBuf::from(p));
+    }
+
+    //if not found try to use local user folder
+    #[cfg(target_family = "unix")]
+    {
+        if let Ok(path) = std::env::var("HOME") {
+            let mut pb = PathBuf::from(path);
+            pb.push(".config/hexegg/config.toml");
+
+            if pb.exists() {
+                return Ok(pb);
+            }
+        }
+        return Err("Can't find 'config.toml'!\nPlease copy it to the '$HOME/.config/hexegg/' or to the current program location.".to_string());
+    }
+
+    #[cfg(target_family = "windows")]
+    {
+        if let Ok(path) = std::env::var("APPDATA") {
+            let mut pb = PathBuf::from(path);
+            pb.push("hexegg\\config.toml");
+
+            if pb.exists() {
+                return Ok(pb);
+            }
+        }
+        return Err("Can't find 'config.toml'!\nPlease copy it to the '%APPDATA%\\hexegg\\' or to the current program location.".to_string());
+    }
 }
 
 fn create_screens(cols: u16, rows: u16, config: &Config) -> Vec<Box<dyn Screen>> {
@@ -126,10 +164,11 @@ fn xor_shift_rng(rnd_seed: &mut u32) -> u32 {
 
 
 fn main() {
-
-    //get path to config file
-    let prog_path = env::args().next().unwrap_or("".to_owned());
-    let cfg_path = Path::new(&prog_path).parent().unwrap_or(Path::new("./")).join("config.toml");
+    //get path to the configuration file
+    let cfg_path = match find_config_file() {
+        Ok(s) => s,
+        Err(s) => { println!("{}", s); return; },
+    };
 
     //read file with configuration
     let cfg_string = match fs::read_to_string(&cfg_path) {
