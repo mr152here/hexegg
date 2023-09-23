@@ -1,11 +1,17 @@
 use std::{env, fs};
 use std::path::{Path, PathBuf};
 use std::io::{Read, Write};
-use std::time::Instant;
+use std::time::{Duration, Instant};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
+
+use signal_hook::consts::signal::*;
+use signal_hook::low_level;
+
 use crossterm::style::{Color, Print, ResetColor};
 use crossterm::terminal::{Clear, ClearType, size};
 use crossterm::QueueableCommand;
-use crossterm::event::{Event, KeyEvent, KeyCode, read, KeyModifiers};
+use crossterm::event::{Event, KeyEvent, KeyCode, read, KeyModifiers, poll};
 use crossterm::event::{MouseEvent, MouseEventKind, MouseButton, EnableMouseCapture, DisableMouseCapture};
 
 mod config;
@@ -263,6 +269,12 @@ fn main() {
     let (mut last_mouse_col, mut last_mouse_row) = (0, 0);
     let mut last_click_time = Instant::now();
 
+    //register for signals
+    let signal_tstp = Arc::new(AtomicBool::new(false));
+    let signal_cont = Arc::new(AtomicBool::new(false));
+    signal_hook::flag::register(SIGTSTP, Arc::clone(&signal_tstp)).unwrap();
+    signal_hook::flag::register(SIGCONT, Arc::clone(&signal_cont)).unwrap();
+
     //main program loop
     loop {
 
@@ -274,381 +286,425 @@ fn main() {
             screens = create_screens(cols, rows, &config);
         }
 
+        //active command
         let mut command: Option<Command> = None;
-        let event = read().unwrap();
 
-        //process input events
-        if let Event::Key(key_event) = event {
-            let file_size = file_buffers[active_fb_index].len();
-            let file_view_offset = file_buffers[active_fb_index].position();
-            let row_size = screens[active_screen_index].row_size() as usize;
-            let page_size = screens[active_screen_index].page_size();
+        match poll(Duration::from_millis(300)) {
+            Err(s) => { println!("Can't poll events! {}", s); break; },
 
-            //keyboard handling 
-            match key_event {
-                KeyEvent{ code: KeyCode::Esc, .. } => {
-                    if in_selection_mode {
-                        file_buffers[active_fb_index].set_selection(None);
-                        in_selection_mode = false;
-                        
-                    } else if cursor.is_visible() {
-                        cursor.set_state(CursorState::Hidden);
+            //check for signals
+            Ok(false) => {
+                //process SIGTSTP
+                if signal_tstp.load(Ordering::Relaxed) {
+                    signal_tstp.store(false, Ordering::Relaxed);
 
-                    } else if file_buffers[active_fb_index].selection().is_some() {
-                        file_buffers[active_fb_index].set_selection(None);
-                        in_selection_mode = false;
+                    //deinit mouse and terminal
+                    if config.mouse_enabled {
+                        stdout.queue(DisableMouseCapture).unwrap();
+                    }
+                    crossterm::terminal::disable_raw_mode().unwrap();
+                    stdout.queue(crossterm::cursor::Show).unwrap();
+                    stdout.queue(ResetColor).unwrap();
+                    stdout.flush().unwrap();
 
-                    } else if config.esc_to_quit {
-                        command = Some(Command::Quit(true));
-                    }
-                },
-                KeyEvent{ code: KeyCode::Up, modifiers: km, .. } => {
-                    let mv = if km == KeyModifiers::SHIFT { 8 * row_size } else { row_size };
-                    command = Some(Command::GotoRelative(-(mv as isize)));
-                },
-                KeyEvent{ code: KeyCode::Down, modifiers: km, .. } => {
-                    let mv = if km == KeyModifiers::SHIFT { 8 * row_size } else { row_size };
-                    command = Some(Command::GotoRelative(mv as isize));
-                },
-                KeyEvent{ code: KeyCode::Left, modifiers: km, .. } => { 
-                    let mv = if km == KeyModifiers::SHIFT { 8 } else { 1 };
-                    command = Some(Command::GotoRelative(-(mv as isize)));
-                },
-                KeyEvent{ code: KeyCode::Right, modifiers: km, .. } => {
-                    let mv = if km == KeyModifiers::SHIFT { 8 } else { 1 };
-                    command = Some(Command::GotoRelative(mv as isize));
-                },
-                KeyEvent{ code: KeyCode::PageUp, .. } => {
-                    command = Some(Command::GotoRelative(-(page_size as isize)));
-                },
-                KeyEvent{ code: KeyCode::PageDown, .. } => {
-                    command = Some(Command::GotoRelative( page_size as isize));
-                },
-                KeyEvent{ code: KeyCode::Home, .. } => {
-                    command = Some(Command::Goto(0));
-                },
-                KeyEvent{ code: KeyCode::End, .. } => {
-                    let new_pos = file_size.saturating_sub(if cursor.is_visible() { 1 } else { page_size });
-                    command = Some(Command::Goto(new_pos));
-                },
-                KeyEvent{ code: KeyCode::Enter, .. } => {
-                    active_screen_index = (active_screen_index + 1) % screens.len();
-                    command = cursor.is_visible().then_some(Command::Goto(cursor.position()));
-                },
-                KeyEvent{ code: KeyCode::Tab, .. } => { 
-                    active_fb_index = (active_fb_index + 1) % file_buffers.len();
-                },
-                KeyEvent{ code: KeyCode::Delete, .. } if cursor.is_visible() => {
-                    file_buffers[active_fb_index].unpatch_offset(cursor.position());
-                    cursor.set_ho_byte_part(true);
-                },
-                KeyEvent{ code: KeyCode::Backspace, .. } if cursor.is_visible() => {
-                    cursor -= 1;
-                    file_buffers[active_fb_index].unpatch_offset(cursor.position());
-                    command = Some(Command::GotoRelative(0));
-                },
-                KeyEvent{ code: KeyCode::Char('q'), .. } if !cursor.is_edit() => command = Some(Command::Quit(true)),
-                KeyEvent{ code: KeyCode::Char('h'), .. } if !cursor.is_edit() => config.highlight_diff = !config.highlight_diff,
-                KeyEvent{ code: KeyCode::Char('i'), .. } if !cursor.is_edit() => screens[active_screen_index].toggle_info_bar(),
-                KeyEvent{ code: KeyCode::Char('l'), .. } if !cursor.is_edit() => screens[active_screen_index].toggle_location_bar(),
-                KeyEvent{ code: KeyCode::Char('o'), .. } if !cursor.is_edit() => screens[active_screen_index].toggle_offset_bar(),
-                KeyEvent{ code: KeyCode::Char('k'), .. } if !cursor.is_edit() => config.lock_file_buffers = !config.lock_file_buffers,
-                KeyEvent{ code: KeyCode::Char('p'), .. } if !cursor.is_edit() => config.only_printable = ! config.only_printable,
-                KeyEvent{ code: KeyCode::Char('.'), .. } if !cursor.is_edit() => command = Some(Command::FindDiff),
-                KeyEvent{ code: KeyCode::Char(','), .. } if !cursor.is_edit() => command = Some(Command::FindPatch),
-                KeyEvent{ code: KeyCode::Char('['), .. } if !cursor.is_edit() => {
-                    if let Some(loc) = file_buffers[active_fb_index].location_list_mut().previous() {
-                        command = Some(Command::Goto(loc.offset))
-                    } 
-                },
-                KeyEvent{ code: KeyCode::Char(']'), .. } if !cursor.is_edit() => {
-                    if let Some(loc) = file_buffers[active_fb_index].location_list_mut().next() {
-                        command = Some(Command::Goto(loc.offset))
-                    }
-                },
-                KeyEvent{ code: KeyCode::Char('{'), .. } if !cursor.is_edit() => {
-                    let lines = screens[active_screen_index].num_of_rows() as usize;
-                    let ll = file_buffers[active_fb_index].location_list_mut();
-                    ll.set_current_index(ll.current_index().saturating_sub(lines));
+                    low_level::emulate_default_handler(SIGTSTP).unwrap();
+                }
 
-                    if let Some(loc) = ll.current() {
-                        command = Some(Command::Goto(loc.offset))
-                    }
-                },
-                KeyEvent{ code: KeyCode::Char('}'), .. } if !cursor.is_edit() => {
-                    let lines = screens[active_screen_index].num_of_rows() as usize;
-                    let ll = file_buffers[active_fb_index].location_list_mut();
-                    ll.set_current_index(ll.current_index() + lines);
+                //process SIGCONT
+                if signal_cont.load(Ordering::Relaxed) {
+                    signal_cont.store(false, Ordering::Relaxed);
 
-                    if let Some(loc) = ll.current() {
-                        command = Some(Command::Goto(loc.offset))
-                    }
-                },
-                KeyEvent{ code: KeyCode::Char('<'), .. } if !cursor.is_edit() => {
-                    if let Some(loc) = file_buffers[active_fb_index].location_list().current() {
-                        command = Some(Command::Goto(loc.offset))
-                    }
-                },
-                KeyEvent{ code: KeyCode::Char('>'), .. } if !cursor.is_edit() => {
-                    let offset = if cursor.is_visible() { cursor.position() } else { file_buffers[active_fb_index].position() };
-                    let ll = file_buffers[active_fb_index].location_list_mut();
-
-                    if let Some(idx) = ll.find_idx(offset) {
-                        ll.set_current_index(idx);
-                        screens.iter_mut().for_each(|s| s.show_location_bar(true));
-                    } else {
-                        MessageBox::new(0, rows-2, cols).show(&mut stdout, format!("Offset {:08X} not found in location_bar.", offset).as_str(), MessageBoxType::Error, &color_scheme);
-                    }
-                },
-                KeyEvent{ code: KeyCode::Char('R'), .. } if !cursor.is_edit() => {
-                    let fb = &mut file_buffers[active_fb_index];
-
-                    if fb.location_list().current().is_some() {
-                        let loc_offset = fb.location_list().current().unwrap().offset;
-                        fb.location_list_mut().remove_current_location();
-                        fb.highlight_list_mut().remove(loc_offset);
-                    }
-                },
-                KeyEvent{ code: KeyCode::Char('r'), .. } if !cursor.is_edit() => {
-                    let ll = file_buffers[active_fb_index].location_list_mut();
-                    if let Some(loc) = &mut ll.get_mut(ll.current_index()) {
-                        let user_string = UserInput::new(0, rows-2, cols).input(&mut stdout, format!("rename '{}' to:", loc.name).as_str(), &mut cmd_history, &color_scheme);
-                        if !user_string.is_empty() && *loc.name != user_string {
-                            loc.name = user_string;
-                        }
-                    }
-                },
-                KeyEvent{ code: KeyCode::Char('-'), .. } if !cursor.is_edit() => screens[active_screen_index].dec_row_size(),
-                KeyEvent{ code: KeyCode::Char('+'), .. } if !cursor.is_edit() => screens[active_screen_index].inc_row_size(),
-                KeyEvent{ code: KeyCode::Char('/'), .. } if !cursor.is_edit() => {
-                    let user_string = UserInput::new(0, rows-2, cols).input(&mut stdout, ">", &mut cmd_history, &color_scheme);
-                    if !user_string.is_empty() {
-                        match Command::from_str(&user_string) {
-                            Ok(c) => command = Some(c),
-                            Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s, MessageBoxType::Error, &color_scheme); },
-                        }
-                    }
-                },
-                KeyEvent{ code: KeyCode::Char('n'), .. } if !cursor.is_visible() => {
-                    cursor.set_state(CursorState::Normal);
-
-                    //move cursor to the screen range if needed
-                    if cursor.position() < file_view_offset || cursor.position() >= file_view_offset + page_size {
-                        cursor.set_position(file_view_offset);
-                    }
-                },
-                KeyEvent{ code: KeyCode::Char('t'), .. } if !cursor.is_edit() => {
-                    cursor.set_state(CursorState::Text);
-
-                    //move cursor to the screen range if needed
-                    if cursor.position() < file_view_offset || cursor.position() >= file_view_offset + page_size {
-                        cursor.set_position(file_view_offset);
-                    }
-                },
-                KeyEvent{ code: KeyCode::Char('b'), .. } if !cursor.is_edit() => {
-                    cursor.set_state(CursorState::Byte);
-
-                    //move cursor to the screen range if needed
-                    if cursor.position() < file_view_offset || cursor.position() >= file_view_offset + page_size {
-                        cursor.set_position(file_view_offset);
-                    }
-                },
-                KeyEvent{ code: KeyCode::Char('s'), .. } if cursor.is_normal() => {
-                    if !in_selection_mode && cursor.position() < file_buffers[active_fb_index].len() {
-                        selection_start = cursor.position();
-                        in_selection_mode = true;
-                    } else {
-                        in_selection_mode = false;
-                    }
-                },
-                //select highlighted block from the cursor position
-                KeyEvent{ code: KeyCode::Char('H'), .. } if cursor.is_normal() => {
-                    let fb = &mut file_buffers[active_fb_index];
-
-                    fb.set_selection(
-                        if let Some((s,e)) = fb.highlight_list().range(cursor.position()) {
-                            Some((s, std::cmp::min(e, fb.len())))
-                        } else {
-                            None
-                        }
-                    );
-                },
-                //select ascii string from the cursor position
-                KeyEvent{ code: KeyCode::Char('S'), .. } if cursor.is_normal() => {
-                    let fb = &mut file_buffers[active_fb_index];
-                    fb.set_selection(command_functions::find_string_at_position(fb, cursor.position()));
-                },
-                //select "ascii-unicode" string under the cursor
-                KeyEvent{ code: KeyCode::Char('U'), .. } if cursor.is_normal() => {
-                    let fb = &mut file_buffers[active_fb_index];
-                    fb.set_selection(command_functions::find_unicode_string_at_position(fb, cursor.position()));
-                },
-                KeyEvent{ code: KeyCode::Char('y'), .. } if !cursor.is_edit() => {
-                    command = Some(Command::YankBlock);
-                },
-                KeyEvent{ code: KeyCode::Char('m'), .. } if !cursor.is_edit() => {
-                    if let Some((s,e)) = file_buffers[active_fb_index].selection() {
-                        let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
-                        file_buffers[active_fb_index].highlight_list_mut().add(s, e, Some(color));
-                        file_buffers[active_fb_index].set_selection(None);
-                    }
-                },
-                KeyEvent{ code: KeyCode::Char('M'), .. } if !cursor.is_edit() => {
-                    let fb = &mut file_buffers[active_fb_index];
-
-                    if let Some((s,e)) = fb.selection() {
-                        fb.highlight_list_mut().add(s, e, None);
-                        fb.set_selection(None);
-                    } else {
-                        let offset = if cursor.is_visible() { cursor.position() } else { fb.position() };
-                        if let Some((ho,_)) = fb.highlight_list().range(offset) {
-                            fb.highlight_list_mut().remove(offset);
-
-                            let ll = &mut fb.location_list_mut();
-                            if let Some(idx) = ll.find_idx(ho) {
-                                ll.remove_location(idx);
+                    //set up terminal and mouse
+                    match crossterm::terminal::enable_raw_mode() {
+                        Ok(_) => {
+                            stdout.queue(Print(Clear(ClearType::All))).unwrap();
+                            stdout.queue(crossterm::cursor::Hide).unwrap();
+                            if config.mouse_enabled {
+                                stdout.queue(EnableMouseCapture).unwrap();
                             }
-                        }
+                            stdout.flush().unwrap();
+                        },
+                        Err(s) => { println!("{}", s); break; },
                     }
-                },
+                }
+            },
 
-                //all other keys
-                KeyEvent{ code, .. } => {
-                    match code {
-                        //jump to bookmark
-                        KeyCode::Char(ch) if !cursor.is_edit() && ch.is_ascii_digit() => {
-                            let ch = ch.to_digit(10).unwrap() as usize;
-                            command = Some(Command::GotoBookmark(ch));
-                        },
+            //process input events
+            Ok(true) => {
+                let event = read().unwrap();
+                if let Event::Key(key_event) = event {
+                    let file_size = file_buffers[active_fb_index].len();
+                    let file_view_offset = file_buffers[active_fb_index].position();
+                    let row_size = screens[active_screen_index].row_size() as usize;
+                    let page_size = screens[active_screen_index].page_size();
 
-                        //edit in text mode
-                        KeyCode::Char(ch) if cursor.is_text() && (' '..='~').contains(&ch) => {
-                            file_buffers[active_fb_index].set(cursor.position(), ch as u8);
-                            command = Some(Command::GotoRelative(1));
-                        },
-                        
-                        //edit in byte mode
-                        KeyCode::Char(ch) if cursor.is_byte() && ch.is_ascii_hexdigit() => {
+                    //keyboard handling
+                    match key_event {
+                        KeyEvent{ code: KeyCode::Esc, .. } => {
+                            if in_selection_mode {
+                                file_buffers[active_fb_index].set_selection(None);
+                                in_selection_mode = false;
 
-                            let ch = ch.to_digit(16).unwrap() as u8;
-                            let b = file_buffers[active_fb_index].get(cursor.position()).unwrap_or(0);
+                            } else if cursor.is_visible() {
+                                cursor.set_state(CursorState::Hidden);
 
-                            //modify HO/LO part of byte
-                            let b = if cursor.ho_byte_part() {
-                                b & 0x0F | (ch << 4)
-                            } else {
-                                b & 0xF0 | ch
-                            };
+                            } else if file_buffers[active_fb_index].selection().is_some() {
+                                file_buffers[active_fb_index].set_selection(None);
+                                in_selection_mode = false;
 
-                            file_buffers[active_fb_index].set(cursor.position(), b);
-                            
-                            //move cursor to the right only if LO part is modified
-                            if !cursor.ho_byte_part() {
-                                command = Some(Command::GotoRelative(1));
-                            } else {
-                                cursor.set_ho_byte_part(false);
+                            } else if config.esc_to_quit {
+                                command = Some(Command::Quit(true));
                             }
                         },
-                        _ => (),
-                    }
-                },
-            }
-        } else if let Event::Mouse(mouse_event) = event {
-            let file_view_offset = file_buffers[active_fb_index].position();
-            let row_size = screens[active_screen_index].row_size() as usize;
-            let page_size = screens[active_screen_index].page_size();
-
-            let scroll_size = config.mouse_scroll_size * match config.mouse_scroll_type {
-                ScreenPagingSize::Byte => 1,
-                ScreenPagingSize::Row => row_size,
-                ScreenPagingSize::Page => page_size,
-            };
-
-            match mouse_event {
-                MouseEvent{ kind: MouseEventKind::ScrollUp, column, row, .. } => {
-                    if screens[active_screen_index].is_over_data_area(column, row) {
-                        command = Some(Command::GotoRelative(-(scroll_size as isize)));
-
-                    } else if screens[active_screen_index].is_over_location_bar(column, row) {
-                        if let Some(loc) = file_buffers[active_fb_index].location_list_mut().previous() {
-                            command = Some(Command::Goto(loc.offset))
-                        }
-                    }
-                },
-                MouseEvent{ kind: MouseEventKind::ScrollDown, column, row, .. } => {
-                    if screens[active_screen_index].is_over_data_area(column, row) {
-                        command = Some(Command::GotoRelative(scroll_size as isize));
-
-                    } else if screens[active_screen_index].is_over_location_bar(column, row) {
-                        if let Some(loc) = file_buffers[active_fb_index].location_list_mut().next() {
-                            command = Some(Command::Goto(loc.offset))
-                        }
-                    }
-                },
-                MouseEvent{ kind: MouseEventKind::Down(MouseButton::Left), column, row, .. } => {
-                    let fb = &mut file_buffers[active_fb_index];
-                    let screen = &screens[active_screen_index];
-                    let is_double_click = column == last_mouse_col && row == last_mouse_row && last_click_time.elapsed().as_millis() < 500;
-
-                    if screen.is_over_data_area(column, row) {
-
-                        if let Some(fo) = screen.screen_coord_to_file_offset(file_view_offset, column, row) {
-                            if is_double_click {
-                                fb.set_selection(if let Some((s,e)) = fb.highlight_list().range(cursor.position()) {
-                                        Some((s, std::cmp::min(e, fb.len())))
-                                    } else {
-                                        command_functions::find_string_at_position(fb, cursor.position())
-                                    });
-                            } else {
-                                cursor.set_position(fo);
+                        KeyEvent{ code: KeyCode::Up, modifiers: km, .. } => {
+                            let mv = if km == KeyModifiers::SHIFT { 8 * row_size } else { row_size };
+                            command = Some(Command::GotoRelative(-(mv as isize)));
+                        },
+                        KeyEvent{ code: KeyCode::Down, modifiers: km, .. } => {
+                            let mv = if km == KeyModifiers::SHIFT { 8 * row_size } else { row_size };
+                            command = Some(Command::GotoRelative(mv as isize));
+                        },
+                        KeyEvent{ code: KeyCode::Left, modifiers: km, .. } => {
+                            let mv = if km == KeyModifiers::SHIFT { 8 } else { 1 };
+                            command = Some(Command::GotoRelative(-(mv as isize)));
+                        },
+                        KeyEvent{ code: KeyCode::Right, modifiers: km, .. } => {
+                            let mv = if km == KeyModifiers::SHIFT { 8 } else { 1 };
+                            command = Some(Command::GotoRelative(mv as isize));
+                        },
+                        KeyEvent{ code: KeyCode::PageUp, .. } => {
+                            command = Some(Command::GotoRelative(-(page_size as isize)));
+                        },
+                        KeyEvent{ code: KeyCode::PageDown, .. } => {
+                            command = Some(Command::GotoRelative( page_size as isize));
+                        },
+                        KeyEvent{ code: KeyCode::Home, .. } => {
+                            command = Some(Command::Goto(0));
+                        },
+                        KeyEvent{ code: KeyCode::End, .. } => {
+                            let new_pos = file_size.saturating_sub(if cursor.is_visible() { 1 } else { page_size });
+                            command = Some(Command::Goto(new_pos));
+                        },
+                        KeyEvent{ code: KeyCode::Enter, .. } => {
+                            active_screen_index = (active_screen_index + 1) % screens.len();
+                            command = cursor.is_visible().then_some(Command::Goto(cursor.position()));
+                        },
+                        KeyEvent{ code: KeyCode::Tab, .. } => {
+                            active_fb_index = (active_fb_index + 1) % file_buffers.len();
+                        },
+                        KeyEvent{ code: KeyCode::Delete, .. } if cursor.is_visible() => {
+                            file_buffers[active_fb_index].unpatch_offset(cursor.position());
+                            cursor.set_ho_byte_part(true);
+                        },
+                        KeyEvent{ code: KeyCode::Backspace, .. } if cursor.is_visible() => {
+                            cursor -= 1;
+                            file_buffers[active_fb_index].unpatch_offset(cursor.position());
+                            command = Some(Command::GotoRelative(0));
+                        },
+                        KeyEvent{ code: KeyCode::Char('q'), .. } if !cursor.is_edit() => command = Some(Command::Quit(true)),
+                        KeyEvent{ code: KeyCode::Char('h'), .. } if !cursor.is_edit() => config.highlight_diff = !config.highlight_diff,
+                        KeyEvent{ code: KeyCode::Char('i'), .. } if !cursor.is_edit() => screens[active_screen_index].toggle_info_bar(),
+                        KeyEvent{ code: KeyCode::Char('l'), .. } if !cursor.is_edit() => screens[active_screen_index].toggle_location_bar(),
+                        KeyEvent{ code: KeyCode::Char('o'), .. } if !cursor.is_edit() => screens[active_screen_index].toggle_offset_bar(),
+                        KeyEvent{ code: KeyCode::Char('k'), .. } if !cursor.is_edit() => config.lock_file_buffers = !config.lock_file_buffers,
+                        KeyEvent{ code: KeyCode::Char('p'), .. } if !cursor.is_edit() => config.only_printable = ! config.only_printable,
+                        KeyEvent{ code: KeyCode::Char('.'), .. } if !cursor.is_edit() => command = Some(Command::FindDiff),
+                        KeyEvent{ code: KeyCode::Char(','), .. } if !cursor.is_edit() => command = Some(Command::FindPatch),
+                        KeyEvent{ code: KeyCode::Char('['), .. } if !cursor.is_edit() => {
+                            if let Some(loc) = file_buffers[active_fb_index].location_list_mut().previous() {
+                                command = Some(Command::Goto(loc.offset))
                             }
-                        }
+                        },
+                        KeyEvent{ code: KeyCode::Char(']'), .. } if !cursor.is_edit() => {
+                            if let Some(loc) = file_buffers[active_fb_index].location_list_mut().next() {
+                                command = Some(Command::Goto(loc.offset))
+                            }
+                        },
+                        KeyEvent{ code: KeyCode::Char('{'), .. } if !cursor.is_edit() => {
+                            let lines = screens[active_screen_index].num_of_rows() as usize;
+                            let ll = file_buffers[active_fb_index].location_list_mut();
+                            ll.set_current_index(ll.current_index().saturating_sub(lines));
 
-                    } else if screen.is_over_location_bar(column, row) {
+                            if let Some(loc) = ll.current() {
+                                command = Some(Command::Goto(loc.offset))
+                            }
+                        },
+                        KeyEvent{ code: KeyCode::Char('}'), .. } if !cursor.is_edit() => {
+                            let lines = screens[active_screen_index].num_of_rows() as usize;
+                            let ll = file_buffers[active_fb_index].location_list_mut();
+                            ll.set_current_index(ll.current_index() + lines);
 
-                        if let Some(loc_list_idx) = screen.location_list_index(column, row, fb.location_list()) {
-                            if let Some(loc) = fb.location_list().get(loc_list_idx) {
-                                if is_double_click && loc.size > 0 {
-                                    fb.set_selection(Some((loc.offset, loc.offset + loc.size - 1)));
+                            if let Some(loc) = ll.current() {
+                                command = Some(Command::Goto(loc.offset))
+                            }
+                        },
+                        KeyEvent{ code: KeyCode::Char('<'), .. } if !cursor.is_edit() => {
+                            if let Some(loc) = file_buffers[active_fb_index].location_list().current() {
+                                command = Some(Command::Goto(loc.offset))
+                            }
+                        },
+                        KeyEvent{ code: KeyCode::Char('>'), .. } if !cursor.is_edit() => {
+                            let offset = if cursor.is_visible() { cursor.position() } else { file_buffers[active_fb_index].position() };
+                            let ll = file_buffers[active_fb_index].location_list_mut();
+
+                            if let Some(idx) = ll.find_idx(offset) {
+                                ll.set_current_index(idx);
+                                screens.iter_mut().for_each(|s| s.show_location_bar(true));
+                            } else {
+                                MessageBox::new(0, rows-2, cols).show(&mut stdout, format!("Offset {:08X} not found in location_bar.", offset).as_str(), MessageBoxType::Error, &color_scheme);
+                            }
+                        },
+                        KeyEvent{ code: KeyCode::Char('R'), .. } if !cursor.is_edit() => {
+                            let fb = &mut file_buffers[active_fb_index];
+
+                            if fb.location_list().current().is_some() {
+                                let loc_offset = fb.location_list().current().unwrap().offset;
+                                fb.location_list_mut().remove_current_location();
+                                fb.highlight_list_mut().remove(loc_offset);
+                            }
+                        },
+                        KeyEvent{ code: KeyCode::Char('r'), .. } if !cursor.is_edit() => {
+                            let ll = file_buffers[active_fb_index].location_list_mut();
+                            if let Some(loc) = &mut ll.get_mut(ll.current_index()) {
+                                let user_string = UserInput::new(0, rows-2, cols).input(&mut stdout, format!("rename '{}' to:", loc.name).as_str(), &mut cmd_history, &color_scheme);
+                                if !user_string.is_empty() && *loc.name != user_string {
+                                    loc.name = user_string;
+                                }
+                            }
+                        },
+                        KeyEvent{ code: KeyCode::Char('-'), .. } if !cursor.is_edit() => screens[active_screen_index].dec_row_size(),
+                        KeyEvent{ code: KeyCode::Char('+'), .. } if !cursor.is_edit() => screens[active_screen_index].inc_row_size(),
+                        KeyEvent{ code: KeyCode::Char('/'), .. } if !cursor.is_edit() => {
+                            let user_string = UserInput::new(0, rows-2, cols).input(&mut stdout, ">", &mut cmd_history, &color_scheme);
+                            if !user_string.is_empty() {
+                                match Command::from_str(&user_string) {
+                                    Ok(c) => command = Some(c),
+                                    Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s, MessageBoxType::Error, &color_scheme); },
+                                }
+                            }
+                        },
+                        KeyEvent{ code: KeyCode::Char('n'), .. } if !cursor.is_visible() => {
+                            cursor.set_state(CursorState::Normal);
+
+                            //move cursor to the screen range if needed
+                            if cursor.position() < file_view_offset || cursor.position() >= file_view_offset + page_size {
+                                cursor.set_position(file_view_offset);
+                            }
+                        },
+                        KeyEvent{ code: KeyCode::Char('t'), .. } if !cursor.is_edit() => {
+                            cursor.set_state(CursorState::Text);
+
+                            //move cursor to the screen range if needed
+                            if cursor.position() < file_view_offset || cursor.position() >= file_view_offset + page_size {
+                                cursor.set_position(file_view_offset);
+                            }
+                        },
+                        KeyEvent{ code: KeyCode::Char('b'), .. } if !cursor.is_edit() => {
+                            cursor.set_state(CursorState::Byte);
+
+                            //move cursor to the screen range if needed
+                            if cursor.position() < file_view_offset || cursor.position() >= file_view_offset + page_size {
+                                cursor.set_position(file_view_offset);
+                            }
+                        },
+                        KeyEvent{ code: KeyCode::Char('s'), .. } if cursor.is_normal() => {
+                            if !in_selection_mode && cursor.position() < file_buffers[active_fb_index].len() {
+                                selection_start = cursor.position();
+                                in_selection_mode = true;
+                            } else {
+                                in_selection_mode = false;
+                            }
+                        },
+                        //select highlighted block from the cursor position
+                        KeyEvent{ code: KeyCode::Char('H'), .. } if cursor.is_normal() => {
+                            let fb = &mut file_buffers[active_fb_index];
+
+                            fb.set_selection(
+                                if let Some((s,e)) = fb.highlight_list().range(cursor.position()) {
+                                    Some((s, std::cmp::min(e, fb.len())))
                                 } else {
-                                    command = Some(Command::Goto(loc.offset));
-                                    fb.location_list_mut().set_current_index(loc_list_idx);
+                                    None
+                                }
+                            );
+                        },
+                        //select ascii string from the cursor position
+                        KeyEvent{ code: KeyCode::Char('S'), .. } if cursor.is_normal() => {
+                            let fb = &mut file_buffers[active_fb_index];
+                            fb.set_selection(command_functions::find_string_at_position(fb, cursor.position()));
+                        },
+                        //select "ascii-unicode" string under the cursor
+                        KeyEvent{ code: KeyCode::Char('U'), .. } if cursor.is_normal() => {
+                            let fb = &mut file_buffers[active_fb_index];
+                            fb.set_selection(command_functions::find_unicode_string_at_position(fb, cursor.position()));
+                        },
+                        KeyEvent{ code: KeyCode::Char('y'), .. } if !cursor.is_edit() => {
+                            command = Some(Command::YankBlock);
+                        },
+                        KeyEvent{ code: KeyCode::Char('m'), .. } if !cursor.is_edit() => {
+                            if let Some((s,e)) = file_buffers[active_fb_index].selection() {
+                                let color = generate_highlight_color(&mut random_seed, config.highlight_style, &color_scheme);
+                                file_buffers[active_fb_index].highlight_list_mut().add(s, e, Some(color));
+                                file_buffers[active_fb_index].set_selection(None);
+                            }
+                        },
+                        KeyEvent{ code: KeyCode::Char('M'), .. } if !cursor.is_edit() => {
+                            let fb = &mut file_buffers[active_fb_index];
+
+                            if let Some((s,e)) = fb.selection() {
+                                fb.highlight_list_mut().add(s, e, None);
+                                fb.set_selection(None);
+                            } else {
+                                let offset = if cursor.is_visible() { cursor.position() } else { fb.position() };
+                                if let Some((ho,_)) = fb.highlight_list().range(offset) {
+                                    fb.highlight_list_mut().remove(offset);
+
+                                    let ll = &mut fb.location_list_mut();
+                                    if let Some(idx) = ll.find_idx(ho) {
+                                        ll.remove_location(idx);
+                                    }
+                                }
+                            }
+                        },
+
+                        //all other keys
+                        KeyEvent{ code, .. } => {
+                            match code {
+                                //jump to bookmark
+                                KeyCode::Char(ch) if !cursor.is_edit() && ch.is_ascii_digit() => {
+                                    let ch = ch.to_digit(10).unwrap() as usize;
+                                    command = Some(Command::GotoBookmark(ch));
+                                },
+
+                                //edit in text mode
+                                KeyCode::Char(ch) if cursor.is_text() && (' '..='~').contains(&ch) => {
+                                    file_buffers[active_fb_index].set(cursor.position(), ch as u8);
+                                    command = Some(Command::GotoRelative(1));
+                                },
+
+                                //edit in byte mode
+                                KeyCode::Char(ch) if cursor.is_byte() && ch.is_ascii_hexdigit() => {
+
+                                    let ch = ch.to_digit(16).unwrap() as u8;
+                                    let b = file_buffers[active_fb_index].get(cursor.position()).unwrap_or(0);
+
+                                    //modify HO/LO part of byte
+                                    let b = if cursor.ho_byte_part() {
+                                        b & 0x0F | (ch << 4)
+                                    } else {
+                                        b & 0xF0 | ch
+                                    };
+
+                                    file_buffers[active_fb_index].set(cursor.position(), b);
+
+                                    //move cursor to the right only if LO part is modified
+                                    if !cursor.ho_byte_part() {
+                                        command = Some(Command::GotoRelative(1));
+                                    } else {
+                                        cursor.set_ho_byte_part(false);
+                                    }
+                                },
+                                _ => (),
+                            }
+                        },
+                    }
+                } else if let Event::Mouse(mouse_event) = event {
+                    let file_view_offset = file_buffers[active_fb_index].position();
+                    let row_size = screens[active_screen_index].row_size() as usize;
+                    let page_size = screens[active_screen_index].page_size();
+
+                    let scroll_size = config.mouse_scroll_size * match config.mouse_scroll_type {
+                        ScreenPagingSize::Byte => 1,
+                        ScreenPagingSize::Row => row_size,
+                        ScreenPagingSize::Page => page_size,
+                    };
+
+                    match mouse_event {
+                        MouseEvent{ kind: MouseEventKind::ScrollUp, column, row, .. } => {
+                            if screens[active_screen_index].is_over_data_area(column, row) {
+                                command = Some(Command::GotoRelative(-(scroll_size as isize)));
+
+                            } else if screens[active_screen_index].is_over_location_bar(column, row) {
+                                if let Some(loc) = file_buffers[active_fb_index].location_list_mut().previous() {
+                                    command = Some(Command::Goto(loc.offset))
+                                }
+                            }
+                        },
+                        MouseEvent{ kind: MouseEventKind::ScrollDown, column, row, .. } => {
+                            if screens[active_screen_index].is_over_data_area(column, row) {
+                                command = Some(Command::GotoRelative(scroll_size as isize));
+
+                            } else if screens[active_screen_index].is_over_location_bar(column, row) {
+                                if let Some(loc) = file_buffers[active_fb_index].location_list_mut().next() {
+                                    command = Some(Command::Goto(loc.offset))
+                                }
+                            }
+                        },
+                        MouseEvent{ kind: MouseEventKind::Down(MouseButton::Left), column, row, .. } => {
+                            let fb = &mut file_buffers[active_fb_index];
+                            let screen = &screens[active_screen_index];
+                            let is_double_click = column == last_mouse_col && row == last_mouse_row && last_click_time.elapsed().as_millis() < 500;
+
+                            if screen.is_over_data_area(column, row) {
+
+                                if let Some(fo) = screen.screen_coord_to_file_offset(file_view_offset, column, row) {
+                                    if is_double_click {
+                                        fb.set_selection(if let Some((s,e)) = fb.highlight_list().range(cursor.position()) {
+                                                Some((s, std::cmp::min(e, fb.len())))
+                                            } else {
+                                                command_functions::find_string_at_position(fb, cursor.position())
+                                            });
+                                    } else {
+                                        cursor.set_position(fo);
+                                    }
+                                }
+
+                            } else if screen.is_over_location_bar(column, row) {
+
+                                if let Some(loc_list_idx) = screen.location_list_index(column, row, fb.location_list()) {
+                                    if let Some(loc) = fb.location_list().get(loc_list_idx) {
+                                        if is_double_click && loc.size > 0 {
+                                            fb.set_selection(Some((loc.offset, loc.offset + loc.size - 1)));
+                                        } else {
+                                            command = Some(Command::Goto(loc.offset));
+                                            fb.location_list_mut().set_current_index(loc_list_idx);
+                                        }
+                                    }
+                                }
+                            }
+
+                            last_click_time = Instant::now();
+                            last_mouse_col = column;
+                            last_mouse_row = row;
+                        }
+                        MouseEvent{ kind: MouseEventKind::Down(MouseButton::Right), column, row, .. } => {
+                            let fb = &mut file_buffers[active_fb_index];
+                            let screen = &screens[active_screen_index];
+
+                            if screen.is_over_data_area(column, row) {
+                                if let Some(fo) = screen.screen_coord_to_file_offset(file_view_offset, column, row) {
+                                    fb.set_selection(Some((cursor.position(), fo)));
+                                }
+
+                            } else if screen.is_over_location_bar(column, row) {
+                                if let Some(loc_list_idx) = screen.location_list_index(column, row, fb.location_list()) {
+                                    if let Some(loc) = fb.location_list().get(loc_list_idx) {
+                                        command = Some(Command::Goto(loc.offset + loc.size.saturating_sub(1)));
+                                        fb.location_list_mut().set_current_index(loc_list_idx);
+                                    }
                                 }
                             }
                         }
-                    }
-
-                    last_click_time = Instant::now();
-                    last_mouse_col = column;
-                    last_mouse_row = row;
-                }
-                MouseEvent{ kind: MouseEventKind::Down(MouseButton::Right), column, row, .. } => {
-                    let fb = &mut file_buffers[active_fb_index];
-                    let screen = &screens[active_screen_index];
-
-                    if screen.is_over_data_area(column, row) {
-                        if let Some(fo) = screen.screen_coord_to_file_offset(file_view_offset, column, row) {
-                            fb.set_selection(Some((cursor.position(), fo)));
-                        }
-
-                    } else if screen.is_over_location_bar(column, row) {
-                        if let Some(loc_list_idx) = screen.location_list_index(column, row, fb.location_list()) {
-                            if let Some(loc) = fb.location_list().get(loc_list_idx) {
-                                command = Some(Command::Goto(loc.offset + loc.size.saturating_sub(1)));
-                                fb.location_list_mut().set_current_index(loc_list_idx);
+                        MouseEvent{ kind: MouseEventKind::Drag(MouseButton::Left), column, row, .. } => {
+                            if screens[active_screen_index].is_over_data_area(column, row) {
+                                if let Some(fo) = screens[active_screen_index].screen_coord_to_file_offset(file_view_offset, column, row) {
+                                    file_buffers[active_fb_index].set_selection(Some((cursor.position(), fo)));
+                                }
                             }
                         }
+                        _ => (),
                     }
                 }
-                MouseEvent{ kind: MouseEventKind::Drag(MouseButton::Left), column, row, .. } => {
-                    if screens[active_screen_index].is_over_data_area(column, row) {
-                        if let Some(fo) = screens[active_screen_index].screen_coord_to_file_offset(file_view_offset, column, row) {
-                            file_buffers[active_fb_index].set_selection(Some((cursor.position(), fo)));
-                        }
-                    }
-                }
-                _ => (),
-            }
+            },
         }
 
         //commands evaluation
@@ -1225,7 +1281,7 @@ fn main() {
         //redraw screen
         screens[active_screen_index].draw(&mut stdout, &file_buffers, active_fb_index, &cursor, &color_scheme, &config); 
         stdout.flush().unwrap();
-    }
+    } //main program loop
 
     //deinit mouse
     if config.mouse_enabled {
