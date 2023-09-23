@@ -297,17 +297,7 @@ fn main() {
                 //process SIGTSTP
                 if signal_tstp.load(Ordering::Relaxed) {
                     signal_tstp.store(false, Ordering::Relaxed);
-
-                    //deinit mouse and terminal
-                    if config.mouse_enabled {
-                        stdout.queue(DisableMouseCapture).unwrap();
-                    }
-                    crossterm::terminal::disable_raw_mode().unwrap();
-                    stdout.queue(crossterm::cursor::Show).unwrap();
-                    stdout.queue(ResetColor).unwrap();
-                    stdout.flush().unwrap();
-
-                    low_level::emulate_default_handler(SIGTSTP).unwrap();
+                    command = Some(Command::Suspend);
                 }
 
                 //process SIGCONT
@@ -564,6 +554,9 @@ fn main() {
                                     }
                                 }
                             }
+                        },
+                        KeyEvent{ code: KeyCode::Char('z'), modifiers: KeyModifiers::CONTROL, .. } => {
+                            command = Some(Command::Suspend);
                         },
 
                         //all other keys
@@ -1263,6 +1256,17 @@ fn main() {
                 Some(Command::ClearLocationBar) => {
                     file_buffers[active_fb_index].set_location_list(location_list::LocationList::new());
                     file_buffers[active_fb_index].highlight_list_mut().clear();
+                },
+                Some(Command::Suspend) => {
+                    //deinit terminal before suspend
+                    if config.mouse_enabled {
+                        stdout.queue(DisableMouseCapture).unwrap();
+                    }
+                    crossterm::terminal::disable_raw_mode().unwrap();
+                    stdout.queue(crossterm::cursor::Show).unwrap();
+                    stdout.queue(ResetColor).unwrap();
+                    stdout.flush().unwrap();
+                    low_level::emulate_default_handler(SIGTSTP).unwrap();
                 },
                 Some(Command::Set(name, value)) => {
                     if let Err(s) = command_functions::set_variable(&name, &value, &mut config, &mut color_scheme) {

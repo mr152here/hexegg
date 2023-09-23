@@ -38,11 +38,12 @@ pub enum Command {
     Entropy(usize, f32),
     Histogram,
     ParseHeader(Option<String>),
+    Suspend,
     Set(String, String)
 }
 
 
-pub const COMMAND_LIST: [&str; 38] = [
+pub const COMMAND_LIST: [&str; 39] = [
         "appendblock",
         "appendfile",
         "appendfilledblock",
@@ -80,6 +81,7 @@ pub const COMMAND_LIST: [&str; 38] = [
         "saveblock",
         "savefile",
         "set",
+        "suspend",
         "yankblock"
     ];
 
@@ -171,6 +173,7 @@ impl Command {
             Some(&"histogram") => Ok(Command::Histogram),
             Some(&"parseheader") => Command::parse_parse_header(&cmd_vec),
             Some(&"set") => Command::parse_set(&cmd_vec),
+            Some(&"suspend") => Ok(Command::Suspend),
 
             //all unknown commands
             Some(_) => Err("Unknown command!"), 
