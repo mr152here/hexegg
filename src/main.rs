@@ -272,8 +272,10 @@ fn main() {
     //register for signals
     let signal_tstp = Arc::new(AtomicBool::new(false));
     let signal_cont = Arc::new(AtomicBool::new(false));
+    let signal_int= Arc::new(AtomicBool::new(false));
     signal_hook::flag::register(SIGTSTP, Arc::clone(&signal_tstp)).unwrap();
     signal_hook::flag::register(SIGCONT, Arc::clone(&signal_cont)).unwrap();
+    signal_hook::flag::register(SIGINT, Arc::clone(&signal_int)).unwrap();
 
     //main program loop
     loop {
@@ -298,6 +300,12 @@ fn main() {
                 if signal_tstp.load(Ordering::Relaxed) {
                     signal_tstp.store(false, Ordering::Relaxed);
                     command = Some(Command::Suspend);
+                }
+
+                //process SIGINT
+                if signal_int.load(Ordering::Relaxed) {
+                    signal_int.store(false, Ordering::Relaxed);
+                    command = Some(Command::Quit(false));
                 }
 
                 //process SIGCONT
@@ -557,6 +565,9 @@ fn main() {
                         },
                         KeyEvent{ code: KeyCode::Char('z'), modifiers: KeyModifiers::CONTROL, .. } => {
                             command = Some(Command::Suspend);
+                        },
+                        KeyEvent{ code: KeyCode::Char('c'), modifiers: KeyModifiers::CONTROL, .. } => {
+                            command = Some(Command::Quit(false));
                         },
 
                         //all other keys
@@ -1300,4 +1311,5 @@ fn main() {
         stdout.queue(crossterm::cursor::MoveTo(0,0)).unwrap();
         stdout.queue(Print(Clear(ClearType::All))).unwrap();
     }
+    stdout.flush().unwrap();
 }
