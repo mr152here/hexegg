@@ -5,8 +5,9 @@ use std::time::{Duration, Instant};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use signal_hook::consts::signal::*;
+#[cfg(target_family = "unix")]
 use signal_hook::low_level;
+use signal_hook::consts::signal::*;
 
 use crossterm::style::{Color, Print, ResetColor};
 use crossterm::terminal::{Clear, ClearType, size};
@@ -270,11 +271,15 @@ fn main() {
     let mut last_click_time = Instant::now();
 
     //register for signals
-    let signal_tstp = Arc::new(AtomicBool::new(false));
-    let signal_cont = Arc::new(AtomicBool::new(false));
+    #[cfg(target_family = "unix")]
+    let (signal_tstp, signal_cont) = (Arc::new(AtomicBool::new(false)), Arc::new(AtomicBool::new(false)));
+
+    #[cfg(target_family = "unix")] {
+        signal_hook::flag::register(SIGTSTP, Arc::clone(&signal_tstp)).unwrap();
+        signal_hook::flag::register(SIGCONT, Arc::clone(&signal_cont)).unwrap();
+    }
+
     let signal_int= Arc::new(AtomicBool::new(false));
-    signal_hook::flag::register(SIGTSTP, Arc::clone(&signal_tstp)).unwrap();
-    signal_hook::flag::register(SIGCONT, Arc::clone(&signal_cont)).unwrap();
     signal_hook::flag::register(SIGINT, Arc::clone(&signal_int)).unwrap();
 
     //main program loop
@@ -296,33 +301,35 @@ fn main() {
 
             //check for signals
             Ok(false) => {
-                //process SIGTSTP
-                if signal_tstp.load(Ordering::Relaxed) {
-                    signal_tstp.store(false, Ordering::Relaxed);
-                    command = Some(Command::Suspend);
-                }
-
                 //process SIGINT
                 if signal_int.load(Ordering::Relaxed) {
                     signal_int.store(false, Ordering::Relaxed);
                     command = Some(Command::Quit(false));
                 }
 
-                //process SIGCONT
-                if signal_cont.load(Ordering::Relaxed) {
-                    signal_cont.store(false, Ordering::Relaxed);
+                #[cfg(target_family = "unix")] {
+                    //process SIGTSTP
+                    if signal_tstp.load(Ordering::Relaxed) {
+                        signal_tstp.store(false, Ordering::Relaxed);
+                        command = Some(Command::Suspend);
+                    }
 
-                    //set up terminal and mouse
-                    match crossterm::terminal::enable_raw_mode() {
-                        Ok(_) => {
-                            stdout.queue(Print(Clear(ClearType::All))).unwrap();
-                            stdout.queue(crossterm::cursor::Hide).unwrap();
-                            if config.mouse_enabled {
-                                stdout.queue(EnableMouseCapture).unwrap();
-                            }
-                            stdout.flush().unwrap();
-                        },
-                        Err(s) => { println!("{}", s); break; },
+                    //process SIGCONT
+                    if signal_cont.load(Ordering::Relaxed) {
+                        signal_cont.store(false, Ordering::Relaxed);
+
+                        //set up terminal and mouse
+                        match crossterm::terminal::enable_raw_mode() {
+                            Ok(_) => {
+                                stdout.queue(Print(Clear(ClearType::All))).unwrap();
+                                stdout.queue(crossterm::cursor::Hide).unwrap();
+                                if config.mouse_enabled {
+                                    stdout.queue(EnableMouseCapture).unwrap();
+                                }
+                                stdout.flush().unwrap();
+                            },
+                            Err(s) => { println!("{}", s); break; },
+                        }
                     }
                 }
             },
@@ -1268,6 +1275,7 @@ fn main() {
                     file_buffers[active_fb_index].set_location_list(location_list::LocationList::new());
                     file_buffers[active_fb_index].highlight_list_mut().clear();
                 },
+                #[cfg(target_family = "unix")]
                 Some(Command::Suspend) => {
                     //deinit terminal before suspend
                     if config.mouse_enabled {
@@ -1278,6 +1286,10 @@ fn main() {
                     stdout.queue(ResetColor).unwrap();
                     stdout.flush().unwrap();
                     low_level::emulate_default_handler(SIGTSTP).unwrap();
+                },
+                #[cfg(not(target_family = "unix"))]
+                Some(Command::Suspend) => {
+                    MessageBox::new(0, rows-2, cols).show(&mut stdout, "Supported only for OS from unix family.", MessageBoxType::Error, &color_scheme);
                 },
                 Some(Command::Set(name, value)) => {
                     if let Err(s) = command_functions::set_variable(&name, &value, &mut config, &mut color_scheme) {
