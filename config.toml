@@ -42,7 +42,7 @@ highlight_style = "RandomDark"
 active_color_scheme = "gudinuf"
 
 #enable quit with ESC key if nothing other can't be canceled. Additionally to 'q' key.
-esc_to_quit = false
+esc_to_quit = true
 
 #clear terminal when program ends
 clear_screen_on_exit = false
@@ -63,6 +63,13 @@ clear_screen_on_exit = false
 #send it to neovim
 #yank_to_program = ["nvim"]
 yank_to_program = []
+
+#defines behaviour of initial stdin. Whether to open stdin and expect input data or not.
+#Values are:
+#"Pipe" - open stdin and wait for data only if are "piped" from other application.
+#"Always" - always open stdin and wait for input data.
+#"Never" - stdin is not opened and input data are ignored.
+stdin_input = "Pipe"
 
 #which screen is loaded when program starts
 default_screen = "text_screen"

@@ -15,6 +15,7 @@ pub struct Config {
     pub highlight_style: HighlightStyle,
     pub active_color_scheme: String,
     pub yank_to_program: Vec<String>,
+    pub stdin_input: StdinInput,
     pub default_screen: String,
     screen_settings: Vec<ScreenSettings>,
     color_scheme: Vec<ColorScheme>
@@ -71,6 +72,13 @@ pub struct ColorScheme {
     pub location_list_cursor_bg_color: Color
 }
 
+#[derive(Deserialize)]
+pub enum StdinInput {
+    Pipe,
+    Always,
+    Never
+}
+
 impl Config {
 
     pub fn color_scheme(&self, name: &str) -> Option<&ColorScheme> {
@@ -96,7 +104,7 @@ impl HighlightStyle {
     }
 }
 
-impl ScreenPagingSize{
+impl ScreenPagingSize {
 
     pub fn from_str(style: &str) -> Option<ScreenPagingSize> {
         match style {

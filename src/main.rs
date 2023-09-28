@@ -1,6 +1,6 @@
 use std::{env, fs};
 use std::path::{Path, PathBuf};
-use std::io::{Read, Write};
+use std::io::{Read, Write, IsTerminal};
 use std::time::{Duration, Instant};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -16,7 +16,7 @@ use crossterm::event::{Event, KeyEvent, KeyCode, read, KeyModifiers, poll};
 use crossterm::event::{MouseEvent, MouseEventKind, MouseButton, EnableMouseCapture, DisableMouseCapture};
 
 mod config;
-use config::{Config, ColorScheme, HighlightStyle, ScreenPagingSize};
+use config::{Config, ColorScheme, HighlightStyle, ScreenPagingSize, StdinInput};
 
 mod cursor;
 use cursor::{Cursor, CursorState};
@@ -202,6 +202,27 @@ fn main() {
     //parse cmdline and load every file into separate file buffer
     match parse_args() {
         Ok((file_size_limit, file_names)) => {
+
+            //open stdin for input data (if expected)
+            let open_stdin = match config.stdin_input{
+                StdinInput::Pipe => !std::io::stdin().is_terminal(),
+                StdinInput::Always => true,
+                StdinInput::Never => false,
+            };
+
+            if open_stdin {
+                let mut v = Vec::<u8>::new();
+                match file_size_limit {
+                    Some(limit) => { std::io::stdin().lock().take(limit).read_to_end(&mut v).unwrap(); },
+                    None => { std::io::stdin().lock().read_to_end(&mut v).unwrap(); },
+                }
+                let mut fbx = FileBuffer::from_vec(v);
+                fbx.set_filename("stdin");
+                fbx.set_truncate_on_save(true);
+                file_buffers.push(fbx);
+            }
+
+            //try to read each input file
             for file_name in file_names {
                 match command_functions::read_file(&file_name, file_size_limit) {
                     Ok(file_data) => {
