@@ -585,6 +585,24 @@ pub fn pipe_block_to_program(data: &[u8], program_name: &Vec<String>) -> Result<
     Ok(())
 }
 
+//try to read data from stdin.
+pub fn read_stdin(size_limit: Option<u64>) -> Result<Vec<u8>, String> {
+    let mut v = Vec::<u8>::new();
+    match size_limit {
+        Some(limit) => {
+            if let Err(s) = std::io::stdin().lock().take(limit).read_to_end(&mut v) {
+                return Err(format!("Unable to read data from STDIN. {}", s));
+            }
+        },
+        None => {
+            if let Err(s) = std::io::stdin().lock().read_to_end(&mut v) {
+                return Err(format!("Unable to read data from STDIN. {}", s));
+            }
+        },
+    }
+    Ok(v)
+}
+
 //open and read file into Vec<u8>.
 pub fn read_file(file_name: &String, size_limit: Option<u64>) -> Result<Vec<u8>, String> {
 

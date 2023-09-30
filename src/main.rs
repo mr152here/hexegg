@@ -75,7 +75,7 @@ fn find_config_file() -> Result<PathBuf, String> {
     let prog_path = env::args().next().unwrap_or("".to_owned());
     let p = Path::new(&prog_path).parent().unwrap_or(Path::new("./")).join("config.toml");
     if p.exists() {
-        return Ok(PathBuf::from(p));
+        return Ok(p);
     }
 
     //if not found try to use local user folder
@@ -89,7 +89,7 @@ fn find_config_file() -> Result<PathBuf, String> {
                 return Ok(pb);
             }
         }
-        return Err("Can't find 'config.toml'!\nPlease copy it to the '$HOME/.config/hexegg/' or to the current program location.".to_string());
+        Err("Can't find 'config.toml'!\nPlease copy it to the '$HOME/.config/hexegg/' or to the current program location.".to_string())
     }
 
     #[cfg(target_family = "windows")]
@@ -102,7 +102,7 @@ fn find_config_file() -> Result<PathBuf, String> {
                 return Ok(pb);
             }
         }
-        return Err("Can't find 'config.toml'!\nPlease copy it to the '%APPDATA%\\hexegg\\' or to the current program location.".to_string());
+        Err("Can't find 'config.toml'!\nPlease copy it to the '%APPDATA%\\hexegg\\' or to the current program location.".to_string())
     }
 }
 
@@ -211,15 +211,18 @@ fn main() {
             };
 
             if open_stdin {
-                let mut v = Vec::<u8>::new();
-                match file_size_limit {
-                    Some(limit) => { std::io::stdin().lock().take(limit).read_to_end(&mut v).unwrap(); },
-                    None => { std::io::stdin().lock().read_to_end(&mut v).unwrap(); },
+                match command_functions::read_stdin(file_size_limit) {
+                    Ok(file_data) => {
+                        let mut fb = FileBuffer::from_vec(file_data);
+                        fb.set_filename("stdin");
+                        fb.set_truncate_on_save(true);
+                        file_buffers.push(fb);
+                    },
+                    Err(s) => {
+                        println!("{}\nPress enter to continue...", s);
+                        std::io::stdin().read_exact(&mut [0; 1]).expect("Failed to read stdin!");
+                    },
                 }
-                let mut fbx = FileBuffer::from_vec(v);
-                fbx.set_filename("stdin");
-                fbx.set_truncate_on_save(true);
-                file_buffers.push(fbx);
             }
 
             //try to read each input file
