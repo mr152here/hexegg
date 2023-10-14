@@ -511,7 +511,10 @@ fn main() {
                             let user_string = UserInput::new(0, rows-2, cols).input(&mut stdout, ">", &mut cmd_history, &color_scheme);
                             if !user_string.is_empty() {
                                 match Command::from_str(&user_string) {
-                                    Ok(c) => command = Some(c),
+                                    Ok(c) => {
+                                        last_command = Some(c.clone());
+                                        command = Some(c);
+                                    },
                                     Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s, MessageBoxType::Error, &color_scheme); },
                                 }
                             }
@@ -751,7 +754,6 @@ fn main() {
             let file_view_offset = file_buffers[active_fb_index].position();
             let row_size = screens[active_screen_index].row_size() as usize;
             let page_size = screens[active_screen_index].page_size();
-            last_command = command.clone();
 
             match command {
                 Some(Command::Quit(save)) => {
