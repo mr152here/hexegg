@@ -445,6 +445,38 @@ fn entropy(data: &[u8]) -> f32 {
     -ent
 }
 
+//replace all bytes from location list with bytes from pattern or selected block
+pub fn replace_all(fb: &mut FileBuffer, bytes: Vec<u8>) -> Result<(), String> {
+    //get pattern or selected block
+    let bytes = if bytes.is_empty() {
+        if let Some((s,e)) = fb.selection() {
+            fb.as_slice()[s..=e].to_vec()
+        } else {
+            return Err("No pattern or block specified!".to_owned());
+        }
+    } else {
+        bytes
+    };
+
+    //check if all results in location list are the same size as pattern/block
+    let ll = (*fb.location_list()).clone();
+    if ll.is_empty() {
+        return Err("No locations in location bar!".to_owned());
+
+    } else if (&ll).into_iter().any(|loc| loc.size != bytes.len()) {
+        return Err("All results must be the same size as specified pattern or block!".to_owned());
+    }
+
+    //iterate over locations and create patches
+    for loc in ll {
+        let mut offset = loc.offset;
+        //TODO: creating patched this way is relative slow and expensive because of set()
+        (&bytes).into_iter().for_each(|b| {fb.set(offset, *b); offset += 1;});
+    }
+
+    Ok(())
+}
+
 //split file into blocks with size of block_size and calculate entropy of each.
 //if entropy of next block is in abs less than margin, blocks are merged. Returns list of all blocks that remains
 pub fn calculate_entropy(fb: &FileBuffer, block_size: usize, margin: f32) -> LocationList {

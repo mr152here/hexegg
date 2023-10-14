@@ -1061,6 +1061,12 @@ fn main() {
                         screens.iter_mut().for_each(|s| s.show_location_bar(true));
                     }
                 },
+                Some(Command::ReplaceAll(b)) => {
+                    match command_functions::replace_all(&mut file_buffers[active_fb_index], b) {
+                        Ok(_) => {},
+                        Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
+                    }
+                },
                 Some(Command::Entropy(block_size, margin)) => {
                     let ll = command_functions::calculate_entropy(&file_buffers[active_fb_index], block_size, margin);
                     file_buffers[active_fb_index].set_location_list(ll);

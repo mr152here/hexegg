@@ -38,12 +38,13 @@ pub enum Command {
     Entropy(usize, f32),
     Histogram,
     ParseHeader(Option<String>),
+    ReplaceAll(Vec<u8>),
     Suspend,
     Set(String, String)
 }
 
 
-pub const COMMAND_LIST: [&str; 39] = [
+pub const COMMAND_LIST: [&str; 40] = [
         "appendblock",
         "appendfile",
         "appendfilledblock",
@@ -78,6 +79,7 @@ pub const COMMAND_LIST: [&str; 39] = [
         "parseheader",
         "pipeblock",
         "quit",
+        "replaceall",
         "saveblock",
         "savefile",
         "set",
@@ -172,6 +174,7 @@ impl Command {
             Some(&"ent") => Command::parse_entropy(&cmd_vec),
             Some(&"histogram") => Ok(Command::Histogram),
             Some(&"parseheader") => Command::parse_parse_header(&cmd_vec),
+            Some(&"replaceall") => Command::parse_replace_all(&cmd_vec),
             Some(&"set") => Command::parse_set(&cmd_vec),
             Some(&"suspend") => Ok(Command::Suspend),
 
@@ -449,6 +452,16 @@ impl Command {
             return Ok(Command::FindAllSignatures(Some(sig_names), ignored));
         }
         Ok(Command::FindAllSignatures(None, ignored))
+    }
+
+    //just wrapper to Command::Find
+    fn parse_replace_all(v: &[&str]) -> Result<Command, &'static str> {
+        let result = Self::parse_find(v);
+
+        if let Ok(Command::Find(vec)) = result {
+            return Ok(Command::ReplaceAll(vec))
+        }
+        result
     }
 
     fn parse_filter(v: &[&str]) -> Result<Command, &'static str> {

@@ -7,6 +7,7 @@ pub struct Location {
     pub size: usize
 }
 
+#[derive(Clone)]
 pub struct LocationList {
     current_index: usize,
     loc_list: Vec<Location>
