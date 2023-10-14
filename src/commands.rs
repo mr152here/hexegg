@@ -1,3 +1,4 @@
+#[derive(Clone)]
 pub enum Command {
     Quit(bool),
     Goto(usize),

@@ -287,6 +287,7 @@ fn main() {
     screens[active_screen_index].draw(&mut stdout, &file_buffers, active_fb_index, &cursor, &color_scheme, &config);
     stdout.flush().unwrap();
    
+    let mut last_command: Option<Command> = None;
     let mut random_seed = 0x5EED;
     let mut in_selection_mode = false;
     let mut selection_start = 0;
@@ -482,6 +483,9 @@ fn main() {
                             } else {
                                 MessageBox::new(0, rows-2, cols).show(&mut stdout, format!("Offset {:08X} not found in location_bar.", offset).as_str(), MessageBoxType::Error, &color_scheme);
                             }
+                        },
+                        KeyEvent{ code: KeyCode::Char('\\'), .. } if !cursor.is_edit() => {
+                            command = last_command.clone();
                         },
                         KeyEvent{ code: KeyCode::Char('R'), .. } if !cursor.is_edit() => {
                             let fb = &mut file_buffers[active_fb_index];
@@ -747,6 +751,7 @@ fn main() {
             let file_view_offset = file_buffers[active_fb_index].position();
             let row_size = screens[active_screen_index].row_size() as usize;
             let page_size = screens[active_screen_index].page_size();
+            last_command = command.clone();
 
             match command {
                 Some(Command::Quit(save)) => {
