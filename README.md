@@ -19,7 +19,7 @@ Interactive hex editor for linux terminal (and other platforms) with some advanc
 - minimal external dependencies
 - mouse support
 
-Please read the [manual](docs/MANUAL.md) to see all commands and features. 
+Please read the [manual](docs/MANUAL.md) to see all commands and features or [cheat sheet](docs/CheatSheet.md) to see all keyboard shortcuts.
 
 ### Install and run
 
