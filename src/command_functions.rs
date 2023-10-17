@@ -471,7 +471,7 @@ pub fn replace_all(fb: &mut FileBuffer, bytes: Vec<u8>) -> Result<(), String> {
     for loc in ll {
         let mut offset = loc.offset;
         //TODO: creating patched this way is relative slow and expensive because of set()
-        (&bytes).into_iter().for_each(|b| {fb.set(offset, *b); offset += 1;});
+        bytes.iter().for_each(|b| {fb.set(offset, *b); offset += 1;});
     }
 
     Ok(())
