@@ -38,7 +38,7 @@ cd hexegg
 cargo build --release
 ```
 
-Then copy configuration [config.toml](config.toml) file to the same folder where compiled program is located.
+Then copy configuration [config.toml](config.toml) file to the same folder where compiled program is located. Or place it to the local config directory $HOME/.config/hexegg/ for linux and %APPDATA%\hexegg\ for windows.
 
 To view/edit files just execute hexegg in terminal and pass file name(s) as arguments.
 
@@ -59,6 +59,7 @@ Hexegg is written in the [rust](https://www.rust-lang.org) programming language 
 - [crossterm](https://github.com/crossterm-rs/crossterm)
 - [toml](https://github.com/toml-rs/toml)
 - [serde](https://serde.rs/)
+- [signal-hook](https://github.com/vorner/signal-hook)
 
 ### License
 

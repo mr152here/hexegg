@@ -1,6 +1,6 @@
-# hexegg (0.9)
+# hexegg (0.10)
 
-Hexegg open and read all input files specified by their names as command-line arguments.
+Hexegg reads all input files specified by their names as command-line arguments.
 
 ```
 hexegg [-t <size_limit>] <file1> [file2] [file3] ...
@@ -11,6 +11,13 @@ If *size_limit* is not specified, files are fully loaded into the memory. File s
 For example:
 ```
 hexegg -t 1024 /dev/random
+```
+
+Another way to put data into hexegg is via STDIN (if set in config.toml).
+
+```
+echo "hello" | hexegg
+curl https://duckduckgo.com | hexegg -t 100
 ```
 
 ## Basic controls
@@ -129,6 +136,7 @@ Following by number of results in location bar. With the 'i' key, you can toggle
 
 Hexegg has a build-in command interface with a simple history of last used commands. All non-basic functions are accessible through it.
 - '/' - display the command prompt interface
+- '\\' - repeat the last command
 - ESC - cancel command
 - ENTER - execute command
 - UP - select a previous command from history
@@ -240,6 +248,9 @@ Next is a list of available commands, their parameters, and their descriptions. 
 *fau \<min_size or substring\> \[substring\]*
 > find all "ascii-unicode" strings in file and show them in the location bar. Works the same as *findunicodestring* but locates all strings, not just the next one.
 
+*replaceall /[pattern/]*
+> replace all items from location bar by *pattern* or selected block (if *pattern* is not specified). Items in the location bar must be the size as *pattern* or block.
+
 *filter \[substring\] \[substring\] ...*
 > filter results in Location Bar and display only that containing at least one of *substrings*. To reset filter, use empty *filter* command.
 
@@ -281,6 +292,9 @@ Next is a list of available commands, their parameters, and their descriptions. 
 *appendfilledblock \<size\> \[pattern\]*
 > same as the *insertfilledblock* but will create and put block after the cursor position.
 
+*pipeblock \<program_name\> \[arg1\] \[arg2\] ...*
+> Run *program_name* with arguments. Program will recieve selected block via STDIN. Then wait until program ends its job.
+
 *insertfile \<filename\>*
 > load and insert *filename*'s content at the cursor position.
 
@@ -316,4 +330,5 @@ Next is a list of available commands, their parameters, and their descriptions. 
 *set \<variable_name\> \<variable_value\>*
 > set values of inner variables in the running program. *variable_name* must be one from 'colorscheme', 'highlightstyle', 'screenpagingsize'. *variable_value* is a variable name specific and can be found in the configuration file config.toml.
 
-
+*suspend*
+> suspend hexegg and put it into the terminal background. The same as standard CTRL+z shortcut. Only for Linux/Unix based OS.
