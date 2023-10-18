@@ -1,5 +1,5 @@
 use std::io::Write;
-use crossterm::event::{read, Event, KeyEvent, KeyCode};
+use crossterm::event::{read, Event, KeyEvent, KeyCode, KeyEventKind};
 use crossterm::{QueueableCommand, cursor};
 use crossterm::style::{Print, SetBackgroundColor, SetForegroundColor};
 use crossterm::terminal::{Clear, ClearType};
@@ -46,16 +46,16 @@ impl UserInput {
                 match key_event {
 
                     //ESC to cancel user input and return empty string
-                    KeyEvent{ code: KeyCode::Esc, .. } => { user_string.clear(); break; },
+                    KeyEvent{ code: KeyCode::Esc, kind: KeyEventKind::Press, .. } => { user_string.clear(); break; },
 
                     //Enter to confirm user input and store it in command history. If is not the same as the last command
-                    KeyEvent{ code: KeyCode::Enter, .. } => { 
+                    KeyEvent{ code: KeyCode::Enter, kind: KeyEventKind::Press, .. } => {
                         user_string = user_string.trim().to_string();
 
                         if !user_string.is_empty() {
                             match user_input_history.last() {
                                 None => user_input_history.push(user_string.clone()),
-                                Some(s) if *s != user_string => user_input_history.push(user_string.clone()), 
+                                Some(s) if *s != user_string => user_input_history.push(user_string.clone()),
                                 _ => (),
                             }
                         }
@@ -63,7 +63,7 @@ impl UserInput {
                     },
 
                     //delete character left to the cursor
-                    KeyEvent{ code: KeyCode::Backspace, .. } => {
+                    KeyEvent{ code: KeyCode::Backspace, kind: KeyEventKind::Press, .. } => {
                         if cursor_in_string > 0 {
                             cursor_in_string -= 1;
                             cursor_pos -= 1;
@@ -72,26 +72,26 @@ impl UserInput {
                     },
 
                     //delete character at the cursor position
-                    KeyEvent{ code: KeyCode::Delete, .. } => {
+                    KeyEvent{ code: KeyCode::Delete, kind: KeyEventKind::Press, .. } => {
                         if cursor_in_string < user_string.len() {
                             user_string.remove(cursor_in_string);
                         }
                     },
 
                     //move cursor to the start of the string
-                    KeyEvent{ code: KeyCode::Home, .. } => {
+                    KeyEvent{ code: KeyCode::Home, kind: KeyEventKind::Press, .. } => {
                         cursor_in_string = 0;
                         cursor_pos = info_text_len;
                     },
 
                     //move cursor to the end of the string
-                    KeyEvent{ code: KeyCode::End, .. } => {
+                    KeyEvent{ code: KeyCode::End, kind: KeyEventKind::Press, .. } => {
                         cursor_in_string = user_string.len();
                         cursor_pos = info_text_len + cursor_in_string;
                     },
 
                     //get previous user input from history
-                    KeyEvent{ code: KeyCode::Up, .. } => {
+                    KeyEvent{ code: KeyCode::Up, kind: KeyEventKind::Press, .. } => {
                         history_idx = history_idx.saturating_sub(1);
                         user_string = user_input_history.get(history_idx).unwrap_or(&"".to_string()).to_owned();
 
@@ -100,7 +100,7 @@ impl UserInput {
                     },
 
                     //get next user input from history
-                    KeyEvent{ code: KeyCode::Down, .. } => {
+                    KeyEvent{ code: KeyCode::Down, kind: KeyEventKind::Press, .. } => {
                         if history_idx <= user_input_history.len() {
                             history_idx += 1;
                         }
@@ -111,7 +111,7 @@ impl UserInput {
                     },
 
                     //Move cursor to the left
-                    KeyEvent{ code: KeyCode::Left, .. } => {
+                    KeyEvent{ code: KeyCode::Left, kind: KeyEventKind::Press, .. } => {
                         if cursor_in_string > 0 {
                             cursor_in_string -= 1;
                             cursor_pos -= 1;
@@ -119,7 +119,7 @@ impl UserInput {
                     },
 
                     //move cursor to the right
-                    KeyEvent{ code: KeyCode::Right, .. } => {
+                    KeyEvent{ code: KeyCode::Right, kind: KeyEventKind::Press, .. } => {
                         if cursor_in_string < user_string.len() {
                             cursor_in_string += 1;
                             cursor_pos += 1;
@@ -127,7 +127,7 @@ impl UserInput {
                     },
 
                     //command auto completion code
-                    KeyEvent{ code: KeyCode::Tab, .. } => {
+                    KeyEvent{ code: KeyCode::Tab, kind: KeyEventKind::Press, .. } => {
                         command_list = COMMAND_LIST.into_iter().filter(|s| s.starts_with(&user_string)).collect();
 
                         if !command_list.is_empty() {
@@ -157,7 +157,7 @@ impl UserInput {
                     },
 
                     //Any printable character push into user input string
-                    KeyEvent{ code: KeyCode::Char(c), .. } if (' '..='~').contains(&c) => {
+                    KeyEvent{ code: KeyCode::Char(c), kind: KeyEventKind::Press, .. } if (' '..='~').contains(&c) => {
                         user_string.insert(cursor_pos - info_text_len, c);
                         if cursor_in_string < user_string.len() {
                             cursor_in_string += 1;

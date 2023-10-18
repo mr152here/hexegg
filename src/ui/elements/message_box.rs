@@ -1,5 +1,5 @@
 use std::io::Write;
-use crossterm::event::{read, Event, KeyEvent, KeyCode};
+use crossterm::event::{read, Event, KeyEvent, KeyCode, KeyEventKind, MouseButton, MouseEventKind};
 use crossterm::{QueueableCommand, cursor};
 use crossterm::style::{Print, SetForegroundColor, SetBackgroundColor};
 use crossterm::terminal::{Clear, ClearType};
@@ -53,25 +53,34 @@ impl MessageBox {
             stdout.queue(Print(" [y/n/c]:")).unwrap();
         }
         stdout.flush().unwrap();
-        
-        //wait for user input. Y/N/C are required only for confirmation type. All others types return cancel
+
+        //wait for user input. Y/N/C are required only for confirmation type. Others types return cancel on almost any event.
         loop {
             let event = read().unwrap();
+
             if let MessageBoxType::Confirmation = msgbox_type {
                 if let Event::Key(key_event) = event {
                     match key_event {
-                        KeyEvent{ code: KeyCode::Char('y'), .. } => return MessageBoxResponse::Yes,
-                        KeyEvent{ code: KeyCode::Char('Y'), .. } => return MessageBoxResponse::Yes,
-                        KeyEvent{ code: KeyCode::Char('n'), .. } => return MessageBoxResponse::No,
-                        KeyEvent{ code: KeyCode::Char('N'), .. } => return MessageBoxResponse::No,
-                        KeyEvent{ code: KeyCode::Char('c'), .. } => return MessageBoxResponse::Cancel,
-                        KeyEvent{ code: KeyCode::Char('C'), .. } => return MessageBoxResponse::Cancel,
-                        KeyEvent{ code: KeyCode::Esc, .. } => return MessageBoxResponse::Cancel,
+                        KeyEvent{ code: KeyCode::Char('y'), kind: KeyEventKind::Press, .. } => return MessageBoxResponse::Yes,
+                        KeyEvent{ code: KeyCode::Char('Y'), kind: KeyEventKind::Press, .. } => return MessageBoxResponse::Yes,
+                        KeyEvent{ code: KeyCode::Char('n'), kind: KeyEventKind::Press, .. } => return MessageBoxResponse::No,
+                        KeyEvent{ code: KeyCode::Char('N'), kind: KeyEventKind::Press, .. } => return MessageBoxResponse::No,
+                        KeyEvent{ code: KeyCode::Char('c'), kind: KeyEventKind::Press, .. } => return MessageBoxResponse::Cancel,
+                        KeyEvent{ code: KeyCode::Char('C'), kind: KeyEventKind::Press, .. } => return MessageBoxResponse::Cancel,
+                        KeyEvent{ code: KeyCode::Esc, kind: KeyEventKind::Press, .. } => return MessageBoxResponse::Cancel,
                         _ => (),
                     }
                 }
             } else {
-                return MessageBoxResponse::Cancel;
+                match event {
+                    Event::Key(key_event) if key_event.kind == KeyEventKind::Press => {
+                        return MessageBoxResponse::Cancel;
+                    },
+                    Event::Mouse(mouse_event) if mouse_event.kind == MouseEventKind::Down(MouseButton::Left) => {
+                        return MessageBoxResponse::Cancel;
+                    },
+                    _ => (),
+                }
             }
         }
     }
