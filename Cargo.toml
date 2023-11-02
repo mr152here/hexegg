@@ -1,6 +1,6 @@
 [package]
 name = "hexegg"
-version = "0.10.1"
+version = "0.11.0-devel"
 authors = ["Michal Kopera"]
 edition = "2021"
 description = "Cross-platform terminal based hex editor"
