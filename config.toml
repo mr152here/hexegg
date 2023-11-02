@@ -62,7 +62,7 @@ clear_screen_on_exit = false
 #
 #send it to neovim
 #yank_to_program = ["nvim"]
-yank_to_program = []
+#yank_to_program = []
 
 #defines behaviour of initial stdin. Whether to open stdin and expect input data or not.
 #Values are:
@@ -70,6 +70,31 @@ yank_to_program = []
 #"Always" - always open stdin and wait for input data.
 #"Never" - stdin is not opened and input data are ignored.
 stdin_input = "Pipe"
+
+#command aliases.
+#Add new pair ["alias", "command string"] to define your own. If the first command word matches the alias, will be replaced by command string.
+#Alias can contains commands with parameters as well. E.g. ["fq", "findallstrings 10"] can be later used as "fq http" to find all strings containing http with size at least 10.
+#Aliases are not recursive, so "command string" can't contains other alias.
+aliases = [
+  ["q", "quit"],
+  ["q!", "quit!"],
+  ["g", "goto"],
+  ["b", "bookmark"],
+  ["fab", "findallbookmarks"],
+  ["fap", "findallpatches"],
+  ["f", "find"],
+  ["fa", "findall"],
+  ["fx", "findhex"],
+  ["fax", "findallhex"],
+  ["fs", "findstring"],
+  ["fas", "findallstrings"],
+  ["fu", "findunicodestring"],
+  ["fau", "findallunicodestrings"],
+  ["fad", "findalldiffs"],
+  ["fah", "findallhighlights"],
+  ["fasi", "findallsignatures"],
+  ["fasi!", "findallsignatures!"],
+]
 
 #which screen is loaded when program starts
 default_screen = "text_screen"

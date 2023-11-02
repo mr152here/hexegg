@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use crossterm::style::Color;
 use serde::Deserialize;
 
@@ -16,6 +17,7 @@ pub struct Config {
     pub active_color_scheme: String,
     pub yank_to_program: Vec<String>,
     pub stdin_input: StdinInput,
+    aliases: Vec<(String, String)>,
     pub default_screen: String,
     screen_settings: Vec<ScreenSettings>,
     color_scheme: Vec<ColorScheme>
@@ -87,6 +89,12 @@ impl Config {
 
     pub fn screen_settings(&self, name: &str) -> Option<&ScreenSettings> {
         self.screen_settings.iter().find(|s| s.name.eq(name))
+    }
+
+    pub fn aliases(&self) -> HashMap<String, String> {
+        self.aliases.iter()
+            .map(|(k,v)| (k.clone(), v.clone()))
+            .collect::<HashMap<String, String>>()
     }
 }
 

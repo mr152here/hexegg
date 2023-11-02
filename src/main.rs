@@ -188,7 +188,7 @@ fn main() {
         Ok(c) => c,
         Err(s) => { println!("Parsing '{}' error: {}", cfg_path.to_str().unwrap(), s); return; },
     };
-    
+
     //load colorscheme
     let mut color_scheme: ColorScheme = match config.color_scheme(&config.active_color_scheme) {
         Some(cs) => cs.clone(),
@@ -288,6 +288,7 @@ fn main() {
     stdout.flush().unwrap();
    
     let mut last_command: Option<Command> = None;
+    let aliases = config.aliases();
     let mut random_seed = 0x5EED;
     let mut in_selection_mode = false;
     let mut selection_start = 0;
@@ -510,7 +511,7 @@ fn main() {
                         KeyEvent{ code: KeyCode::Char('/'), kind: KeyEventKind::Press, .. } if !cursor.is_edit() => {
                             let user_string = UserInput::new(0, rows-2, cols).input(&mut stdout, ">", &mut cmd_history, &color_scheme);
                             if !user_string.is_empty() {
-                                match Command::from_str(&user_string) {
+                                match Command::from_str(&user_string, &aliases) {
                                     Ok(c) => {
                                         last_command = Some(c.clone());
                                         command = Some(c);

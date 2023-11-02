@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 #[derive(Clone)]
 pub enum Command {
     Quit(bool),
@@ -91,65 +93,42 @@ pub const COMMAND_LIST: [&str; 40] = [
 
 impl Command {
 
-    pub fn from_str(command_string: &str) -> Result<Command, &'static str> {
+    pub fn from_str(command_string: &str, aliases: &HashMap<String, String>) -> Result<Command, &'static str> {
 
         //split command string into the vector by whitespaces
-        let cmd_vec: Vec<&str> = command_string.split_whitespace().collect();
+        let mut cmd_vec: Vec<&str> = command_string.split_whitespace().collect();
+
+        //replace first word with words from alias (is exists) and append rest of the commands to it
+        if let Some(&w) = cmd_vec.first() {
+            if let Some(alias_str) = aliases.get(w) {
+                let mut alias_vec: Vec<&str> = alias_str.split_whitespace().collect();
+                alias_vec.extend_from_slice(&cmd_vec[1..]);
+                cmd_vec = alias_vec;
+            }
+        }
 
         //first element should be the command word itself. the rest are parameters.
         match cmd_vec.first() {
 
             Some(&"quit") => Ok(Command::Quit(true)),
-            Some(&"q") => Ok(Command::Quit(true)),
             Some(&"quit!") => Ok(Command::Quit(false)),
-            Some(&"q!") => Ok(Command::Quit(false)),
-
             Some(&"goto") => Command::parse_goto(&cmd_vec),
-            Some(&"g") => Command::parse_goto(&cmd_vec),
-
             Some(&"bookmark") => Command::parse_bookmark(&cmd_vec),
-            Some(&"b") => Command::parse_bookmark(&cmd_vec),
 
             Some(&"findallbookmarks") => Ok(Command::FindAllBookmarks),
-            Some(&"fab") => Ok(Command::FindAllBookmarks),
-
             Some(&"findallpatches") => Ok(Command::FindAllPatches),
-            Some(&"fap") => Ok(Command::FindAllPatches),
-
             Some(&"find") => Command::parse_find(&cmd_vec),
-            Some(&"f") => Command::parse_find(&cmd_vec),
-
             Some(&"findall") => Command::parse_find_all(&cmd_vec),
-            Some(&"fa") => Command::parse_find_all(&cmd_vec),
-
             Some(&"findhex") => Command::parse_find_hex(&cmd_vec),
-            Some(&"fx") => Command::parse_find_hex(&cmd_vec),
-
             Some(&"findallhex") => Command::parse_find_all_hex(&cmd_vec),
-            Some(&"fax") => Command::parse_find_all_hex(&cmd_vec),
-
             Some(&"findstring") => Command::parse_find_string(&cmd_vec),
-            Some(&"fs") => Command::parse_find_string(&cmd_vec),
-
             Some(&"findunicodestring") => Command::parse_find_unicode_string(&cmd_vec),
-            Some(&"fu") => Command::parse_find_unicode_string(&cmd_vec),
-
             Some(&"findallstrings") => Command::parse_find_all_strings(&cmd_vec),
-            Some(&"fas") => Command::parse_find_all_strings(&cmd_vec),
-
             Some(&"findallunicodestrings") => Command::parse_find_all_unicode_strings(&cmd_vec),
-            Some(&"fau") => Command::parse_find_all_unicode_strings(&cmd_vec),
-
             Some(&"findalldiffs") => Ok(Command::FindAllDiffs),
-            Some(&"fad") => Ok(Command::FindAllDiffs),
-
             Some(&"findallhighlights") => Ok(Command::FindAllHighlights),
-            Some(&"fah") => Ok(Command::FindAllHighlights),
-
             Some(&"findallsignatures") => Command::parse_find_all_signatures(&cmd_vec, false),
-            Some(&"fasi") => Command::parse_find_all_signatures(&cmd_vec, false),
             Some(&"findallsignatures!") => Command::parse_find_all_signatures(&cmd_vec, true),
-            Some(&"fasi!") => Command::parse_find_all_signatures(&cmd_vec, true),
 
             Some(&"yankblock") => Ok(Command::YankBlock),
             Some(&"pipeblock") => Command::parse_pipe_block(&cmd_vec),
