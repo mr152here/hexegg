@@ -292,7 +292,7 @@ fn main() {
     let mut random_seed = 0x5EED;
     let mut in_selection_mode = false;
     let mut selection_start = 0;
-    let mut cmd_history = Vec::<String>::new();
+    let mut cmd_history = config.preset_history.clone();
     let (mut last_mouse_col, mut last_mouse_row) = (0, 0);
     let mut last_click_time = Instant::now();
 

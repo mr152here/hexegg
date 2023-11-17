@@ -18,6 +18,7 @@ pub struct Config {
     pub yank_to_program: Vec<String>,
     pub stdin_input: StdinInput,
     aliases: Vec<(String, String)>,
+    pub preset_history: Vec<String>,
     pub default_screen: String,
     screen_settings: Vec<ScreenSettings>,
     color_scheme: Vec<ColorScheme>

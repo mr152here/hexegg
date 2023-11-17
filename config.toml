@@ -96,6 +96,11 @@ aliases = [
   ["fasi!", "findallsignatures!"],
 ]
 
+#Predefined history in command input interface for your most used command
+#Must be a array of strings. E.g. ["quit", "findall", "findallstrings 6 http://"]
+preset_history = [
+]
+
 #which screen is loaded when program starts
 default_screen = "text_screen"
 
