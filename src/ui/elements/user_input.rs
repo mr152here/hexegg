@@ -37,7 +37,6 @@ impl UserInput {
             //draw flush and wait for user input
             self.draw(stdout, info_text, &user_string, cursor_pos as u16, &command_list, color_scheme);
             stdout.flush().unwrap();
-            command_list.clear();
 
             let event = read().unwrap();
 
@@ -69,12 +68,26 @@ impl UserInput {
                             cursor_pos -= 1;
                             user_string.remove(cursor_in_string);
                         }
+
+                        //update list with aviable commands
+                        if user_string.len() > 0 {
+                            command_list = COMMAND_LIST.into_iter().filter(|s| s.starts_with(&user_string)).collect();
+                        } else {
+                            command_list.clear();
+                        }
                     },
 
                     //delete character at the cursor position
                     KeyEvent{ code: KeyCode::Delete, kind: KeyEventKind::Press, .. } => {
                         if cursor_in_string < user_string.len() {
                             user_string.remove(cursor_in_string);
+                        }
+
+                        //update list with aviable commands
+                        if user_string.len() > 0 {
+                            command_list = COMMAND_LIST.into_iter().filter(|s| s.starts_with(&user_string)).collect();
+                        } else {
+                            command_list.clear();
                         }
                     },
 
@@ -97,6 +110,7 @@ impl UserInput {
 
                         cursor_in_string = user_string.len();
                         cursor_pos = cursor_in_string + info_text_len;
+                        command_list.clear();
                     },
 
                     //get next user input from history
@@ -108,6 +122,7 @@ impl UserInput {
 
                         cursor_in_string = user_string.len();
                         cursor_pos = cursor_in_string + info_text_len;
+                        command_list.clear();
                     },
 
                     //Move cursor to the left
@@ -136,6 +151,7 @@ impl UserInput {
                             if command_list.len() == 1 {
                                 user_string = command_list.first().unwrap().to_string();
                                 user_string.push(' ');
+                                command_list.clear();
 
                             //if there is a multiple results, find and set max common length
                             } else {
@@ -163,6 +179,9 @@ impl UserInput {
                             cursor_in_string += 1;
                             cursor_pos += 1;
                         }
+
+                        //update list of aviable commands
+                        command_list = COMMAND_LIST.into_iter().filter(|s| s.starts_with(&user_string)).collect();
                     },
                     _ => (),
                 }
@@ -182,7 +201,7 @@ impl UserInput {
         stdout.queue(cursor::MoveTo(self.x, self.y)).unwrap();
         let mut free_space = self.w as usize;
 
-        if command_list.len() > 1 {
+        if command_list.len() > 0 {
             let mut cl_string = "-[ ".to_string();
 
             for command in command_list.iter() {
