@@ -1,6 +1,4 @@
 use std::collections::HashMap;
-use std::collections::hash_map::DefaultHasher;
-use std::hash::Hasher;
 use std::cmp::min;
 use crate::location_list::LocationList;
 use crate::highlight_list::HighlightList;
@@ -15,7 +13,6 @@ pub struct FileBuffer {
     bookmarks: [Option<usize>; 10],
     location_list: LocationList,
     location_list_filtered: Option<LocationList>,
-    original_hash: u64,
     modified: bool,
     truncate_on_save: bool
 }
@@ -23,8 +20,6 @@ pub struct FileBuffer {
 impl FileBuffer {
 
     pub fn from_vec(v: Vec<u8>) -> FileBuffer {
-        let mut hasher = DefaultHasher::new();
-        hasher.write(&v);
 
         FileBuffer { 
             file_name: "undefined_filename".to_owned(),
@@ -36,7 +31,6 @@ impl FileBuffer {
             bookmarks: [None; 10],
             location_list: LocationList::new(),
             location_list_filtered: None,
-            original_hash: hasher.finish(),
             modified: false,
             truncate_on_save: true
         }
@@ -78,20 +72,14 @@ impl FileBuffer {
             if *byte != value {
                 self.patch_map.entry(offset).or_insert(*byte);
                 *byte = value;
-
-                let mut hasher = DefaultHasher::new();
-                hasher.write(&self.file_data);
-                self.modified = self.original_hash != hasher.finish();
+                self.modified = true;
             }
 
         //append byte if is one past the end of the file. Original byte in patch is set to 0
         } else if offset == self.file_data.len() {
             self.file_data.push(value);
             self.patch_map.entry(offset).or_insert(0);
-
-            let mut hasher = DefaultHasher::new();
-            hasher.write(&self.file_data);
-            self.modified = self.original_hash != hasher.finish();
+            self.modified = true;
         }
     }
 
@@ -111,9 +99,7 @@ impl FileBuffer {
                         .collect();
                 }
 
-                let mut hasher = DefaultHasher::new();
-                hasher.write(&self.file_data);
-                self.modified = self.original_hash != hasher.finish();
+                self.modified = true;
             }
         }
     }
@@ -141,18 +127,8 @@ impl FileBuffer {
                 self.patch_map.entry(position + idx).or_insert(0);
             }
 
-            let mut hasher = DefaultHasher::new();
-            hasher.write(&self.file_data);
-            self.modified = self.original_hash != hasher.finish();
+            self.modified = true;
         }
-    }
-
-    //recalculate and set a new data hash. 
-    pub fn reset_hash(&mut self) {
-        let mut hasher = DefaultHasher::new();
-        hasher.write(&self.file_data);
-        self.original_hash = hasher.finish();
-        self.modified = false;
     }
 
     //returns true if byte at offset is modified
@@ -163,6 +139,11 @@ impl FileBuffer {
     //returns true if something in the file buffer was changed
     pub fn is_modified(&self) -> bool {
         self.modified
+    }
+
+    //returns true if something in the file buffer was changed
+    pub fn set_modified(&mut self, value: bool) {
+        self.modified = value;
     }
 
     //set flag that file buffer contains whole file content
@@ -218,10 +199,6 @@ impl FileBuffer {
         if let Some(orig_byte) = self.patch_map.remove(&offset) {
             if let Some(byte) = self.file_data.get_mut(offset) {
                 *byte = orig_byte;
-
-                let mut hasher = DefaultHasher::new();
-                hasher.write(&self.file_data);
-                self.modified = self.original_hash != hasher.finish();
             }
         }
     }
@@ -279,4 +256,3 @@ impl FileBuffer {
         self.location_list_filtered = location_list;
     }
 }
-
