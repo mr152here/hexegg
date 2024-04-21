@@ -32,15 +32,15 @@ pub fn parse_elf_struct(data: &[u8]) -> Result<LocationList, String> {
     header.add_location(Location {name: "version".to_owned(), offset: 20, size: 4});
 
     let elf32 = match read_u8(data, 4) {
-        Some(b) if b == 1 => true,
-        Some(b) if b == 2 => false,
+        Some(1) => true,
+        Some(2) => false,
         Some(b) => return Err(format!("Invalid EI_CLASS '{b}'. Is neither 32 nor 64 bit!")),
         None => return Err("ELF header is truncated!".to_owned()),
     };
 
     let little_endian = match read_u8(data, 5) {
-        Some(b) if b == 1 => true,
-        Some(b) if b == 2 => false,
+        Some(1) => true,
+        Some(2) => false,
         Some(b) => return Err(format!("Invalid EI_DATA '{b}'. Is neither little nor big endian!")),
         None => return Err("ELF header is truncated!".to_owned()),
     };

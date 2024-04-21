@@ -70,10 +70,10 @@ impl UserInput {
                         }
 
                         //update list with aviable commands
-                        if user_string.len() > 0 {
-                            command_list = COMMAND_LIST.into_iter().filter(|s| s.starts_with(&user_string)).collect();
-                        } else {
+                        if user_string.is_empty() {
                             command_list.clear();
+                        } else {
+                            command_list = COMMAND_LIST.into_iter().filter(|s| s.starts_with(&user_string)).collect();
                         }
                     },
 
@@ -84,10 +84,10 @@ impl UserInput {
                         }
 
                         //update list with aviable commands
-                        if user_string.len() > 0 {
-                            command_list = COMMAND_LIST.into_iter().filter(|s| s.starts_with(&user_string)).collect();
-                        } else {
+                        if user_string.is_empty() {
                             command_list.clear();
+                        } else {
+                            command_list = COMMAND_LIST.into_iter().filter(|s| s.starts_with(&user_string)).collect();
                         }
                     },
 
@@ -193,7 +193,7 @@ impl UserInput {
     }
 
 
-    fn draw(&self, stdout: &mut std::io::Stdout, info_text: &str, user_string: &str, cursor_pos: u16, command_list: &Vec::<&str>, color_scheme: &ColorScheme) {
+    fn draw(&self, stdout: &mut std::io::Stdout, info_text: &str, user_string: &str, cursor_pos: u16, command_list: &[&str], color_scheme: &ColorScheme) {
 
         //draw border line with aviable commands if any
         stdout.queue(SetForegroundColor(color_scheme.fg_color)).unwrap();
@@ -201,7 +201,7 @@ impl UserInput {
         stdout.queue(cursor::MoveTo(self.x, self.y)).unwrap();
         let mut free_space = self.w as usize;
 
-        if command_list.len() > 0 {
+        if !command_list.is_empty() {
             let mut cl_string = "-[ ".to_string();
 
             for command in command_list.iter() {

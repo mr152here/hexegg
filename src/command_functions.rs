@@ -192,7 +192,7 @@ pub fn find_unicode_string_at_position(fb: &FileBuffer, position: usize) -> Opti
 
 //returns location of first string from current position in filebuffer. String must contains
 //substring and must be at least min_size long
-pub fn find_string(buffer: &[u8], start_offset: usize, min_size: usize, substring: &Vec<u8>) -> Result<usize, String> {
+pub fn find_string(buffer: &[u8], start_offset: usize, min_size: usize, substring: &[u8]) -> Result<usize, String> {
     let data = &buffer[start_offset..];
     let mut start_index: usize = 0;
     let mut in_string = false;
@@ -224,7 +224,7 @@ pub fn find_string(buffer: &[u8], start_offset: usize, min_size: usize, substrin
 
 //returns location of the first "ascii-unicode" 2 byte per char string from the start_offset in the filebuffer. String must contains
 //substring (if any) and must be at least min_size long
-pub fn find_unicode_string(buffer: &[u8], start_offset: usize, min_size: usize, substring: &Vec<u8>) -> Result<usize, String> {
+pub fn find_unicode_string(buffer: &[u8], start_offset: usize, min_size: usize, substring: &[u8]) -> Result<usize, String> {
     let data = &buffer[start_offset..];
     let mut start_index: usize = 0;
     let mut in_string = false;
@@ -263,7 +263,7 @@ pub fn find_unicode_string(buffer: &[u8], start_offset: usize, min_size: usize, 
 }
 
 //returns location of all strings that contains specified substring and have at least min_size in length
-pub fn find_all_strings(fb: &FileBuffer, min_size: usize, substring: &Vec<u8>) -> Result<LocationList, String> {
+pub fn find_all_strings(fb: &FileBuffer, min_size: usize, substring: &[u8]) -> Result<LocationList, String> {
     let data = fb.as_slice();
     let mut loc_list = LocationList::new();
     let mut start_index: usize = 0;
@@ -301,7 +301,7 @@ pub fn find_all_strings(fb: &FileBuffer, min_size: usize, substring: &Vec<u8>) -
     }
 }
 
-pub fn find_all_unicode_strings(fb: &FileBuffer, min_size: usize, substring: &Vec<u8>) -> Result<LocationList, String> {
+pub fn find_all_unicode_strings(fb: &FileBuffer, min_size: usize, substring: &[u8]) -> Result<LocationList, String> {
     let data = fb.as_slice();
     let mut loc_list = LocationList::new();
     let mut start_index: usize = 0;

@@ -22,8 +22,8 @@ pub fn parse_pcapng_struct(data: &[u8]) -> Result<LocationList, String> {
     header.add_location(Location {name: "section_length".to_owned(), offset: 16, size: 8});
 
     let little_endian = match read_le_u32(data, 8) {
-        Some(v) if v == 0x1a2b3c4d => true,
-        Some(v) if v == 0x4d3c2b1a => false,
+        Some(0x1a2b3c4d) => true,
+        Some(0x4d3c2b1a) => false,
         _ => return Err("Invalid 'byte_order' value!".to_owned()),
     };
 
