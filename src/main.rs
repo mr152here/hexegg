@@ -1137,7 +1137,7 @@ fn main() {
                             MessageBox::new(0, rows-2, cols).show(&mut stdout, format!("written {} bytes to '{}'.", count, file_name).as_str(), MessageBoxType::Informative, &color_scheme);
                             file_buffers[active_fb_index].set_filename(&file_name);
                             file_buffers[active_fb_index].clear_patches();
-                            file_buffers[active_fb_index].set_modified(false);
+                            file_buffers[active_fb_index].reset_modified();
                         },
                         Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
                     }

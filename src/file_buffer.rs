@@ -13,7 +13,7 @@ pub struct FileBuffer {
     bookmarks: [Option<usize>; 10],
     location_list: LocationList,
     location_list_filtered: Option<LocationList>,
-    modified: bool,
+    size_changed: bool,
     truncate_on_save: bool
 }
 
@@ -31,7 +31,7 @@ impl FileBuffer {
             bookmarks: [None; 10],
             location_list: LocationList::new(),
             location_list_filtered: None,
-            modified: false,
+            size_changed: false,
             truncate_on_save: true
         }
     }
@@ -72,14 +72,13 @@ impl FileBuffer {
             if *byte != value {
                 self.patch_map.entry(offset).or_insert(*byte);
                 *byte = value;
-                self.modified = true;
             }
 
         //append byte if is one past the end of the file. Original byte in patch is set to 0
         } else if offset == self.file_data.len() {
             self.file_data.push(value);
             self.patch_map.entry(offset).or_insert(0);
-            self.modified = true;
+            self.size_changed = true;
         }
     }
 
@@ -99,7 +98,7 @@ impl FileBuffer {
                         .collect();
                 }
 
-                self.modified = true;
+                self.size_changed = true;
             }
         }
     }
@@ -127,7 +126,7 @@ impl FileBuffer {
                 self.patch_map.entry(position + idx).or_insert(0);
             }
 
-            self.modified = true;
+            self.size_changed = true;
         }
     }
 
@@ -138,12 +137,11 @@ impl FileBuffer {
 
     //returns true if something in the file buffer was changed
     pub fn is_modified(&self) -> bool {
-        self.modified
+        self.size_changed || !self.patch_map.is_empty()
     }
 
-    //returns true if something in the file buffer was changed
-    pub fn set_modified(&mut self, value: bool) {
-        self.modified = value;
+    pub fn reset_modified(&mut self) {
+        self.size_changed = false;
     }
 
     //set flag that file buffer contains whole file content
