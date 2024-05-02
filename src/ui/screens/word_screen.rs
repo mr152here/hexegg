@@ -164,7 +164,10 @@ impl Screen for WordScreen {
             self.info_bar.draw(stdout, file_buffers, active_fb_index, cursor_state, o, color_scheme, config);
         }
 
-        self.offset_bar.draw(stdout, offset, self.row_size(), color_scheme);
+        if self.show_offset_bar {
+            self.offset_bar.draw(stdout, offset, self.row_size(), color_scheme);
+        }
+
         self.left_separator.draw(stdout, color_scheme);
         self.word_area.draw(stdout, file_buffers, active_fb_index, cursor_state, color_scheme, config);
         self.center_separator.draw(stdout, color_scheme);

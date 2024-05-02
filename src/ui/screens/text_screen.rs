@@ -150,8 +150,7 @@ impl Screen for TextScreen {
         }
 
         if self.show_offset_bar {
-            let step = self.row_size();
-            self.offset_bar.draw(stdout, offset, step, color_scheme);
+            self.offset_bar.draw(stdout, offset, self.row_size(), color_scheme);
         }
 
         self.left_separator.draw(stdout, color_scheme);
