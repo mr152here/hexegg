@@ -4,6 +4,7 @@ use std::io::{Read, Write, IsTerminal};
 use std::time::{Duration, Instant};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use regex::Regex;
 
 #[cfg(target_family = "unix")]
 use signal_hook::low_level;
@@ -1297,17 +1298,21 @@ fn main() {
                         MessageBox::new(0, rows-2, cols).show(&mut stdout, "Current position is out of the file range.", MessageBoxType::Error, &color_scheme);
                     }
                 },
-                Some(Command::Filter(filter_strings)) => {
+                Some(Command::Filter(filter_string)) => {
                     let fb = &mut file_buffers[active_fb_index];
                     fb.set_filtered_location_list(None);
 
-                    if !filter_strings.is_empty() {
-                        let fll = fb.location_list()
-                                        .into_iter()
-                                        .filter_map(|loc| filter_strings.iter().any(|fs| loc.name.contains(fs)).then_some(loc.clone()))
-                                        .collect();
-
-                        fb.set_filtered_location_list(Some(fll));
+                    if !filter_string.is_empty() {
+                        match Regex::new(&filter_string) {
+                            Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, format!("{}", s).as_str(), MessageBoxType::Error, &color_scheme); },
+                            Ok(re) => {
+                                let fll = fb.location_list()
+                                                .into_iter()
+                                                .filter_map(|loc| re.is_match(&loc.name).then_some(loc.clone()))
+                                                .collect();
+                                fb.set_filtered_location_list(Some(fll));
+                            },
+                        }
                     }
                 },
                 Some(Command::ClearLocationBar) => {

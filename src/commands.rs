@@ -37,7 +37,7 @@ pub enum Command {
     InsertFile(String),
     AppendFile(String),
     ClearLocationBar,
-    Filter(Vec<String>),
+    Filter(String),
     Entropy(usize, f32),
     Histogram,
     ParseHeader(Option<String>),
@@ -445,12 +445,12 @@ impl Command {
     }
 
     fn parse_filter(v: &[&str]) -> Result<Command, &'static str> {
-        let ret_vec =  v.iter()
-                .skip(1)
-                .map(|&s| s.to_owned())
-                .collect::<Vec<String>>();
-
-        Ok(Command::Filter(ret_vec))
+        Ok(Command::Filter(
+            match v.get(1) {
+                Some(s) => (*s).to_owned(),
+                None => "".to_owned(),
+            }
+        ))
     }
 
     fn parse_entropy(v: &[&str]) -> Result<Command, &'static str> {
