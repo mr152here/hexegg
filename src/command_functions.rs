@@ -2,6 +2,7 @@ use std::fs::File;
 use std::io::{Write as _, Read};
 use std::fmt::Write as _;
 use std::process::{Command, Stdio};
+use regex::Regex;
 use crate::location_list::{Location, LocationList};
 use crate::file_buffer::FileBuffer;
 use crate::ColorScheme;
@@ -190,12 +191,16 @@ pub fn find_unicode_string_at_position(fb: &FileBuffer, position: usize) -> Opti
     None
 }
 
-//returns location of first string from current position in filebuffer. String must contains
-//substring and must be at least min_size long
-pub fn find_string(buffer: &[u8], start_offset: usize, min_size: usize, substring: &[u8]) -> Result<usize, String> {
+//returns location of the first string from current position in the buffer. String must match regex and must be at least min_size long
+pub fn find_string(buffer: &[u8], start_offset: usize, min_size: usize, regex: &str) -> Result<usize, String> {
     let data = &buffer[start_offset..];
     let mut start_index: usize = 0;
     let mut in_string = false;
+
+    let re = match Regex::new(regex) {
+        Err(s) => return Err(s.to_string()),
+        Ok(re) => re,
+    };
 
     for (index, b) in data.iter().enumerate() {
 
@@ -207,7 +212,7 @@ pub fn find_string(buffer: &[u8], start_offset: usize, min_size: usize, substrin
         } else if in_string {
 
             //process only strings longer or equal to minimal size
-            if (index - start_index) >= min_size && (substring.is_empty() || data[start_index..index].windows(substring.len()).any(|s| s.starts_with(substring))) {
+            if (index - start_index) >= min_size && re.is_match(std::str::from_utf8(&data[start_index..index]).unwrap()) {
                 return Ok(start_index + start_offset);
             }
             in_string = false;
@@ -215,7 +220,7 @@ pub fn find_string(buffer: &[u8], start_offset: usize, min_size: usize, substrin
     }
 
     //if data ends with string
-    if in_string && (data.len() - start_index) >= min_size && (substring.is_empty() || data[start_index..].windows( substring.len() ).any(|s| s.starts_with(substring))) {
+    if in_string && (data.len() - start_index) >= min_size && re.is_match(std::str::from_utf8(&data[start_index..]).unwrap()) {
         return Ok(start_index + start_offset);
     }
 
@@ -262,12 +267,17 @@ pub fn find_unicode_string(buffer: &[u8], start_offset: usize, min_size: usize, 
     Err("Not found!".to_owned())
 }
 
-//returns location of all strings that contains specified substring and have at least min_size in length
-pub fn find_all_strings(fb: &FileBuffer, min_size: usize, substring: &[u8]) -> Result<LocationList, String> {
+//returns location of all strings that matches specified regex and have at least min_size in length
+pub fn find_all_strings(fb: &FileBuffer, min_size: usize, regex: &str) -> Result<LocationList, String> {
     let data = fb.as_slice();
     let mut loc_list = LocationList::new();
     let mut start_index: usize = 0;
     let mut in_string = false;
+
+    let re = match Regex::new(regex) {
+        Err(s) => return Err(s.to_string()),
+        Ok(re) => re,
+    };
 
     for (index, b) in data.iter().enumerate() {
 
@@ -279,7 +289,7 @@ pub fn find_all_strings(fb: &FileBuffer, min_size: usize, substring: &[u8]) -> R
         } else if in_string {
 
             //process only strings with more then minimal size
-            if (index - start_index) >= min_size && (substring.is_empty() || data[start_index..index].windows( substring.len() ).any(|s| s.starts_with(substring))) {
+            if (index - start_index) >= min_size && re.is_match(std::str::from_utf8(&data[start_index..index]).unwrap()) {
                 let s = String::from_utf8_lossy(&data[start_index..index]).to_string();
                 let s_len = s.len();
                 loc_list.add_location(Location{name: s, offset: start_index, size: s_len});
@@ -289,7 +299,7 @@ pub fn find_all_strings(fb: &FileBuffer, min_size: usize, substring: &[u8]) -> R
     }
 
     //if data ends with string
-    if in_string && (data.len() - start_index) >= min_size && (substring.is_empty() || data[start_index..].windows( substring.len() ).any(|s| s.starts_with(substring))) {
+    if in_string && (data.len() - start_index) >= min_size && re.is_match(std::str::from_utf8(&data[start_index..]).unwrap()) {
         let s = String::from_utf8_lossy(&data[start_index..]).to_string();
         let s_len = s.len();
         loc_list.add_location(Location{name: s, offset: start_index, size: s_len});

@@ -951,11 +951,11 @@ fn main() {
                         }
                     }
                 },
-                Some(Command::FindString(min_size, substring)) => {
+                Some(Command::FindString(min_size, regex)) => {
                     let fb = &file_buffers[active_fb_index];
                     let start_offset = if cursor.is_visible() { cursor.position() } else { fb.position() } + 1;
 
-                    match command_functions::find_string(fb.as_slice(), start_offset, min_size, &substring) {
+                    match command_functions::find_string(fb.as_slice(), start_offset, min_size, &regex) {
                         Ok(o) if cursor.is_visible() => {
                             cursor.set_position(o);
 
@@ -983,8 +983,8 @@ fn main() {
                         Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
                     }
                 },
-                Some(Command::FindAllStrings(min_size, substring)) => {
-                    match command_functions::find_all_strings(&file_buffers[active_fb_index], min_size, &substring) {
+                Some(Command::FindAllStrings(min_size, regex)) => {
+                    match command_functions::find_all_strings(&file_buffers[active_fb_index], min_size, &regex) {
                         Ok(ll) => {
                             let hl = (&ll).into_iter()
                                         .map(|loc| {

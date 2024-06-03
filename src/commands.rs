@@ -9,9 +9,9 @@ pub enum Command {
     Bookmark(usize, Option<usize>),
     Find(Vec<u8>),
     FindAll(Vec<u8>),
-    FindString(usize, Vec<u8>),
+    FindString(usize, String),
     FindUnicodeString(usize, Vec<u8>),
-    FindAllStrings(usize, Vec<u8>),
+    FindAllStrings(usize, String),
     FindAllUnicodeStrings(usize, Vec<u8>),
     FindDiff,
     FindAllDiffs,
@@ -337,31 +337,24 @@ impl Command {
         cmd
     }
 
-    //find string with defined minimium size and which contains specific substring. If defined.
+    //find string with defined minimium size (default is 4), which matches specified regex substring.
     fn parse_find_string(v: &[&str]) -> Result<Command, &'static str> {
         //parse first parameter
         let min_size = match v.get(1) {
             Some(&s) => {
 
-                //If is successfully converted into usize then it is 'min_size'. If not it is 'substring'
+                //If is successfully converted into usize then it is 'min_size'. If not, it is 'regex'
                 match s.parse::<usize>() {
                     Ok(ms) => ms,
-                    Err(_) => {
-                        let substring = s.as_bytes().to_vec();
-                        return Ok(Command::FindString(substring.len(), substring));
-                    },
+                    Err(_) => return Ok(Command::FindString(4, s.to_owned())),
                 }
             },
-            None => return Err("At least 'min_size' or 'substring' parameter is required!"),
+            None => return Err("At least one of 'min_size' or 'regex' parameter is required!"),
         };
 
-        //parse second parameter. Should be 'substring' or nothing
-        let substring = match v.get(2) {
-            Some(&s) => s.as_bytes().to_vec(),
-            None => Vec::new(),
-        };
-
-        Ok(Command::FindString(std::cmp::max(min_size, substring.len()), substring))
+        //parse second parameter. Should be 'regex' or nothing
+        let regex = v.get(2).unwrap_or(&"").to_string();
+        Ok(Command::FindString(min_size, regex))
     }
 
     //find ascii-unicode 2 byte per char string with minimium size and which contains specific substring (if any).
@@ -445,12 +438,7 @@ impl Command {
     }
 
     fn parse_filter(v: &[&str]) -> Result<Command, &'static str> {
-        Ok(Command::Filter(
-            match v.get(1) {
-                Some(s) => (*s).to_owned(),
-                None => "".to_owned(),
-            }
-        ))
+        Ok(Command::Filter(v.get(1).unwrap_or(&"").to_string()))
     }
 
     fn parse_entropy(v: &[&str]) -> Result<Command, &'static str> {
