@@ -10,9 +10,9 @@ pub enum Command {
     Find(Vec<u8>),
     FindAll(Vec<u8>),
     FindString(usize, String),
-    FindUnicodeString(usize, Vec<u8>),
+    FindUnicodeString(usize, String),
     FindAllStrings(usize, String),
-    FindAllUnicodeStrings(usize, Vec<u8>),
+    FindAllUnicodeStrings(usize, String),
     FindDiff,
     FindAllDiffs,
     FindPatch,
@@ -357,44 +357,17 @@ impl Command {
         Ok(Command::FindString(min_size, regex))
     }
 
-    //find ascii-unicode 2 byte per char string with minimium size and which contains specific substring (if any).
+    //just wrapper to find string function
     fn parse_find_unicode_string(v: &[&str]) -> Result<Command, &'static str> {
-        //parse first parameter
-        let min_size = match v.get(1) {
-            Some(&s) => {
+        let cmd = Command::parse_find_string(v);
 
-                //If is successfully converted into usize then it is 'min_size'. If not it is 'substring'
-                match s.parse::<usize>() {
-                    Ok(ms) => ms * 2,
-                    Err(_) => {
-                        let mut substring = Vec::<u8>::with_capacity(2*s.len());
-                        s.as_bytes().iter().for_each(|&b| {
-                            substring.push(b);
-                            substring.push(0);
-                        });
-                        return Ok(Command::FindUnicodeString(substring.len(), substring));
-                    },
-                }
-            },
-            None => return Err("At least 'min_size' or 'substring' parameter is required!"),
-        };
-
-        //parse second parameter. Should be 'substring' or nothing
-        let substring = match v.get(2) {
-            Some(&s) => {
-                let mut substring = Vec::<u8>::with_capacity(2*s.len());
-                s.as_bytes().iter().for_each(|&b| {
-                    substring.push(b);
-                    substring.push(0);
-                });
-                substring
-            },
-            None => Vec::new(),
-        };
-
-        Ok(Command::FindUnicodeString(std::cmp::max(min_size, substring.len()), substring))
+        if let Ok(Command::FindString(m,s)) = cmd {
+            return Ok(Command::FindUnicodeString(m,s));
+        }
+        cmd
     }
-    
+
+    //just wrapper to find string function
     fn parse_find_all_strings(v: &[&str]) -> Result<Command, &'static str> {
         let cmd = Command::parse_find_string(v);
 
@@ -404,10 +377,11 @@ impl Command {
         cmd
     }
 
+    //just wrapper to find string function
     fn parse_find_all_unicode_strings(v: &[&str]) -> Result<Command, &'static str> {
-        let cmd = Command::parse_find_unicode_string(v);
+        let cmd = Command::parse_find_string(v);
 
-        if let Ok(Command::FindUnicodeString(m,s)) = cmd {
+        if let Ok(Command::FindString(m,s)) = cmd {
             return Ok(Command::FindAllUnicodeStrings(m,s));
         }
         cmd

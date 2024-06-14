@@ -227,13 +227,19 @@ pub fn find_string(fb: &[u8], start_offset: usize, min_size: usize, regex: &str)
     Err("Not found!".to_owned())
 }
 
-//returns location of the first "ascii-unicode" 2 byte per char string from the start_offset in the filebuffer. String must contains
-//substring (if any) and must be at least min_size long
-pub fn find_unicode_string(fb: &[u8], start_offset: usize, min_size: usize, substring: &[u8]) -> Result<usize, String> {
+//returns location of the first "ascii-unicode" (2 bytes per char) string from current position in the file buffer. String must match regex and must be at least min_size long
+pub fn find_unicode_string(fb: &[u8], start_offset: usize, min_size: usize, regex: &str) -> Result<usize, String> {
     let data = &fb[start_offset..];
+    let mut tmp_s = String::with_capacity(64);
     let mut start_index: usize = 0;
     let mut in_string = false;
     let mut index: usize = 0;
+    let min_size = 2*min_size;
+
+    let re = match Regex::new(regex) {
+        Err(s) => return Err(s.to_string()),
+        Ok(re) => re,
+    };
 
     while let Some(b1) = data.get(index) {
         let b2 = match data.get(index + 1) {
@@ -251,8 +257,16 @@ pub fn find_unicode_string(fb: &[u8], start_offset: usize, min_size: usize, subs
         } else if in_string {
 
             //process only strings longer or equal to minimal size
-            if (index - start_index) >= min_size && (substring.is_empty() || data[start_index..index].windows( substring.len() ).any(|s| s.starts_with(substring))) {
-                return Ok(start_index + start_offset);
+            if (index - start_index) >= min_size {
+
+                fb[start_index..index].iter()
+                    .filter(|&b| *b != 0)
+                    .for_each(|&b| tmp_s.push(b as char));
+
+                if regex.is_empty() || re.is_match(&tmp_s) {
+                    return Ok(start_index + start_offset);
+                }
+                tmp_s.clear();
             }
             in_string = false;
         }
@@ -260,8 +274,15 @@ pub fn find_unicode_string(fb: &[u8], start_offset: usize, min_size: usize, subs
     }
 
     //if data ends with string
-    if in_string && (data.len() - start_index) >= min_size && (substring.is_empty() || data[start_index..].windows( substring.len() ).any(|s| s.starts_with(substring))) {
-        return Ok(start_index + start_offset);
+    if in_string && (data.len() - start_index) >= min_size {
+
+        fb[start_index..index].iter()
+            .filter(|&b| *b != 0)
+            .for_each(|&b| tmp_s.push(b as char));
+
+        if regex.is_empty() || re.is_match(&tmp_s) {
+            return Ok(start_index + start_offset);
+        }
     }
 
     Err("Not found!".to_owned())
@@ -310,11 +331,19 @@ pub fn find_all_strings(fb: &[u8], min_size: usize, regex: &str) -> Result<Locat
     }
 }
 
-pub fn find_all_unicode_strings(fb: &[u8], min_size: usize, substring: &[u8]) -> Result<LocationList, String> {
+//returns location of all ascii-unicode strings that matches specified regex and have at least min_size in length
+pub fn find_all_unicode_strings(fb: &[u8], min_size: usize, regex: &str) -> Result<LocationList, String> {
     let mut loc_list = LocationList::new();
+    let mut tmp_s = String::with_capacity(64);
     let mut start_index: usize = 0;
     let mut in_string = false;
     let mut index: usize = 0;
+    let min_size = 2 * min_size;
+
+    let re = match Regex::new(regex) {
+        Err(s) => return Err(s.to_string()),
+        Ok(re) => re,
+    };
 
     while let Some(b1) = fb.get(index) {
         let b2 = match fb.get(index + 1) {
@@ -332,13 +361,16 @@ pub fn find_all_unicode_strings(fb: &[u8], min_size: usize, substring: &[u8]) ->
         } else if in_string {
 
             //process only strings longer or equal to minimal size
-            if (index - start_index) >= min_size && (substring.is_empty() || fb[start_index..index].windows( substring.len() ).any(|s| s.starts_with(substring))) {
-                let s = fb[start_index..index].iter()
-                            .filter(|&b| *b != 0)
-                            .map(|&b| b as char)
-                            .collect::<String>();
+            if (index - start_index) >= min_size {
 
-                loc_list.add_location(Location{name: s, offset: start_index, size: index - start_index});
+                fb[start_index..index].iter()
+                    .filter(|&b| *b != 0)
+                    .for_each(|&b| tmp_s.push(b as char));
+
+                if regex.is_empty() || re.is_match(&tmp_s) {
+                    loc_list.add_location(Location{name: tmp_s.clone(), offset: start_index, size: index - start_index});
+                }
+                tmp_s.clear();
             }
             in_string = false;
         }
@@ -346,13 +378,15 @@ pub fn find_all_unicode_strings(fb: &[u8], min_size: usize, substring: &[u8]) ->
     }
 
     //if data ends with string
-    if in_string && (fb.len() - start_index) >= min_size && (substring.is_empty() || fb[start_index..].windows( substring.len() ).any(|s| s.starts_with(substring))) {
-        let s = fb[start_index..].iter()
-                    .filter(|&b| *b != 0)
-                    .map(|&b| b as char)
-                    .collect::<String>();
+    if in_string && (fb.len() - start_index) >= min_size {
 
-        loc_list.add_location(Location{name: s, offset: start_index, size: fb.len() - start_index});
+        fb[start_index..index].iter()
+            .filter(|&b| *b != 0)
+            .for_each(|&b| tmp_s.push(b as char));
+
+        if regex.is_empty() || re.is_match(&tmp_s) {
+            loc_list.add_location(Location{name: tmp_s.clone(), offset: start_index, size: index - start_index});
+        }
     }
 
     match loc_list.is_empty() {
