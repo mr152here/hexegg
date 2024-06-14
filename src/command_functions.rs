@@ -47,24 +47,24 @@ pub fn find_all_patches(fb: &FileBuffer) -> Result<LocationList, String> {
 }
 
 //helper function that finds first location of byte pattern in file buffer
-fn find_pattern(buffer: &[u8], pattern: &[u8]) -> Option<usize> {
-    buffer.windows(pattern.len())
+fn find_pattern(fb: &[u8], pattern: &[u8]) -> Option<usize> {
+    fb.windows(pattern.len())
         .enumerate()
         .find_map(|(o,w)| w.starts_with(pattern).then_some(o))
 }
 
 //helper function that returns all locations of byte pattern in file buffer
-fn find_all_patterns(buffer: &[u8], pattern: &[u8]) -> Vec<usize> {
-    buffer.windows(pattern.len())
+fn find_all_patterns(fb: &[u8], pattern: &[u8]) -> Vec<usize> {
+    fb.windows(pattern.len())
         .enumerate()
         .filter_map(|(o,s)| s.starts_with(pattern).then_some(o))
         .collect()
 }
 
 //return first offset of the byte pattern from the current file position
-pub fn find(buffer: &[u8], start_offset: usize, b: &[u8]) -> Result<usize, String> {
+pub fn find(fb: &[u8], start_offset: usize, b: &[u8]) -> Result<usize, String> {
 
-    match find_pattern(&buffer[start_offset..], b) {
+    match find_pattern(&fb[start_offset..], b) {
         Some(o) => Ok(o + start_offset),
         None => {
             let mut s = String::from("Pattern ");
@@ -82,8 +82,8 @@ pub fn find(buffer: &[u8], start_offset: usize, b: &[u8]) -> Result<usize, Strin
 }
 
 //find all occurances of b in filebuffer
-pub fn find_all(fb: &FileBuffer, b: &[u8]) -> Result<LocationList, String> {
-    let pattern_offsets = find_all_patterns(fb.as_slice(), b);
+pub fn find_all(fb: &[u8], b: &[u8]) -> Result<LocationList, String> {
+    let pattern_offsets = find_all_patterns(fb, b);
 
     if !pattern_offsets.is_empty() {
         let b_len = b.len();
@@ -106,22 +106,22 @@ pub fn find_all(fb: &FileBuffer, b: &[u8]) -> Result<LocationList, String> {
 }
 
 //find if there is any string at the position
-pub fn find_string_at_position(fb: &FileBuffer, position: usize) -> Option<(usize, usize)> {
+pub fn find_string_at_position(fb: &[u8], position: usize) -> Option<(usize, usize)> {
 
     if let Some(b) = fb.get(position) {
-        if (0x20..=0x7E).contains(&b) {
+        if (0x20..=0x7E).contains(b) {
 
             //find start/end of the string
             let (mut s, mut e) = (position, position);
             while let Some(b) = fb.get(e + 1) {
-                if !(0x20..=0x7E).contains(&b) {
+                if !(0x20..=0x7E).contains(b) {
                     break;
                 }
                 e += 1;
             }
 
             while let Some(b) = fb.get(s.saturating_sub(1)) {
-                if !(0x20..=0x7E).contains(&b) {
+                if !(0x20..=0x7E).contains(b) {
                     break;
                 }
 
@@ -192,8 +192,8 @@ pub fn find_unicode_string_at_position(fb: &FileBuffer, position: usize) -> Opti
 }
 
 //returns location of the first string from current position in the buffer. String must match regex and must be at least min_size long
-pub fn find_string(buffer: &[u8], start_offset: usize, min_size: usize, regex: &str) -> Result<usize, String> {
-    let data = &buffer[start_offset..];
+pub fn find_string(fb: &[u8], start_offset: usize, min_size: usize, regex: &str) -> Result<usize, String> {
+    let data = &fb[start_offset..];
     let mut start_index: usize = 0;
     let mut in_string = false;
 
@@ -229,8 +229,8 @@ pub fn find_string(buffer: &[u8], start_offset: usize, min_size: usize, regex: &
 
 //returns location of the first "ascii-unicode" 2 byte per char string from the start_offset in the filebuffer. String must contains
 //substring (if any) and must be at least min_size long
-pub fn find_unicode_string(buffer: &[u8], start_offset: usize, min_size: usize, substring: &[u8]) -> Result<usize, String> {
-    let data = &buffer[start_offset..];
+pub fn find_unicode_string(fb: &[u8], start_offset: usize, min_size: usize, substring: &[u8]) -> Result<usize, String> {
+    let data = &fb[start_offset..];
     let mut start_index: usize = 0;
     let mut in_string = false;
     let mut index: usize = 0;
@@ -268,8 +268,7 @@ pub fn find_unicode_string(buffer: &[u8], start_offset: usize, min_size: usize, 
 }
 
 //returns location of all strings that matches specified regex and have at least min_size in length
-pub fn find_all_strings(fb: &FileBuffer, min_size: usize, regex: &str) -> Result<LocationList, String> {
-    let data = fb.as_slice();
+pub fn find_all_strings(fb: &[u8], min_size: usize, regex: &str) -> Result<LocationList, String> {
     let mut loc_list = LocationList::new();
     let mut start_index: usize = 0;
     let mut in_string = false;
@@ -279,7 +278,7 @@ pub fn find_all_strings(fb: &FileBuffer, min_size: usize, regex: &str) -> Result
         Ok(re) => re,
     };
 
-    for (index, b) in data.iter().enumerate() {
+    for (index, b) in fb.iter().enumerate() {
 
         if (0x20..=0x7E).contains(b) {
             if !in_string {
@@ -289,8 +288,8 @@ pub fn find_all_strings(fb: &FileBuffer, min_size: usize, regex: &str) -> Result
         } else if in_string {
 
             //process only strings with more then minimal size
-            if (index - start_index) >= min_size && re.is_match(std::str::from_utf8(&data[start_index..index]).unwrap()) {
-                let s = String::from_utf8_lossy(&data[start_index..index]).to_string();
+            if (index - start_index) >= min_size && re.is_match(std::str::from_utf8(&fb[start_index..index]).unwrap()) {
+                let s = String::from_utf8_lossy(&fb[start_index..index]).to_string();
                 let s_len = s.len();
                 loc_list.add_location(Location{name: s, offset: start_index, size: s_len});
             }
@@ -299,8 +298,8 @@ pub fn find_all_strings(fb: &FileBuffer, min_size: usize, regex: &str) -> Result
     }
 
     //if data ends with string
-    if in_string && (data.len() - start_index) >= min_size && re.is_match(std::str::from_utf8(&data[start_index..]).unwrap()) {
-        let s = String::from_utf8_lossy(&data[start_index..]).to_string();
+    if in_string && (fb.len() - start_index) >= min_size && re.is_match(std::str::from_utf8(&fb[start_index..]).unwrap()) {
+        let s = String::from_utf8_lossy(&fb[start_index..]).to_string();
         let s_len = s.len();
         loc_list.add_location(Location{name: s, offset: start_index, size: s_len});
     }
@@ -311,15 +310,14 @@ pub fn find_all_strings(fb: &FileBuffer, min_size: usize, regex: &str) -> Result
     }
 }
 
-pub fn find_all_unicode_strings(fb: &FileBuffer, min_size: usize, substring: &[u8]) -> Result<LocationList, String> {
-    let data = fb.as_slice();
+pub fn find_all_unicode_strings(fb: &[u8], min_size: usize, substring: &[u8]) -> Result<LocationList, String> {
     let mut loc_list = LocationList::new();
     let mut start_index: usize = 0;
     let mut in_string = false;
     let mut index: usize = 0;
 
-    while let Some(b1) = data.get(index) {
-        let b2 = match data.get(index + 1) {
+    while let Some(b1) = fb.get(index) {
+        let b2 = match fb.get(index + 1) {
             Some(&b2) => b2,
             None => break,
         };
@@ -334,8 +332,8 @@ pub fn find_all_unicode_strings(fb: &FileBuffer, min_size: usize, substring: &[u
         } else if in_string {
 
             //process only strings longer or equal to minimal size
-            if (index - start_index) >= min_size && (substring.is_empty() || data[start_index..index].windows( substring.len() ).any(|s| s.starts_with(substring))) {
-                let s = data[start_index..index].iter()
+            if (index - start_index) >= min_size && (substring.is_empty() || fb[start_index..index].windows( substring.len() ).any(|s| s.starts_with(substring))) {
+                let s = fb[start_index..index].iter()
                             .filter(|&b| *b != 0)
                             .map(|&b| b as char)
                             .collect::<String>();
@@ -348,13 +346,13 @@ pub fn find_all_unicode_strings(fb: &FileBuffer, min_size: usize, substring: &[u
     }
 
     //if data ends with string
-    if in_string && (data.len() - start_index) >= min_size && (substring.is_empty() || data[start_index..].windows( substring.len() ).any(|s| s.starts_with(substring))) {
-        let s = data[start_index..].iter()
+    if in_string && (fb.len() - start_index) >= min_size && (substring.is_empty() || fb[start_index..].windows( substring.len() ).any(|s| s.starts_with(substring))) {
+        let s = fb[start_index..].iter()
                     .filter(|&b| *b != 0)
                     .map(|&b| b as char)
                     .collect::<String>();
 
-        loc_list.add_location(Location{name: s, offset: start_index, size: data.len() - start_index});
+        loc_list.add_location(Location{name: s, offset: start_index, size: fb.len() - start_index});
     }
 
     match loc_list.is_empty() {
@@ -366,8 +364,7 @@ pub fn find_all_unicode_strings(fb: &FileBuffer, min_size: usize, substring: &[u
 //find and returns first diff from current file position
 pub fn find_diff(file_buffers: &[FileBuffer], start_offset: usize, active_fb_index: usize) -> Option<usize> {
 
-    file_buffers[active_fb_index].as_slice()
-        .iter()
+    file_buffers[active_fb_index].iter()
         .enumerate()
         .skip(start_offset)
         .find_map(|(o, byte)| {
@@ -380,8 +377,7 @@ pub fn find_diff(file_buffers: &[FileBuffer], start_offset: usize, active_fb_ind
 //find and returns list of all diffs
 pub fn find_all_diffs(file_buffers: &[FileBuffer], active_fb_index: usize) -> Result<LocationList, String> {
 
-    let ll = file_buffers[active_fb_index].as_slice()
-        .iter()
+    let ll = file_buffers[active_fb_index].iter()
         .enumerate()
         .filter(|&(offset, byte)| {
             file_buffers.iter().any(|filebuf| { if let Some(b) = filebuf.get(offset) { b != *byte } else { true } })
@@ -400,7 +396,7 @@ pub fn find_all_signatures(file_buffers: &[FileBuffer], active_fb_index: usize, 
 
     let mut result_ll = LocationList::new();
     let file_len = file_buffers[active_fb_index].len();
-    let file_slice = file_buffers[active_fb_index].as_slice();
+    let file_slice = &file_buffers[active_fb_index];
 
     for i in 0..file_len {
         let tmp_file_slice = &file_slice[i..];
@@ -457,10 +453,11 @@ fn entropy(data: &[u8]) -> f32 {
 
 //replace all bytes from location list with bytes from pattern or selected block
 pub fn replace_all(fb: &mut FileBuffer, bytes: Vec<u8>) -> Result<(), String> {
+
     //get pattern or selected block
     let bytes = if bytes.is_empty() {
         if let Some((s,e)) = fb.selection() {
-            fb.as_slice()[s..=e].to_vec()
+            fb[s..=e].to_vec()
         } else {
             return Err("No pattern or block specified!".to_owned());
         }
@@ -489,11 +486,10 @@ pub fn replace_all(fb: &mut FileBuffer, bytes: Vec<u8>) -> Result<(), String> {
 
 //split file into blocks with size of block_size and calculate entropy of each.
 //if entropy of next block is in abs less than margin, blocks are merged. Returns list of all blocks that remains
-pub fn calculate_entropy(fb: &FileBuffer, block_size: usize, margin: f32) -> LocationList {
+pub fn calculate_entropy(fb: &[u8], block_size: usize, margin: f32) -> LocationList {
     let mut prev_ent = 9999.0;
 
-    fb.as_slice()
-        .chunks(block_size)
+    fb.chunks(block_size)
         .filter(|c| c.len() == block_size)
         .enumerate()
         .filter_map(|(i,c)|{
@@ -539,7 +535,7 @@ pub fn parse_struct(data: &[u8], name: Option<String>) -> Result<LocationList, S
 pub fn save_block(file_buffers: &[FileBuffer], active_fb_index: usize, file_name: &str) -> Result<String, String> {
 
     if let Some((start,end)) = file_buffers[active_fb_index].selection() {
-        return match save_file(file_name, &file_buffers[active_fb_index].as_slice()[start..=end], true) {
+        return match save_file(file_name, &file_buffers[active_fb_index][start..=end], true) {
             Ok(count) => Ok(format!("written {} bytes to '{}'.", count, file_name)),
             Err(s) => Err(s),
         };
@@ -551,7 +547,7 @@ pub fn save_block(file_buffers: &[FileBuffer], active_fb_index: usize, file_name
 pub fn open_block(file_buffers: &mut Vec<FileBuffer>, active_fb_index: usize, yank_buffer: &[u8]) -> Result<(), String> {
 
     if let Some((s,e)) = file_buffers[active_fb_index].selection() {
-        let file_data = file_buffers[active_fb_index].as_slice()[s..=e].to_vec();
+        let file_data = file_buffers[active_fb_index][s..=e].to_vec();
         let mut fb = FileBuffer::from_vec(file_data);
 
         fb.set_filename(format!("dump_{:08X}_{:08X}", s, e).as_str());
@@ -572,7 +568,7 @@ pub fn open_block(file_buffers: &mut Vec<FileBuffer>, active_fb_index: usize, ya
 pub fn export_block(file_buffers: &[FileBuffer], active_fb_index: usize) -> Result<String, String> {
 
     if let Some((start,end)) = file_buffers[active_fb_index].selection() {
-        let block_chunks = file_buffers[active_fb_index].as_slice()[start..=end].chunks(16);
+        let block_chunks = file_buffers[active_fb_index][start..=end].chunks(16);
         let mut out_string = String::with_capacity(5*(end - start + 1));
 
         for chunk in block_chunks {
@@ -646,7 +642,7 @@ pub fn read_stdin(size_limit: Option<u64>) -> Result<Vec<u8>, String> {
 }
 
 //open and read file into Vec<u8>.
-pub fn read_file(file_name: &String, size_limit: Option<u64>) -> Result<Vec<u8>, String> {
+pub fn read_file(file_name: &str, size_limit: Option<u64>) -> Result<Vec<u8>, String> {
 
     let f = match std::fs::File::open(file_name) {
         Err(s) => return Err(s.to_string()),

@@ -772,7 +772,7 @@ fn main() {
                                 MessageBoxResponse::Cancel => break,
                                 MessageBoxResponse::No => (),
                                 MessageBoxResponse::Yes => {
-                                    if let Err(s) = command_functions::save_file(fb.filename(), fb.as_slice(), fb.truncate_on_save()) {
+                                    if let Err(s) = command_functions::save_file(fb.filename(), fb, fb.truncate_on_save()) {
                                        MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme);
                                     }
                                 },
@@ -898,7 +898,7 @@ fn main() {
                     //if pattern is empty try to use data from selection
                     if b.is_empty() {
                         if let Some((s,e)) = fb.selection() {
-                            b = fb.as_slice()[s..=e].to_vec();
+                            b = fb[s..=e].to_vec();
                         }
                     }
 
@@ -907,7 +907,7 @@ fn main() {
                         MessageBox::new(0, rows-2, cols).show(&mut stdout, "No pattern or block specified!", MessageBoxType::Error, &color_scheme);
                     } else {
                         let start_offset = if cursor.is_visible() { cursor.position() } else { fb.position() } + 1;
-                        match command_functions::find(fb.as_slice(), start_offset, &b) {
+                        match command_functions::find(fb, start_offset, &b) {
                             Ok(o) if cursor.is_visible() => {
                                 cursor.set_position(o);
 
@@ -923,7 +923,7 @@ fn main() {
                 Some(Command::FindAll(mut b)) => {
                     if b.is_empty() {
                         if let Some((s,e)) = file_buffers[active_fb_index].selection() {
-                            b = file_buffers[active_fb_index].as_slice()[s..=e].to_vec();
+                            b = file_buffers[active_fb_index][s..=e].to_vec();
                         }
                     }
 
@@ -955,7 +955,7 @@ fn main() {
                     let fb = &file_buffers[active_fb_index];
                     let start_offset = if cursor.is_visible() { cursor.position() } else { fb.position() } + 1;
 
-                    match command_functions::find_string(fb.as_slice(), start_offset, min_size, &regex) {
+                    match command_functions::find_string(fb, start_offset, min_size, &regex) {
                         Ok(o) if cursor.is_visible() => {
                             cursor.set_position(o);
 
@@ -971,7 +971,7 @@ fn main() {
                     let fb = &file_buffers[active_fb_index];
                     let start_offset = if cursor.is_visible() { cursor.position() } else { fb.position() } + 1;
 
-                    match command_functions::find_unicode_string(fb.as_slice(), start_offset, min_size, &substring) {
+                    match command_functions::find_unicode_string(fb, start_offset, min_size, &substring) {
                         Ok(o) if cursor.is_visible() => {
                             cursor.set_position(o);
 
@@ -1083,9 +1083,10 @@ fn main() {
                     screens.iter_mut().for_each(|s| s.show_location_bar(true));
                 },
                 Some(Command::Histogram) => {
-                    let mut data = file_buffers[active_fb_index].as_slice();
-                    if let Some((s,e)) = file_buffers[active_fb_index].selection() {
-                        data = &data[s..e];
+                    let fb = &file_buffers[active_fb_index];
+                    let data = match fb.selection() {
+                        Some((s,e)) => &fb[s..e],
+                        None => fb,
                     };
 
                     let ll = command_functions::calculate_histogram(data);
@@ -1112,7 +1113,7 @@ fn main() {
                             MessageBoxResponse::Cancel => (),
                             MessageBoxResponse::No => { file_buffers.remove(active_fb_index); },
                             MessageBoxResponse::Yes => {
-                                if let Err(s) = command_functions::save_file(filename, file_buffers[active_fb_index].as_slice(), file_buffers[active_fb_index].truncate_on_save()) {
+                                if let Err(s) = command_functions::save_file(filename, &file_buffers[active_fb_index], file_buffers[active_fb_index].truncate_on_save()) {
                                    MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme);
                                 }
                                 file_buffers.remove(active_fb_index);
@@ -1133,7 +1134,7 @@ fn main() {
                 },
                 Some(Command::SaveFile(file_name)) => {
                     let file_name = file_name.unwrap_or(file_buffers[active_fb_index].filename().to_owned());
-                    match command_functions::save_file(&file_name, file_buffers[active_fb_index].as_slice(), file_buffers[active_fb_index].truncate_on_save()) {
+                    match command_functions::save_file(&file_name, &file_buffers[active_fb_index], file_buffers[active_fb_index].truncate_on_save()) {
                         Ok(count) => {
                             MessageBox::new(0, rows-2, cols).show(&mut stdout, format!("written {} bytes to '{}'.", count, file_name).as_str(), MessageBoxType::Informative, &color_scheme);
                             file_buffers[active_fb_index].set_filename(&file_name);
@@ -1164,7 +1165,7 @@ fn main() {
                 Some(Command::YankBlock) => {
                     //move bytes from selection into yank_buffer or clear it doesn't exist
                     if let Some((s,e)) = file_buffers[active_fb_index].selection() {
-                        yank_buffer = file_buffers[active_fb_index].as_slice()[s..=e].to_vec();
+                        yank_buffer = file_buffers[active_fb_index][s..=e].to_vec();
                         MessageBox::new(0, rows-2, cols).show(&mut stdout, format!("Yanked {} bytes.", yank_buffer.len()).as_str(), MessageBoxType::Informative, &color_scheme);
 
                         //try to put data via stdin into external application
@@ -1179,7 +1180,7 @@ fn main() {
                 },
                 Some(Command::PipeBlock(prog_cmd)) => {
                     if let Some((s,e)) = file_buffers[active_fb_index].selection() {
-                        let data = file_buffers[active_fb_index].as_slice()[s..=e].to_vec();
+                        let data = file_buffers[active_fb_index][s..=e].to_vec();
 
                         if let Err(s) = command_functions::pipe_block_to_program(&data, &prog_cmd) {
                             MessageBox::new(0, rows-2, cols).show(&mut stdout, &s, MessageBoxType::Error, &color_scheme);
@@ -1199,7 +1200,7 @@ fn main() {
                     if cursor.is_visible() {
                         //insert bytes to the file from selected or yanked block. 
                         if let Some((s,e)) = file_buffers[active_fb_index].selection() {
-                            let bytes = file_buffers[active_fb_index].as_slice()[s..=e].to_vec();
+                            let bytes = file_buffers[active_fb_index][s..=e].to_vec();
                             file_buffers[active_fb_index].insert_block(cursor.position(), bytes);
                         } else if !yank_buffer.is_empty() {
                             file_buffers[active_fb_index].insert_block(cursor.position(), yank_buffer.clone());
@@ -1213,7 +1214,7 @@ fn main() {
                 Some(Command::AppendBlock) => {
                     if cursor.is_visible() {
                         if let Some((s,e)) = file_buffers[active_fb_index].selection() {
-                            let bytes = file_buffers[active_fb_index].as_slice()[s..=e].to_vec();
+                            let bytes = file_buffers[active_fb_index][s..=e].to_vec();
                             file_buffers[active_fb_index].insert_block(cursor.position()+1, bytes);
                         } else if !yank_buffer.is_empty() {
                             file_buffers[active_fb_index].insert_block(cursor.position()+1, yank_buffer.clone());
@@ -1278,7 +1279,7 @@ fn main() {
                     let o = if cursor.is_visible() { cursor.position() } else { fb.position() };
 
                     if o < fb.len() {
-                        match command_functions::parse_struct(&fb.as_slice()[o..], name) {
+                        match command_functions::parse_struct(&fb[o..], name) {
                             Err(s) => { MessageBox::new(0, rows-2, cols).show(&mut stdout, s.as_str(), MessageBoxType::Error, &color_scheme); },
                             Ok(ll) => {
                                 let hl = (&ll).into_iter().filter_map(|fd| {

@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::cmp::min;
+use std::ops::Deref;
 use crate::location_list::LocationList;
 use crate::highlight_list::HighlightList;
 
@@ -59,11 +60,6 @@ impl FileBuffer {
     //returns byte on given offset (if any)
     pub fn get(&self, offset: usize) -> Option<u8> {
         self.file_data.get(offset).cloned()
-    }
-
-    //return internal data vector as a reference to slice
-    pub fn as_slice(&self) -> &[u8] {
-        self.file_data.as_slice()
     }
 
     //change a byte in the file buffer and add original one to the patch map
@@ -252,5 +248,14 @@ impl FileBuffer {
 
     pub fn set_filtered_location_list(&mut self, location_list: Option<LocationList>) {
         self.location_list_filtered = location_list;
+    }
+}
+
+impl Deref for FileBuffer {
+    type Target = [u8];
+
+    #[inline]
+    fn deref(&self) -> &[u8] {
+        &self.file_data
     }
 }
