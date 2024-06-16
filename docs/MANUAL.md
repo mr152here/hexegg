@@ -226,7 +226,7 @@ Next is a list of available commands, their parameters, and their descriptions. 
 *fax \<bytes\>*
 > wrapper to the *findall* command with *findhex* syntax.
 
-*findstring \{min_size = 4\} \[regex\]* 
+*findstring \{min_size = 4\} \[regex\]*  
 *fs \{min_size = 4\} \[regex\]*
 > find and jump to the beginning of the next string that is at least *min_size* long and contains and matches *regex*. If the first parameter can be converted into the integer, then specifies *min_size*, otherwise specifies *regex*. The second *regex* parameter is used only when the first one is *min_size*. A string is a sequence of printable ascii characters that starts after and ends before any non-printable character. Not necessary the zero-byte.
 > 
@@ -236,15 +236,15 @@ Next is a list of available commands, their parameters, and their descriptions. 
 > 'fs 15 10' - find the next string that is at least 15 bytes in size and contains '10' 
 > 'fs ^[Hh]exedit' - find the next string that starts with 'hexedit' or Hexedit 
 
-*findallstrings \{min_size = 4\} \[regex\]* 
+*findallstrings \{min_size = 4\} \[regex\]*  
 *fas \{min_size = 4\} \[regex\]*
 > find all strings in the file and show them in the location bar. Works the same as *findstring* but locates all strings, not just the next one.
 
-*findunicodestring \{min_size = 4\} \[regex\]* 
+*findunicodestring \{min_size = 4\} \[regex\]*  
 *fu \{min_size = 4\} \[regex\]*
 > same as *findstring* except it works on "ascii-unicode" type string. That are 16bit wide characters strings, where every 1st is ascii and every 2nd byte is a zero-byte. Like H\x00e\x00l\x00l\x00o\x00 sequence. Parameters are specified as ascii string and *min_size* is number of characters.
 
-*findallunicodestrings \{min_size = 4\} \[regex\]* 
+*findallunicodestrings \{min_size = 4\} \[regex\]*  
 *fau \{min_size = 4\} \[regex\]*
 > find all "ascii-unicode" strings in file and show them in the location bar. Works the same as *findunicodestring*, but locates all strings, not just the next one.
 
