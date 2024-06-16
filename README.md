@@ -16,7 +16,6 @@ Interactive hex editor for linux terminal (and other platforms) with some advanc
 - results highlighting
 - parse some binary structures MZPE, ELF, ..
 - simple command interface
-- minimal external dependencies
 - mouse support
 
 Please read the [manual](docs/MANUAL.md) to see all commands and features or [cheat sheet](docs/CheatSheet.md) to see all keyboard shortcuts.
@@ -58,6 +57,7 @@ hexegg -t 1000000 /dev/sda1
 Hexegg is written in the [rust](https://www.rust-lang.org) programming language using the following libraries:
 - [crossterm](https://github.com/crossterm-rs/crossterm)
 - [toml](https://github.com/toml-rs/toml)
+- [regex-lite](https://docs.rs/regex-lite/latest/regex_lite/)
 - [serde](https://serde.rs/)
 - [signal-hook](https://github.com/vorner/signal-hook)
 

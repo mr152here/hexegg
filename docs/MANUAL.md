@@ -1,4 +1,4 @@
-# hexegg (0.10)
+# hexegg (0.11)
 
 Hexegg reads all input files specified by their names as command-line arguments.
 
@@ -145,7 +145,7 @@ Hexegg has a build-in command interface with a simple history of last used comma
 - DEL - delete current character from the user string
 - TAB - autocomplete command or show current command hints/possibilities
 
-Next is a list of available commands, their parameters, and their descriptions. The parameters in [] are optional, the parameters in <> are mandatory, and the parameters in {} have predefined default values. If not stated otherwise, all parameters must be specified in order. If the {default} parameter is in front of another non-default parameter, it cannot be skipped. You can specify command by typing its full name (e.g. *findallstrings*) or by typing its sort name (e.g. *fas*).
+Next is a list of available commands, their parameters, and their descriptions. The parameters in [] are optional, the parameters in <> are mandatory, and the parameters in {} have predefined default values. If not stated otherwise, all parameters must be specified in order. You can specify command by typing its full name (e.g. *findallstrings*) or by typing its alias (e.g. *fas*). Aliases are defined in *config.toml* file. You can create/define your own.
 
 #### Command list
 
@@ -226,33 +226,33 @@ Next is a list of available commands, their parameters, and their descriptions. 
 *fax \<bytes\>*
 > wrapper to the *findall* command with *findhex* syntax.
 
-*findstring \<min_size or substring\> \[substring\]*  
-*fs \<min_size or substring\> \[substring\]*
-> find and jump to the beginning of the next string that is at least *min_size* long and contains a *substring*. If the first parameter can be converted to an integer, then specifies *min_size*, otherwise specifies *substring*. The second *substring* parameter is used only when the first one is *min_size*. If the size of *substring* is greater than *min_size*, the former size is used. A string is a sequence of printable ascii characters that starts after and ends before any non-printable character. Not necessary the zero-byte.
+*findstring \{min_size = 4\} \[regex\]* 
+*fs \{min_size = 4\} \[regex\]*
+> find and jump to the beginning of the next string that is at least *min_size* long and contains and matches *regex*. If the first parameter can be converted into the integer, then specifies *min_size*, otherwise specifies *regex*. The second *regex* parameter is used only when the first one is *min_size*. A string is a sequence of printable ascii characters that starts after and ends before any non-printable character. Not necessary the zero-byte.
 > 
 > 'fs 10' - find the next string that is at least 10 bytes long.  
-> 'fs hexedit' - find the next string that is at least 7 bytes in size and contains 'hexedit'   
-> 'fs 20 hexedit' - find the next string that is at least 20 bytes in size and contains 'hexedit'  
-> 'fs 15 10' - find the next string that is at least 15 bytes in size and contains '10'  
-> 'fs 4 hexedit' - find the next string that is at least 7 bytes in the size and contains 'hexedit' 
+> 'fs hexedit' - find the next string that is at least contains 'hexedit' 
+> 'fs 20 hexedit' - find the next string that is at least 20 bytes in size and contains 'hexedit' 
+> 'fs 15 10' - find the next string that is at least 15 bytes in size and contains '10' 
+> 'fs ^[Hh]exedit' - find the next string that starts with 'hexedit' or Hexedit 
 
-*findallstrings \<min_size or substring\> \[substring\]*  
-*fas \<min_size or substring\> \[substring\]*
-> find all strings in file and show them in the location bar. Works the same as *findstring* but locates all strings, not just the next one.
+*findallstrings \{min_size = 4\} \[regex\]* 
+*fas \{min_size = 4\} \[regex\]*
+> find all strings in the file and show them in the location bar. Works the same as *findstring* but locates all strings, not just the next one.
 
-*findunicodestring \<min_size or substring\> \[substring\]*  
-*fu \<min_size or substring\> \[substring\]*
-> same as *findstring* except it works on "ascii-unicode" type string. That are 16bit wide characters strings, where every 1st is ascii and every 2nd byte is a zero-byte. Like H\x00e\x00l\x00l\x00o\x00 sequence. Parameters are specified as ascii *substring* and *min_size* is number of characters not bytes.
+*findunicodestring \{min_size = 4\} \[regex\]* 
+*fu \{min_size = 4\} \[regex\]*
+> same as *findstring* except it works on "ascii-unicode" type string. That are 16bit wide characters strings, where every 1st is ascii and every 2nd byte is a zero-byte. Like H\x00e\x00l\x00l\x00o\x00 sequence. Parameters are specified as ascii string and *min_size* is number of characters.
 
-*findallunicodestrings \<min_size or substring\> \[substring\]*  
-*fau \<min_size or substring\> \[substring\]*
-> find all "ascii-unicode" strings in file and show them in the location bar. Works the same as *findunicodestring* but locates all strings, not just the next one.
+*findallunicodestrings \{min_size = 4\} \[regex\]* 
+*fau \{min_size = 4\} \[regex\]*
+> find all "ascii-unicode" strings in file and show them in the location bar. Works the same as *findunicodestring*, but locates all strings, not just the next one.
 
 *replaceall /[pattern/]*
 > replace all items from location bar by *pattern* or selected block (if *pattern* is not specified). Items in the location bar must be the size as *pattern* or block.
 
-*filter \[substring\] \[substring\] ...*
-> filter results in Location Bar and display only that containing at least one of *substrings*. To reset filter, use empty *filter* command.
+*filter \[regex\]*
+> filter results in Location Bar and display only that matches regex. To reset filter, use *filter* command with empty *regex*.
 
 *deleteblock*
 > delete selected block from the file
