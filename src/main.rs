@@ -4,7 +4,7 @@ use std::io::{Read, Write, IsTerminal};
 use std::time::{Duration, Instant};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
-use regex::Regex;
+use regex_lite::Regex;
 
 #[cfg(target_family = "unix")]
 use signal_hook::low_level;

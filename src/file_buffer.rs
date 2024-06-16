@@ -128,7 +128,7 @@ impl FileBuffer {
 
     //returns true if byte at offset is modified
     pub fn is_patched(&self, offset: usize) -> bool {
-        self.patch_map.get(&offset).is_some()
+        self.patch_map.contains_key(&offset)
     }
 
     //returns true if something in the file buffer was changed

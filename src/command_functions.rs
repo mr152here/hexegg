@@ -2,7 +2,7 @@ use std::fs::File;
 use std::io::{Write as _, Read};
 use std::fmt::Write as _;
 use std::process::{Command, Stdio};
-use regex::Regex;
+use regex_lite::Regex;
 use crate::location_list::{Location, LocationList};
 use crate::file_buffer::FileBuffer;
 use crate::ColorScheme;

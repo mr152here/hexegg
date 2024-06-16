@@ -12,5 +12,5 @@ crossterm = {version="0.27", features=["serde"]}
 serde = {version="1.0", features=["derive"]}
 toml = "0.8"
 signal-hook = "0.3"
-regex = "1.10"
+regex-lite = "0.1.6"
 
