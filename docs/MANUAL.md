@@ -231,9 +231,9 @@ Next is a list of available commands, their parameters, and their descriptions. 
 > find and jump to the beginning of the next string that is at least *min_size* long and contains and matches *regex*. If the first parameter can be converted into the integer, then specifies *min_size*, otherwise specifies *regex*. The second *regex* parameter is used only when the first one is *min_size*. A string is a sequence of printable ascii characters that starts after and ends before any non-printable character. Not necessary the zero-byte.
 > 
 > 'fs 10' - find the next string that is at least 10 bytes long.  
-> 'fs hexedit' - find the next string that is at least contains 'hexedit' 
-> 'fs 20 hexedit' - find the next string that is at least 20 bytes in size and contains 'hexedit' 
-> 'fs 15 10' - find the next string that is at least 15 bytes in size and contains '10' 
+> 'fs hexedit' - find the next string that is at least contains 'hexedit'  
+> 'fs 20 hexedit' - find the next string that is at least 20 bytes in size and contains 'hexedit'  
+> 'fs 15 10' - find the next string that is at least 15 bytes in size and contains '10'  
 > 'fs ^[Hh]exedit' - find the next string that starts with 'hexedit' or Hexedit 
 
 *findallstrings \{min_size = 4\} \[regex\]*  
