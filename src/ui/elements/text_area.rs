@@ -114,6 +114,7 @@ impl TextArea {
                 let s = match byte {
                     Some(b) if config.only_printable => if is_printable(b) { byte_to_utf8_str(b) } else { HIDDEN_BYTE },
                     Some(b) => byte_to_utf8_str(b),
+                    None if config.only_printable => HIDDEN_BYTE,
                     None => UNDEFINED_BYTE,
                 };
                 stdout.queue(Print(s)).unwrap();
